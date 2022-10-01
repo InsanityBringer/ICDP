@@ -287,7 +287,7 @@ void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time
 	}
 	else {
 		Gr_scanline_darkening_level = cloak_value;
-		g3_set_special_render(draw_tmap_flat, NULL, NULL);		//use special flat drawer
+		//g3_set_special_render(draw_tmap_flat, NULL, NULL);		//use special flat drawer
 		draw_polygon_model(&obj->pos, &obj->orient, &obj->rtype.pobj_info.anim_angles[0], obj->rtype.pobj_info.model_num, obj->rtype.pobj_info.subobj_flags, light, glow, alt_textures);
 		g3_set_special_render(NULL, NULL, NULL);
 		Gr_scanline_darkening_level = GR_FADE_LEVELS;
@@ -304,9 +304,9 @@ void draw_polygon_object(object* obj)
 
 	light = compute_object_light(obj, NULL);
 
-	imsave = Interpolation_method;
+	imsave = g3_get_interpolation_mode();
 	if (Linear_tmap_polygon_objects)
-		Interpolation_method = 1;
+		g3_set_interpolation_mode(1);
 
 	//set engine glow value
 	engine_glow_value = f1_0 / 5;
@@ -361,7 +361,7 @@ void draw_polygon_object(object* obj)
 		}
 	}
 
-	Interpolation_method = imsave;
+	g3_set_interpolation_mode(imsave);
 
 }
 

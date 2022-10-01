@@ -352,7 +352,7 @@ int D_DescentMain(int argc, const char** argv)
 	}
 	if (Inferno_verbose) printf("Setting FPS Limit %d\n", FPSLimit);
 
-	Lighting_on = 1;
+	g3_set_lighting_mode(1);
 
 	strcpy(Menu_pcx_name, "menu.pcx");	//	Used to be menu2.pcx.
 

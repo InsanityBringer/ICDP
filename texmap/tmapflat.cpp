@@ -24,15 +24,11 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "texmapl.h"
 #include "scanline.h"
 
-extern int Window_clip_left, Window_clip_bot, Window_clip_right, Window_clip_top;
-
-void (*scanline_func)(int, fix, fix);
-
 // -------------------------------------------------------------------------------------
 //	Texture map current scanline.
 //	Uses globals Du_dx and Dv_dx to incrementally compute u,v coordinates
 // -------------------------------------------------------------------------------------
-void tmap_scanline_flat(int y, fix xleft, fix xright)
+void Texmap::ScanlineFlat(int y, fix xleft, fix xright)
 {
 	if (xright < xleft)
 		return;
@@ -48,11 +44,11 @@ void tmap_scanline_flat(int y, fix xleft, fix xright)
 		fx_xright = Window_clip_right;
 
 	if (Gr_scanline_darkening_level >= GR_FADE_LEVELS)
-		c_tmap_scanline_flat();
+		DrawScanlineFlat();
 	else 
 	{
 		tmap_flat_shade_value = Gr_scanline_darkening_level;
-		c_tmap_scanline_shaded();
+		DrawScanlineShaded();
 	}
 }
 
@@ -60,7 +56,7 @@ void tmap_scanline_flat(int y, fix xleft, fix xright)
 //	Render a texture map.
 // Linear in outer loop, linear in inner loop.
 // -------------------------------------------------------------------------------------
-void texture_map_flat(g3ds_tmap* t, int color)
+void Texmap::TMapFlat(g3ds_tmap* t, int color)
 {
 	int	vlt, vrt, vlb, vrb;	// vertex left top, vertex right top, vertex left bottom, vertex right bottom
 	int	topy, boty, y, dy;
@@ -159,23 +155,36 @@ void texture_map_flat(g3ds_tmap* t, int color)
 		//tmap_scanline_flat(y, xleft, xright);
 		if (xleft < 0)
 			xleft = 0; //[ISB] godawful hack
-		(*scanline_func)(y, xleft, xright);
+		ScanlineFlat(y, xleft, xright);
 
 		xleft += dx_dy_left;
 		xright += dx_dy_right;
 
 	}
 	//tmap_scanline_flat(y, xleft, xright);
-	(*scanline_func)(y, xleft, xright);
+	ScanlineFlat(y, xleft, xright);
 }
 
 
 //	-----------------------------------------------------------------------------------------
 //	This is the gr_upoly-like interface to the texture mapper which uses texture-mapper compatible
 //	(ie, avoids cracking) edge/delta computation.
-void gr_upoly_tmap(int nverts, int* vert)
+void Texmap::DrawFlat(int color, int nverts, int* vert)
 {
-	gr_upoly_tmap_ylr(nverts, vert, tmap_scanline_flat);
+	g3ds_tmap	my_tmap;
+	int			i;
+
+	//--now called from g3_start_frame-- init_interface_vars_to_assembler();
+
+	my_tmap.nv = nverts;
+
+	for (i = 0; i < nverts; i++)
+	{
+		my_tmap.verts[i].x2d = *vert++;
+		my_tmap.verts[i].y2d = *vert++;
+	}
+
+	TMapFlat(&my_tmap, color);
 }
 
 #include "3d/3d.h"
@@ -186,7 +195,7 @@ typedef struct pnt2d {
 } pnt2d;
 
 //this takes the same partms as draw_tmap, but draws a flat-shaded polygon
-void draw_tmap_flat(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
+void Texmap::DrawFlat(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 {
 	pnt2d	points[MAX_TMAP_VERTS];
 	int	i;
@@ -210,7 +219,6 @@ void draw_tmap_flat(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 		average_light = NUM_LIGHTING_LEVELS - 1;
 
 	color = gr_fade_table[average_light * 256 + bp->avg_color];
-	gr_setcolor(color);
 
 	for (i = 0; i < nverts; i++) 
 	{
@@ -218,28 +226,6 @@ void draw_tmap_flat(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 		points[i].y = vertbuf[i]->p3_sy;
 	}
 
-	gr_upoly_tmap(nverts, (int*)points);
+	DrawFlat(color, nverts, (int*)points);
 }
 
-//	-----------------------------------------------------------------------------------------
-//This is like gr_upoly_tmap() but instead of drawing, it calls the specified
-//function with ylr values
-void gr_upoly_tmap_ylr(int nverts, int* vert, void(*ylr_func)(int, fix, fix))
-{
-	g3ds_tmap	my_tmap;
-	int			i;
-
-	//--now called from g3_start_frame-- init_interface_vars_to_assembler();
-
-	my_tmap.nv = nverts;
-
-	for (i = 0; i < nverts; i++) 
-	{
-		my_tmap.verts[i].x2d = *vert++;
-		my_tmap.verts[i].y2d = *vert++;
-	}
-
-	scanline_func = ylr_func;
-
-	texture_map_flat(&my_tmap, COLOR);
-}

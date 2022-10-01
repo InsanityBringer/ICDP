@@ -212,10 +212,10 @@ void draw_3d_reticle(fix eye_offset)
 	show_reticle(1);
 	gr_set_current_canvas(saved_canvas);
 
-	saved_interp_method = Interpolation_method;
-	Interpolation_method = 3;		// The best, albiet slowest.
+	saved_interp_method = g3_get_interpolation_mode();
+	g3_set_interpolation_mode(3);		// The best, albiet slowest.
 	g3_draw_tmap(4, pointlist, uvl, &reticle_canvas->cv_bitmap);
-	Interpolation_method = saved_interp_method;
+	g3_set_interpolation_mode(saved_interp_method);
 }
 
 
@@ -1696,11 +1696,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 	//render away
 #ifndef NDEBUG
 	if (!window_check) 
-	{
-		Window_clip_left = Window_clip_top = 0;
-		Window_clip_right = grd_curcanv->cv_bitmap.bm_w - 1;
-		Window_clip_bot = grd_curcanv->cv_bitmap.bm_h - 1;
-	}
+		g3_global_inst.texmap_inst().SetClipWindow(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
 #endif
 
 #ifndef NDEBUG
@@ -1765,7 +1761,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 		// Interpolation_method = 0;
 		segnum = Render_list[nn];
-		Current_seg_depth = Seg_depth[nn];
+		g3_global_inst.texmap_inst().SetSegmentDepth(Seg_depth[nn]);
 
 		//if (!no_render_flag[nn])
 		if (segnum != -1 && (_search_mode || eye_offset > 0 || visited[segnum] != 255)) 
@@ -1774,10 +1770,9 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 			if (window_check) 
 			{
-				Window_clip_left = render_windows[nn].left;
-				Window_clip_top = render_windows[nn].top;
-				Window_clip_right = render_windows[nn].right;
-				Window_clip_bot = render_windows[nn].bot;
+				window& render_window = render_windows[nn];
+				g3_global_inst.texmap_inst().SetClipWindow(render_window.left, render_window.top,
+					render_window.right, render_window.bot);
 			}
 
 			//mprintf((0," %d",segnum));
@@ -1787,9 +1782,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 			if (window_check) //reset for objects
 			{
-				Window_clip_left = Window_clip_top = 0;
-				Window_clip_right = grd_curcanv->cv_bitmap.bm_w - 1;
-				Window_clip_bot = grd_curcanv->cv_bitmap.bm_h - 1;
+				g3_global_inst.texmap_inst().SetClipWindow(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
 			}
 
 			if (migrate_objects) 

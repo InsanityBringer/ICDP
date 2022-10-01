@@ -16,17 +16,35 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "texmap/texmap.h"
 #include "misc/types.h"
 
-void (*tmap_drawer_ptr)(grs_bitmap* bm, int nv, g3s_point** vertlist) = draw_tmap;
-void (*flat_drawer_ptr)(int nv, int* vertlist) = gr_upoly_tmap;
 int (*line_drawer_ptr)(fix x0, fix y0, fix x1, fix y1) = gr_line;
 
 //specifies 2d drawing routines to use instead of defaults.  Passing
 //NULL for either or both restores defaults
 void g3_set_special_render(void (*tmap_drawer)(grs_bitmap* bm, int nv, g3s_point** vertlist), void (*flat_drawer)(int nv, int* vertlist), int (*line_drawer)(fix x0, fix y0, fix x1, fix y1))
 {
-	tmap_drawer_ptr = (tmap_drawer) ? tmap_drawer : draw_tmap;
-	flat_drawer_ptr = (flat_drawer) ? flat_drawer : gr_upoly_tmap;
+	//tmap_drawer_ptr = (tmap_drawer) ? tmap_drawer : draw_tmap;
+	//flat_drawer_ptr = (flat_drawer) ? flat_drawer : gr_upoly_tmap;
 	line_drawer_ptr = (line_drawer) ? line_drawer : gr_line;
+}
+
+void g3_set_lighting_mode(int new_mode)
+{
+	g3_global_inst.set_lighting_mode(new_mode);
+}
+
+int g3_get_lighting_mode()
+{
+	return g3_global_inst.get_lighting_mode();
+}
+
+void g3_set_interpolation_mode(int new_mode)
+{
+	g3_global_inst.set_interpolation_mode(new_mode);
+}
+
+int g3_get_interpolation_mode()
+{
+	return g3_global_inst.get_interpolation_mode();
 }
 
 dbool G3Instance::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or)
@@ -81,7 +99,7 @@ dbool G3Instance::must_clip_flat_face(int nv, g3s_codes cc)
 			Vertex_list[i * 2 + 1] = p->p3_sy;
 		}
 
-		(*flat_drawer_ptr)(nv, (int*)Vertex_list);
+		texmap_instance.DrawFlat(grd_curcanv->cv_color, nv, (int*)Vertex_list);
 	}
 	else
 		ret = 1;
@@ -122,7 +140,7 @@ dbool G3Instance::must_clip_tmap_face(int nv, g3s_codes cc, grs_bitmap* bm)
 			}
 		}
 
-		(*tmap_drawer_ptr)(bm, nv, bufptr);
+		texmap_instance.DrawTMap(bm, nv, bufptr);
 	}
 
 free_points:
@@ -208,7 +226,7 @@ dbool G3Instance::draw_poly(int nv, g3s_point** pointlist)
 		Vertex_list[i * 2 + 1] = p->p3_sy;
 	}
 
-	(*flat_drawer_ptr)(nv, (int*)Vertex_list);
+	texmap_instance.DrawFlat(grd_curcanv->cv_color, nv, (int*)Vertex_list);
 
 	return 0;	//say it drew
 }
@@ -263,7 +281,7 @@ dbool G3Instance::draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, gr
 		}
 	}
 
-	(*tmap_drawer_ptr)(bm, nv, bufptr);
+	texmap_instance.DrawTMap(bm, nv, bufptr);
 
 	return 0;	//say it drew
 }

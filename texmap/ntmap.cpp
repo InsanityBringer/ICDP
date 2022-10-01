@@ -23,6 +23,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "platform/mono.h"
 #include "fix/fix.h"
@@ -39,49 +40,24 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #define F15_5 (F1_0*15 + F0_5)
 
-// Temporary texture map, interface from Matt's 3d system to Mike's texture mapper.
-g3ds_tmap Tmap1;
+int	y_pointers[MAX_Y_POINTERS];
 
-int	Interpolation_method = 0;	// 0 = choose best method
-int	Lighting_on;				// initialize to no lighting
-int	Tmap_flat_flag = 0;		//	1 = render texture maps as flat shaded polygons.
-int	Current_seg_depth;		// HACK INTERFACE: how far away the current segment (& thus texture) is
+fix fix_recip[FIX_RECIP_TABLE_SIZE];
+int	Fix_recip_table_computed = 0;
+
+//[ISB] global for now
 int	Max_perspective_depth;
 int	Max_linear_depth;
 int	Max_flat_depth;
 
-int Window_clip_left, Window_clip_bot, Window_clip_right, Window_clip_top;
-
-// These variables are the interface to assembler.  They get set for each texture map, which is a real waste of time.
-//	They should be set only when they change, which is generally when the window bounds change.  And, even still, it's
-//	a pretty bad interface.
-int	bytes_per_row = -1;
-uint8_t* write_buffer;
-int  	window_left;
-int	window_right;
-int	window_top;
-int	window_bottom;
-int  	window_width;
-int  	window_height;
-
-int	y_pointers[MAX_Y_POINTERS];
-
-fix fix_recip[FIX_RECIP_TABLE_SIZE];
-
-int	Lighting_enabled;
-int	Fix_recip_table_computed = 0;
-
-fix fx_l, fx_u, fx_v, fx_z, fx_du_dx, fx_dv_dx, fx_dz_dx, fx_dl_dx;
-int fx_xleft, fx_xright, fx_y;
-unsigned char* pixptr;
-int Transparency_on = 0;
-int dither_intensity_lighting = 0;
-
-uint8_t tmap_flat_color;
-uint8_t tmap_flat_shade_value;
-
 Texmap::Texmap()
 {
+	memset(&Tmap1, 0, sizeof(Tmap1));
+	memset(y_pointers, 0, sizeof(y_pointers));
+	write_buffer = nullptr;
+	window_left = window_right = window_top = window_bottom = 0;
+	window_width = window_height = 0;
+
 }
 
 // -------------------------------------------------------------------------------------
@@ -104,22 +80,27 @@ void init_fix_recip_table(void)
 //	not at all.  I'm pretty sure these variables are only being used for range checking.
 void init_interface_vars_to_assembler(void)
 {
-	grs_bitmap* bp;
-	bp = &grd_curcanv->cv_bitmap;
+	if (!Fix_recip_table_computed)
+		init_fix_recip_table();
+}
+
+void Texmap::SetCanvas(grs_canvas* canv)
+{
+	grs_bitmap* bp = &(canv->cv_bitmap);
 
 	Assert(bp != NULL);
 	Assert(bp->bm_data != NULL);
 	Assert(bp->bm_h <= MAX_Y_POINTERS);
 
 	//	If bytes_per_row has changed, create new table of pointers.
-	if (bytes_per_row != (int)bp->bm_rowsize) 
+	if (bytes_per_row != (int)bp->bm_rowsize)
 	{
 		int	y_val, i;
 
 		bytes_per_row = (int)bp->bm_rowsize;
 
 		y_val = 0;
-		for (i = 0; i < MAX_Y_POINTERS; i++) 
+		for (i = 0; i < MAX_Y_POINTERS; i++)
 		{
 			y_pointers[i] = y_val;
 			y_val += bytes_per_row;
@@ -140,9 +121,6 @@ void init_interface_vars_to_assembler(void)
 
 	window_width = bp->bm_w;
 	window_height = bp->bm_h;
-
-	if (!Fix_recip_table_computed)
-		init_fix_recip_table();
 }
 
 // -------------------------------------------------------------------------------------
@@ -280,14 +258,11 @@ fix compute_dz_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
 {
 	return fixmul(t->verts[bottom_vertex].z - t->verts[top_vertex].z, recip_dy);
 }
-int Skip_short_flag = 0;
-
-extern void c_tmap_scanline_editor();
 
 // -------------------------------------------------------------------------------------
 //	Texture map current scanline in perspective.
 // -------------------------------------------------------------------------------------
-void ntmap_scanline_lighted(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix zleft, fix zright, fix lleft, fix lright)
+void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix zleft, fix zright, fix lleft, fix lright)
 {
 	fix	u, v, l;
 	fix	dx, recip_dx;
@@ -339,7 +314,7 @@ void ntmap_scanline_lighted(grs_bitmap* srcb, int y, fix xleft, fix xright, fix 
 		if (fx_xright > Window_clip_right)
 			fx_xright = Window_clip_right;
 
-		c_tmap_scanline_pln_nolight();
+		DrawScanlinePerspectivePer16NoLight();
 		break;
 	case 1: 
 	{
@@ -367,15 +342,7 @@ void ntmap_scanline_lighted(grs_bitmap* srcb, int y, fix xleft, fix xright, fix 
 		if (fx_xright > Window_clip_right)
 			fx_xright = Window_clip_right;
 
-#ifdef TEXMAP_ANTIALIAS
-		c_tmap_scanline_pln_aa();
-#else
-#ifdef TEXMAP_DITHER
-		c_tmap_scanline_per_dither();
-#else
-		c_tmap_scanline_pln();
-#endif
-#endif
+		DrawScanlinePerspectivePer16();
 		break;
 	}
 	case 2:
@@ -383,7 +350,7 @@ void ntmap_scanline_lighted(grs_bitmap* srcb, int y, fix xleft, fix xright, fix 
 		fx_xright = f2i(xright);
 		fx_xleft = f2i(xleft);
 
-		c_tmap_scanline_editor();
+		DrawScanlineEditor();
 #else
 		Int3();	//	Illegal, called an editor only routine!
 #endif
@@ -399,7 +366,7 @@ int	Break_on_flat = 0;
 // -------------------------------------------------------------------------------------
 //	Render a texture map with lighting using perspective interpolation in inner and outer loops.
 // -------------------------------------------------------------------------------------
-void ntexture_map_lighted(grs_bitmap* srcb, g3ds_tmap* t)
+void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 {
 	int	vlt, vrt, vlb, vrb;	// vertex left top, vertex right top, vertex left bottom, vertex right bottom
 	int	topy, boty, y, dy;
@@ -563,13 +530,13 @@ void ntexture_map_lighted(grs_bitmap* srcb, g3ds_tmap* t)
 		if (Lighting_enabled) 
 		{
 			if (y >= Window_clip_top)
-				ntmap_scanline_lighted(srcb, y, xleft, xright, uleft, uright, vleft, vright, zleft, zright, lleft, lright);
+				ScanlinePerspective(srcb, y, xleft, xright, uleft, uright, vleft, vright, zleft, zright, lleft, lright);
 			lleft += dl_dy_left;
 			lright += dl_dy_right;
 		}
 		else
 			if (y >= Window_clip_top)
-				ntmap_scanline_lighted(srcb, y, xleft, xright, uleft, uright, vleft, vright, zleft, zright, lleft, lright);
+				ScanlinePerspective(srcb, y, xleft, xright, uleft, uright, vleft, vright, zleft, zright, lleft, lright);
 
 		uleft += du_dy_left;
 		vleft += dv_dy_left;
@@ -587,14 +554,14 @@ void ntexture_map_lighted(grs_bitmap* srcb, g3ds_tmap* t)
 
 	// We can get lleft or lright out of bounds here because we compute dl_dy using fixed point values,
 	//	but we plot an integer number of scanlines, therefore doing an integer number of additions of the delta.
-	ntmap_scanline_lighted(srcb, y, xleft, xright, uleft, uright, vleft, vright, zleft, zright, lleft, lright);
+	ScanlinePerspective(srcb, y, xleft, xright, uleft, uright, vleft, vright, zleft, zright, lleft, lright);
 }
 
 
 // -------------------------------------------------------------------------------------
 //	Texture map current scanline using linear interpolation.
 // -------------------------------------------------------------------------------------
-void ntmap_scanline_lighted_linear(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix lleft, fix lright)
+void Texmap::ScanlineLinear(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix lleft, fix lright)
 {
 	fix	u, v, l;
 	fix	dx, recip_dx;
@@ -634,7 +601,7 @@ void ntmap_scanline_lighted_linear(grs_bitmap* srcb, int y, fix xleft, fix xrigh
 	switch (Lighting_enabled) 
 	{
 	case 0:
-		c_tmap_scanline_lin_nolight();
+		DrawScanlineLinearNoLight();
 		break;
 	case 1:
 		if (lleft < F1_0 / 2)
@@ -650,7 +617,7 @@ void ntmap_scanline_lighted_linear(grs_bitmap* srcb, int y, fix xleft, fix xrigh
 		fx_l = lleft;
 		dl_dx = fixmul(lright - lleft, recip_dx);
 		fx_dl_dx = dl_dx;
-		c_tmap_scanline_lin();
+		DrawScanlineLinear();
 		break;
 	case 2:
 #ifdef EDITOR_TMAP
@@ -667,7 +634,7 @@ void ntmap_scanline_lighted_linear(grs_bitmap* srcb, int y, fix xleft, fix xrigh
 // -------------------------------------------------------------------------------------
 //	Render a texture map with lighting using perspective interpolation in inner and outer loops.
 // -------------------------------------------------------------------------------------
-void ntexture_map_lighted_linear(grs_bitmap* srcb, g3ds_tmap* t)
+void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 {
 	int	vlt, vrt, vlb, vrb;	// vertex left top, vertex right top, vertex left bottom, vertex right bottom
 	int	topy, boty, y, dy;
@@ -821,12 +788,12 @@ void ntexture_map_lighted_linear(grs_bitmap* srcb, g3ds_tmap* t)
 
 		if (Lighting_enabled) 
 		{
-			ntmap_scanline_lighted_linear(srcb, y, xleft, xright, uleft, uright, vleft, vright, lleft, lright);
+			ScanlineLinear(srcb, y, xleft, xright, uleft, uright, vleft, vright, lleft, lright);
 			lleft += dl_dy_left;
 			lright += dl_dy_right;
 		}
 		else
-			ntmap_scanline_lighted_linear(srcb, y, xleft, xright, uleft, uright, vleft, vright, lleft, lright);
+			ScanlineLinear(srcb, y, xleft, xright, uleft, uright, vleft, vright, lleft, lright);
 
 		uleft += du_dy_left;
 		vleft += dv_dy_left;
@@ -840,17 +807,15 @@ void ntexture_map_lighted_linear(grs_bitmap* srcb, g3ds_tmap* t)
 
 	// We can get lleft or lright out of bounds here because we compute dl_dy using fixed point values,
 	//	but we plot an integer number of scanlines, therefore doing an integer number of additions of the delta.
-	ntmap_scanline_lighted_linear(srcb, y, xleft, xright, uleft, uright, vleft, vright, lleft, lright);
+	ScanlineLinear(srcb, y, xleft, xright, uleft, uright, vleft, vright, lleft, lright);
 }
 
 // fix	DivNum = F1_0*12;
 
-extern void draw_tmap_flat(grs_bitmap* bp, int nverts, g3s_point** vertbuf);
-
 // -------------------------------------------------------------------------------------
 // Interface from Matt's data structures to Mike's texture mapper.
 // -------------------------------------------------------------------------------------
-void draw_tmap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
+void Texmap::DrawTMap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 {
 	int	i;
 
@@ -871,7 +836,7 @@ void draw_tmap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 	//	If no transparency and seg depth is large, render as flat shaded.
 	if ((Current_seg_depth > Max_linear_depth) && ((bp->bm_flags & 3) == 0)) 
 	{
-		draw_tmap_flat(bp, nverts, vertbuf);
+		DrawFlat(bp, nverts, vertbuf);
 		return;
 	}
 
@@ -918,18 +883,18 @@ void draw_tmap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 		{
 		case 0:								// choose best interpolation
 			if (Current_seg_depth > Max_perspective_depth)
-				ntexture_map_lighted_linear(bp, &Tmap1);
+				TMapLinear(bp, &Tmap1);
 			else
-				ntexture_map_lighted(bp, &Tmap1);
+				TMapPerspective(bp, &Tmap1);
 			break;
 		case 1:								// linear interpolation
-			ntexture_map_lighted_linear(bp, &Tmap1);
+			TMapLinear(bp, &Tmap1);
 			break;
 		case 2:								// perspective every 8th pixel interpolation
-			ntexture_map_lighted(bp, &Tmap1);
+			TMapPerspective(bp, &Tmap1);
 			break;
 		case 3:								// perspective every pixel interpolation
-			ntexture_map_lighted(bp, &Tmap1);
+			TMapPerspective(bp, &Tmap1);
 			break;
 		default:
 			Assert(0);				// Illegal value for Interpolation_method, must be 0,1,2,3
@@ -941,18 +906,18 @@ void draw_tmap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 		{	
 		case 0:								// choose best interpolation
 			if (Current_seg_depth > Max_perspective_depth)
-				ntexture_map_lighted_linear(bp, &Tmap1);
+				TMapLinear(bp, &Tmap1);
 			else
-				ntexture_map_lighted(bp, &Tmap1);
+				TMapPerspective(bp, &Tmap1);
 			break;
 		case 1:								// linear interpolation
-			ntexture_map_lighted_linear(bp, &Tmap1);
+			TMapLinear(bp, &Tmap1);
 			break;
 		case 2:								// perspective every 8th pixel interpolation
-			ntexture_map_lighted(bp, &Tmap1);
+			TMapPerspective(bp, &Tmap1);
 			break;
 		case 3:								// perspective every pixel interpolation
-			ntexture_map_lighted(bp, &Tmap1);
+			TMapPerspective(bp, &Tmap1);
 			break;
 		default:
 			Assert(0);				// Illegal value for Interpolation_method, must be 0,1,2,3

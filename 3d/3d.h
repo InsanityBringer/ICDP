@@ -244,6 +244,32 @@ public:
 
 	//alternate interpreter for morphing object
 	dbool draw_morphing_model(void* model_ptr, grs_bitmap** model_bitmaps, vms_angvec* anim_angles, fix light, vms_vector* new_points);
+
+	//Expose the texmapper's state function
+	void set_lighting_mode(int new_mode)
+	{
+		texmap_instance.SetLightingState(new_mode);
+	}
+
+	int get_lighting_mode() const
+	{
+		return texmap_instance.GetLightingState();
+	}
+
+	void set_interpolation_mode(int new_mode)
+	{
+		texmap_instance.SetInterpolation(new_mode);
+	}
+
+	int get_interpolation_mode() const
+	{
+		return texmap_instance.GetInterpolation();
+	}
+
+	Texmap& texmap_inst()
+	{
+		return texmap_instance;
+	}
 };
 
 extern G3Instance g3_global_inst;
@@ -390,3 +416,14 @@ void g3_remap_interp_colors(void);
 
 // routine to convert little to big endian in polygon model data
 void swap_polygon_model_data(uint8_t* data);
+
+//[ISB] These are needed to get to the texmapper state of the implicit 3D state
+void g3_set_lighting_mode(int new_mode);
+int g3_get_lighting_mode();
+void g3_set_interpolation_mode(int new_mode);
+int g3_get_interpolation_mode();
+
+inline G3Instance& g3_global_instance()
+{
+	return g3_global_inst;
+}

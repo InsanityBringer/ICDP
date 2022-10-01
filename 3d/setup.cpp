@@ -63,6 +63,7 @@ void G3Instance::start_frame()
 	init_free_points();
 
 	init_interface_vars_to_assembler();		//for the texture-mapper
+	texmap_instance.SetCanvas(grd_curcanv);
 }
 //end the frame
 void G3Instance::end_frame()
