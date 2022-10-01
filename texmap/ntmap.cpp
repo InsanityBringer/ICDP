@@ -39,17 +39,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #define F15_5 (F1_0*15 + F0_5)
 
-// 1 means enable special sc2000 code, else enable only for Descent
-#define	SC2000K	0
-int	SC2000 = SC2000K;
-
 // Temporary texture map, interface from Matt's 3d system to Mike's texture mapper.
 g3ds_tmap Tmap1;
-
-grs_bitmap Texmap_ptrs[NUM_TMAPS];
-grs_bitmap Texmap4_ptrs[NUM_TMAPS];
-
-fix Range_max = 0; // debug, kill me
 
 int	Interpolation_method = 0;	// 0 = choose best method
 int	Lighting_on;				// initialize to no lighting
@@ -59,17 +50,12 @@ int	Max_perspective_depth;
 int	Max_linear_depth;
 int	Max_flat_depth;
 
-#ifndef BUILD_DESCENT2
-extern int Window_clip_left, Window_clip_bot, Window_clip_right, Window_clip_top;
-#else
 int Window_clip_left, Window_clip_bot, Window_clip_right, Window_clip_top;
-#endif
 
 // These variables are the interface to assembler.  They get set for each texture map, which is a real waste of time.
 //	They should be set only when they change, which is generally when the window bounds change.  And, even still, it's
 //	a pretty bad interface.
 int	bytes_per_row = -1;
-//int	write_buffer;
 uint8_t* write_buffer;
 int  	window_left;
 int	window_right;
@@ -78,11 +64,7 @@ int	window_bottom;
 int  	window_width;
 int  	window_height;
 
-#define	MAX_Y_POINTERS	1024
-
 int	y_pointers[MAX_Y_POINTERS];
-
-short	pixel_data_selector;		// selector for current pixel data for texture mapper
 
 fix fix_recip[FIX_RECIP_TABLE_SIZE];
 
@@ -92,15 +74,15 @@ int	Fix_recip_table_computed = 0;
 fix fx_l, fx_u, fx_v, fx_z, fx_du_dx, fx_dv_dx, fx_dz_dx, fx_dl_dx;
 int fx_xleft, fx_xright, fx_y;
 unsigned char* pixptr;
-int per2_flag = 0;
 int Transparency_on = 0;
 int dither_intensity_lighting = 0;
 
-uint8_t* tmap_flat_cthru_table;
 uint8_t tmap_flat_color;
 uint8_t tmap_flat_shade_value;
 
-
+Texmap::Texmap()
+{
+}
 
 // -------------------------------------------------------------------------------------
 void init_fix_recip_table(void)
@@ -162,13 +144,6 @@ void init_interface_vars_to_assembler(void)
 	if (!Fix_recip_table_computed)
 		init_fix_recip_table();
 }
-
-//int tmap_set_selector(int selector, void* buffer, unsigned int size); [ISB] unused?
-
-// -------------------------------------------------------------------------------------
-//                             VARIABLES
-extern short	pixel_data_selector;		// selector for current pixel data for texture mapper
-extern g3ds_tmap Tmap1;
 
 // -------------------------------------------------------------------------------------
 //	Returns number preceding val modulo modulus.
@@ -922,7 +897,6 @@ void draw_tmap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 		if (vp->p3_z < 256) //[ISB] change from Descent 2, guess ntmap wasn't used? heeh. This bodes well...
 		{
 			vp->p3_z = 256;
-			// Int3();		// we would overflow if we divided!
 		}
 
 		tvp->z = fixdiv(F1_0 * 12, vp->p3_z);
@@ -943,22 +917,18 @@ void draw_tmap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 		switch (Interpolation_method) // 0 = choose, 1 = linear, 2 = /8 perspective, 3 = full perspective
 		{
 		case 0:								// choose best interpolation
-			per2_flag = 1;
 			if (Current_seg_depth > Max_perspective_depth)
 				ntexture_map_lighted_linear(bp, &Tmap1);
 			else
 				ntexture_map_lighted(bp, &Tmap1);
 			break;
 		case 1:								// linear interpolation
-			per2_flag = 1;
 			ntexture_map_lighted_linear(bp, &Tmap1);
 			break;
 		case 2:								// perspective every 8th pixel interpolation
-			per2_flag = 1;
 			ntexture_map_lighted(bp, &Tmap1);
 			break;
 		case 3:								// perspective every pixel interpolation
-			per2_flag = 0;					// this hack means do divide every pixel
 			ntexture_map_lighted(bp, &Tmap1);
 			break;
 		default:
@@ -970,22 +940,18 @@ void draw_tmap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 		switch (Interpolation_method) // 0 = choose, 1 = linear, 2 = /8 perspective, 3 = full perspective
 		{	
 		case 0:								// choose best interpolation
-			per2_flag = 1;
 			if (Current_seg_depth > Max_perspective_depth)
 				ntexture_map_lighted_linear(bp, &Tmap1);
 			else
 				ntexture_map_lighted(bp, &Tmap1);
 			break;
 		case 1:								// linear interpolation
-			per2_flag = 1;
 			ntexture_map_lighted_linear(bp, &Tmap1);
 			break;
 		case 2:								// perspective every 8th pixel interpolation
-			per2_flag = 1;
 			ntexture_map_lighted(bp, &Tmap1);
 			break;
 		case 3:								// perspective every pixel interpolation
-			per2_flag = 0;					// this hack means do divide every pixel
 			ntexture_map_lighted(bp, &Tmap1);
 			break;
 		default:

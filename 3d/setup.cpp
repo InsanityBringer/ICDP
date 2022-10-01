@@ -16,24 +16,25 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/error.h"
 
 #include "3d/3d.h"
-#include "globvars.h"
+//#include "globvars.h"
 #include "clipper.h"
 //#include "div0.h"
 
 //initialize the 3d system
 void g3_init(void)
 {
-	//	div0_init(DM_ERROR);
 	atexit(g3_close);
 }
 
 //close down the 3d system
-void g3_close(void) {} //[ISB] sure the devs had a really cool thing planned here...
+void g3_close(void) 
+{
+}
 
 extern void init_interface_vars_to_assembler(void);
 
 //start the frame
-void g3_start_frame(void)
+void G3Instance::start_frame()
 {
 	fix s;
 
@@ -51,7 +52,7 @@ void g3_start_frame(void)
 		Window_scale.x = s;
 		Window_scale.y = f1_0;
 	}
-	else 
+	else
 	{
 		Window_scale.y = fixdiv(f1_0, s);
 		Window_scale.x = f1_0;
@@ -62,12 +63,22 @@ void g3_start_frame(void)
 	init_free_points();
 
 	init_interface_vars_to_assembler();		//for the texture-mapper
+}
+//end the frame
+void G3Instance::end_frame()
+{
+	//	Assert(free_point_num==0);
+	free_point_num = 0;
+}
 
+//start the frame
+void g3_start_frame(void)
+{
+	g3_global_inst.start_frame();
 }
 
 //this doesn't do anything, but is here for completeness
 void g3_end_frame(void)
 {
-	//	Assert(free_point_num==0);
-	free_point_num = 0;
+	g3_global_inst.end_frame();
 }

@@ -24,6 +24,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "2d/gr.h"
 #include "2d/grdef.h"
+#include "2d/bitmap.h"
 
 grs_bitmap* gr_create_bitmap(int w, int h)
 {
@@ -112,56 +113,17 @@ void gr_free_sub_bitmap(grs_bitmap* bm)
 
 void build_colormap_good(uint8_t* palette, uint8_t* colormap, int* freq);
 
-//NO_INVERSE_TABLE void build_colormap_asm( uint8_t * palette, uint8_t * cmap, int * count );
-//NO_INVERSE_TABLE #pragma aux build_colormap_asm parm [esi] [edi] [edx] modify exact [eax ebx ecx edx esi edi] = \
-//NO_INVERSE_TABLE 	"mov  ecx, 256"			\
-//NO_INVERSE_TABLE 	"xor	eax,eax"				\
-//NO_INVERSE_TABLE "again2x:"						\
-//NO_INVERSE_TABLE 	"mov	al,[esi]"			\
-//NO_INVERSE_TABLE 	"inc	esi"					\
-//NO_INVERSE_TABLE 	"shr	eax, 1"				\
-//NO_INVERSE_TABLE 	"shl	eax, 5"				\
-//NO_INVERSE_TABLE 	"mov	bl,[esi]"			\
-//NO_INVERSE_TABLE 	"inc	esi"					\
-//NO_INVERSE_TABLE 	"shr	bl, 1"				\
-//NO_INVERSE_TABLE 	"or	al, bl"				\
-//NO_INVERSE_TABLE 	"shl	eax, 5"				\
-//NO_INVERSE_TABLE 	"mov	bl,[esi]"			\
-//NO_INVERSE_TABLE 	"inc	esi"					\
-//NO_INVERSE_TABLE 	"shr	bl, 1"				\
-//NO_INVERSE_TABLE 	"or 	al, bl"				\
-//NO_INVERSE_TABLE 	"mov	al, gr_inverse_table[eax]"			\
-//NO_INVERSE_TABLE 	"mov	[edi], al"			\
-//NO_INVERSE_TABLE 	"inc	edi"					\
-//NO_INVERSE_TABLE 	"xor	eax,eax"				\
-//NO_INVERSE_TABLE 	"mov	[edx], eax"			\
-//NO_INVERSE_TABLE 	"add	edx, 4"					\
-//NO_INVERSE_TABLE 	"dec	ecx"					\
-//NO_INVERSE_TABLE 	"jne	again2x"				\
-
 void decode_data_asm(uint8_t* data, int num_pixels, uint8_t* colormap, int* count)
-{ //[ISB] From Mac source. 
+{
 	int i;
 
-	for (i = 0; i < num_pixels; i++) {
+	for (i = 0; i < num_pixels; i++)
+	{
 		count[*data]++;
 		*data = colormap[*data];
 		data++;
 	}
 }
-
-#if 0
-#pragma aux decode_data_asm parm [esi] [ecx] [edi] [ebx] modify exact [esi edi eax ebx ecx] = \
-"again_ddn:"							\
-	"xor	eax,eax"				\
-	"mov	al,[esi]"			\
-	"inc	dword ptr [ebx+eax*4]"		\
-	"mov	al,[edi+eax]"		\
-	"mov	[esi],al"			\
-	"inc	esi"					\
-	"dec	ecx"					\
-	"jne	again_ddn"
-#endif
 
 void gr_remap_bitmap(grs_bitmap * bmp, uint8_t * palette, int transparent_color, int super_transparent_color)
 {

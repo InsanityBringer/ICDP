@@ -12,12 +12,9 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 */
 
 #include "3d/3d.h"
-#include "globvars.h"
 
-void scale_matrix();
-
-//set view from x,y,z & p,b,h, zoom.  Must call one of g3_set_view_*() 
-void g3_set_view_angles(vms_vector* view_pos, vms_angvec* view_orient, fix zoom)
+//set view from x,y,z & p,b,h, zoom.
+void G3Instance::set_view(vms_vector* view_pos, vms_angvec* view_orient, fix zoom)
 {
 	View_zoom = zoom;
 	View_position = *view_pos;
@@ -27,8 +24,8 @@ void g3_set_view_angles(vms_vector* view_pos, vms_angvec* view_orient, fix zoom)
 	scale_matrix();
 }
 
-//set view from x,y,z, viewer matrix, and zoom.  Must call one of g3_set_view_*() 
-void g3_set_view_matrix(vms_vector* view_pos, vms_matrix* view_matrix, fix zoom)
+//set view from x,y,z, viewer matrix, and zoom.
+void G3Instance::set_view(vms_vector* view_pos, vms_matrix* view_matrix, fix zoom)
 {
 	View_zoom = zoom;
 	View_position = *view_pos;
@@ -37,8 +34,20 @@ void g3_set_view_matrix(vms_vector* view_pos, vms_matrix* view_matrix, fix zoom)
 	scale_matrix();
 }
 
+//set view from x,y,z & p,b,h, zoom.  Must call one of g3_set_view_*() 
+void g3_set_view_angles(vms_vector* view_pos, vms_angvec* view_orient, fix zoom)
+{
+	g3_global_inst.set_view(view_pos, view_orient, zoom);
+}
+
+//set view from x,y,z, viewer matrix, and zoom.  Must call one of g3_set_view_*() 
+void g3_set_view_matrix(vms_vector* view_pos, vms_matrix* view_matrix, fix zoom)
+{
+	g3_global_inst.set_view(view_pos, view_matrix, zoom);
+}
+
 //performs aspect scaling on global view matrix
-void scale_matrix(void)
+void G3Instance::scale_matrix(void)
 {
 	Unscaled_matrix = View_matrix;		//so we can use unscaled if we want
 

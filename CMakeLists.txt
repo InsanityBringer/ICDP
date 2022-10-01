@@ -13,8 +13,10 @@ set(DESCENT2_TEXMAP_IN_DESCENT1 OFF CACHE BOOL "Swaps Descent 2's texture mapper
 set(SHARED_SOURCES
 	2d/bitblt.cpp
 	2d/bitmap.cpp
+	2d/bitmap.h
 	2d/box.cpp
 	2d/canvas.cpp
+	2d/canvas.h
 	2d/circle.cpp
 	2d/clip.h
 	2d/disc.cpp

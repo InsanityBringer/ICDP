@@ -18,7 +18,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "segment.h"
 #include "misc/error.h"
 #include "bm.h"
-#include "texmap/texmap.h"
 #include "platform/mono.h"
 #include "render.h"
 #include "game.h"
@@ -34,7 +33,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "gameseg.h"
 #include "vclip.h"
 #include "lighting.h"
-#include	"fuelcen.h"
+#include "fuelcen.h"
 #include "newdemo.h"
 #include "automap.h"
 #include "endlevel.h"
@@ -645,6 +644,8 @@ void render_start_frame()
 		memset(Rotated_last, 0, sizeof(Rotated_last));		//clear all to zero
 		RL_framecount = 1;											//and set this frame to 1
 	}
+
+	memset(grd_curcanv->cv_bitmap.bm_data, 0, (size_t)grd_curcanv->cv_bitmap.bm_w * grd_curcanv->cv_bitmap.bm_h);
 }
 
 //Given a lit of point numbers, rotate any that haven't been rotated this frame
@@ -841,7 +842,7 @@ short render_obj_list[MAX_RENDER_SEGS + N_EXTRA_OBJ_LISTS][OBJS_PER_SEG];
 #define WHITE BM_XRGB(63,63,63)
 
 //Global vars for window clip test
-int Window_clip_left, Window_clip_top, Window_clip_right, Window_clip_bot;
+extern int Window_clip_left, Window_clip_top, Window_clip_right, Window_clip_bot;
 
 //Given two sides of segment, tell the two verts which form the 
 //edge between them

@@ -12,12 +12,9 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 */
 
 #include "3d/3d.h"
-#include "globvars.h"
 #include "fix/fix.h"
 
-grs_point blob_vertices[4];
-g3s_point rod_points[4];
-g3s_point* rod_point_list[] = { &rod_points[0],&rod_points[1],&rod_points[2],&rod_points[3] };
+int checkmuldiv(fix* r, fix a, fix b, fix c);
 
 g3s_uvl uvl_list[4] = { 0x0200,0x0200,0,
 								0xfe00,0x0200,0,
@@ -25,7 +22,7 @@ g3s_uvl uvl_list[4] = { 0x0200,0x0200,0,
 								0x0200,0xfe00,0 };
 
 //compute the corners of a rod.  fills in vertbuf.
-int calc_rod_corners(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width)
+int G3Instance::calc_rod_corners(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width)
 {
 	vms_vector delta_vec, top, tempv, rod_norm;
 	uint8_t codes_and;
@@ -94,44 +91,37 @@ int calc_rod_corners(g3s_point* bot_point, fix bot_width, g3s_point* top_point, 
 
 //draw a polygon that is always facing you
 //returns 1 if off screen, 0 if drew
-dbool g3_draw_rod_flat(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width)
+dbool G3Instance::draw_rod_flat(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width)
 {
 	if (calc_rod_corners(bot_point, bot_width, top_point, top_width))
 		return 0;
 
-	return g3_draw_poly(4, rod_point_list);
-
+	return draw_poly(4, rod_point_list);
 }
 
 //draw a bitmap object that is always facing you
 //returns 1 if off screen, 0 if drew
-dbool g3_draw_rod_tmap(grs_bitmap* bitmap, g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width, fix light)
+dbool G3Instance::draw_rod_tmap(grs_bitmap* bitmap, g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width, fix light)
 {
 	if (calc_rod_corners(bot_point, bot_width, top_point, top_width))
 		return 0;
 
 	uvl_list[0].l = uvl_list[1].l = uvl_list[2].l = uvl_list[3].l = light;
 
-	return g3_draw_tmap(4, rod_point_list, uvl_list, bitmap);
+	return draw_tmap(4, rod_point_list, uvl_list, bitmap);
 }
-
-int checkmuldiv(fix* r, fix a, fix b, fix c);
 
 //draws a bitmap with the specified 3d width & height 
 //returns 1 if off screen, 0 if drew
-#ifdef BUILD_DESCENT2
-dbool g3_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation)
-#else
-dbool g3_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm)
-#endif
+dbool G3Instance::draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation)
 {
 	g3s_point pnt;
 	fix t, w, h;
 
-	if (g3_rotate_point(&pnt, pos) & CC_BEHIND)
+	if (rotate_point(&pnt, pos) & CC_BEHIND)
 		return 1;
 
-	g3_project_point(&pnt);
+	project_point(&pnt);
 
 	if (pnt.p3_flags & PF_OVERFLOW)
 		return 1;
@@ -158,4 +148,31 @@ dbool g3_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm)
 #endif
 
 	return 0;
+}
+
+//draw a polygon that is always facing you
+//returns 1 if off screen, 0 if drew
+dbool g3_draw_rod_flat(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width)
+{
+	return g3_global_inst.draw_rod_flat(bot_point, bot_width, top_point, top_width);
+}
+
+//draw a bitmap object that is always facing you
+//returns 1 if off screen, 0 if drew
+dbool g3_draw_rod_tmap(grs_bitmap* bitmap, g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width, fix light)
+{
+	return g3_global_inst.draw_rod_tmap(bitmap, bot_point, bot_width, top_point, top_width, light);
+}
+
+int checkmuldiv(fix* r, fix a, fix b, fix c);
+
+//draws a bitmap with the specified 3d width & height 
+//returns 1 if off screen, 0 if drew
+#ifdef BUILD_DESCENT2
+dbool g3_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation)
+#else
+dbool g3_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm)
+#endif
+{
+	return g3_global_inst.draw_bitmap(pos, width, height, bm, 0);
 }

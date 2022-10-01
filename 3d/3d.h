@@ -29,7 +29,7 @@ typedef struct g3s_uvl
 //Stucture to store clipping codes in a word
 typedef struct g3s_codes 
 {
-	uint8_t low, high;	//or is low byte, and is high byte //[ISB] good variable names?...
+	uint8_t low, high;	//or is low byte, and is high byte
 } g3s_codes;
 
 //flags for point structure
@@ -59,22 +59,194 @@ typedef struct g3s_point
 	short p3_pad;			//keep structure longwork aligned
 } g3s_point;
 
+#include "texmap/texmap.h"
+
 //macros to reference x,y,z elements of a 3d point
 #define p3_x p3_vec.x
 #define p3_y p3_vec.y
 #define p3_z p3_vec.z
 
-//An object, such as a robot
-typedef struct g3s_object 
+#define MAX_INSTANCE_DEPTH	10
+
+struct instance_context
 {
-	vms_vector o3_pos;       //location of this object
-	vms_angvec o3_orient;    //orientation of this object
-	int o3_nverts;           //number of points in the object
-	int o3_nfaces;           //number of faces in the object
+	vms_matrix m;
+	vms_vector p;
+};
 
-	//this will be filled in later
+#define G3_MAX_INTERP_POINTS 1000
+#define G3_MAX_POINTS_PER_POLY 25
+#define G3_MAX_POINTS_IN_POLY 100
 
-} g3s_object;
+//3D library class, encapsulates most of the functionality of the 3D library for multithreading
+class G3Instance
+{
+	vms_vector	View_position;
+	fix			View_zoom;
+
+	vms_matrix	Unscaled_matrix;	//before scaling
+	vms_matrix	View_matrix;
+
+	vms_vector	Window_scale;		//scaling for window aspect
+	vms_vector	Matrix_scale;		//how the matrix is scaled, window_scale * zoom
+
+	int			Canvas_width;		//the actual width
+	int			Canvas_height;		//the actual height
+
+	fix			Canv_w2;				//fixed-point width/2
+	fix			Canv_h2;				//fixed-point height/2
+
+	//performs aspect scaling on global view matrix
+	void scale_matrix(void);
+
+	//vertex buffers for polygon drawing and clipping
+	g3s_point* Vbuf0[G3_MAX_POINTS_IN_POLY];
+	g3s_point* Vbuf1[G3_MAX_POINTS_IN_POLY];
+
+	//list of 2d coords
+	fix Vertex_list[G3_MAX_POINTS_IN_POLY * 2];
+
+	//A texture mapper. Each G3 instance has one, for multithreading purposes.
+	//Can only be accessed from the outside world via draw_poly and draw_tmap.
+	Texmap texmap_instance;
+	//Instance variables
+	instance_context instance_stack[MAX_INSTANCE_DEPTH];
+	int instance_depth = 0;
+
+	//Clipper variables
+	int free_point_num = 0;
+	g3s_point temp_points[G3_MAX_POINTS_IN_POLY];
+	g3s_point* free_points[G3_MAX_POINTS_IN_POLY];
+
+	//interp variables
+	g3s_point interp_point_list[G3_MAX_INTERP_POINTS];
+	int glow_num;
+	g3s_point* point_list[G3_MAX_POINTS_PER_POLY];
+
+	//rod variables
+	grs_point blob_vertices[4];
+	g3s_point rod_points[4];
+	g3s_point* rod_point_list[4];
+
+	//Private drawing functions
+	dbool must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or);
+	dbool must_clip_flat_face(int nv, g3s_codes cc);
+	dbool must_clip_tmap_face(int nv, g3s_codes cc, grs_bitmap* bm);
+	dbool do_facing_check(vms_vector* norm, g3s_point** vertlist, vms_vector* p);
+
+	//Private rod-drawing functions
+	int calc_rod_corners(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width);
+
+	//Private interp functions
+	void rotate_point_list(g3s_point* dest, vms_vector* src, int n);
+
+	//Private clipping functions
+	void free_temp_point(g3s_point* p);
+	g3s_point* get_temp_point();
+	g3s_point* clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt);
+	int clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc);
+	g3s_point** clip_polygon(g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc);
+	void init_free_points(void);
+	void clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or);
+
+public:
+	G3Instance();
+	//Frame setup functions
+
+	//start the frame
+	void start_frame();
+	//set view from x,y,z & p,b,h, zoom.
+	void set_view(vms_vector* view_pos, vms_angvec* view_orient, fix zoom);
+	//set view from x,y,z, viewer matrix, and zoom.
+	void set_view(vms_vector* view_pos, vms_matrix* view_matrix, fix zoom);
+	//end the frame
+	void end_frame();
+
+	//Instancing
+
+	//instance at specified point with specified orientation
+	void start_instance(vms_vector* pos, vms_matrix* orient);
+	//instance at specified point with specified orientation
+	void start_instance(vms_vector* pos, vms_angvec* angles);
+	//pops the old context
+	void done_instance();
+
+	//Misc utility functions:
+
+	//returns true if a plane is facing the viewer. takes the unrotated surface 
+	//normal of the plane, and a point on it.  The normal need not be normalized
+	dbool check_normal_facing(vms_vector* v, vms_vector* norm);
+
+	//Point projection functions:
+	//These need to be part of the class since they use the projection parameters. 
+
+	//rotates a point. returns codes.  does not check if already rotated
+	uint8_t rotate_point(g3s_point* dest, vms_vector* src);
+
+	//projects a point
+	void project_point(g3s_point* point);
+
+	//calculate the depth of a point - returns the z coord of the rotated point
+	fix calc_point_depth(vms_vector* pnt);
+
+	void point_2_vec(vms_vector* v, short sx, short sy);
+
+	//delta rotation functions
+	vms_vector* rotate_delta_x(vms_vector* dest, fix dx);
+	vms_vector* rotate_delta_y(vms_vector* dest, fix dy);
+	vms_vector* rotate_delta_z(vms_vector* dest, fix dz);
+	vms_vector* rotate_delta_vec(vms_vector* dest, vms_vector* src);
+	uint8_t add_delta_vec(g3s_point* dest, g3s_point* src, vms_vector* deltav);
+
+	//Drawing functions:
+
+	//draw a flat-shaded face.
+	//returns 1 if off screen, 0 if drew
+	dbool draw_poly(int nv, g3s_point** pointlist);
+
+	//draw a texture-mapped face.
+	//returns 1 if off screen, 0 if drew
+	dbool draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, grs_bitmap* bm);
+
+	//draw a sortof sphere - i.e., the 2d radius is proportional to the 3d
+	//radius, but not to the distance from the eye
+	int draw_sphere(g3s_point* pnt, fix rad);
+
+	//like g3_draw_poly(), but checks to see if facing.  If surface normal is
+	//NULL, this routine must compute it, which will be slow.  It is better to 
+	//pre-compute the normal, and pass it to this function.  When the normal
+	//is passed, this function works like g3_check_normal_facing() plus
+	//g3_draw_poly().
+	//returns -1 if not facing, 1 if off screen, 0 if drew
+	dbool check_and_draw_poly(int nv, g3s_point** pointlist, vms_vector* norm, vms_vector* pnt);
+	dbool check_and_draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, grs_bitmap* bm, vms_vector* norm, vms_vector* pnt);
+
+	//draws a line. takes two points.
+	dbool draw_line(g3s_point* p0, g3s_point* p1);
+
+	//draw a polygon that is always facing you
+	//returns 1 if off screen, 0 if drew
+	dbool draw_rod_flat(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width);
+
+	//draw a bitmap object that is always facing you
+	//returns 1 if off screen, 0 if drew
+	dbool draw_rod_tmap(grs_bitmap* bitmap, g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width, fix light);
+
+	//draws a bitmap with the specified 3d width & height 
+	//returns 1 if off screen, 0 if drew
+	dbool draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation);
+
+	//Object functions:
+
+	//calls the object interpreter to render an object.  The object renderer
+	//is really a seperate pipeline. returns true if drew
+	dbool draw_polygon_model(void* model_ptr, grs_bitmap** model_bitmaps, vms_angvec* anim_angles, fix light, fix* glow_values);
+
+	//alternate interpreter for morphing object
+	dbool draw_morphing_model(void* model_ptr, grs_bitmap** model_bitmaps, vms_angvec* anim_angles, fix light, vms_vector* new_points);
+};
+
+extern G3Instance g3_global_inst;
 
 //Functions in library
 
@@ -120,29 +292,11 @@ void g3_done_instance();
 
 //Misc utility functions:
 
-//get current field of view.  Fills in angle for x & y
-void g3_get_FOV(fixang* fov_x, fixang* fov_y);
-
-//get zoom.  For a given window size, return the zoom which will achieve
-//the given FOV along the given axis.
-fix g3_get_zoom(char axis, fixang fov, short window_width, short window_height);
-
-//returns the normalized, unscaled view vectors
-void g3_get_view_vectors(vms_vector* forward, vms_vector* up, vms_vector* right);
-
 //returns true if a plane is facing the viewer. takes the unrotated surface 
 //normal of the plane, and a point on it.  The normal need not be normalized
 dbool g3_check_normal_facing(vms_vector* v, vms_vector* norm);
 
 //Point definition and rotation functions:
-
-//specify the arrays refered to by the 'pointlist' parms in the following
-//functions.  I'm not sure if we will keep this function, but I need
-//it now.
-//void g3_set_points(g3s_point *points,vms_vector *vecs);
-
-//returns codes_and & codes_or of a list of points numbers
-g3s_codes g3_check_codes(int nv, g3s_point** pointlist);
 
 //rotates a point. returns codes.  does not check if already rotated
 uint8_t g3_rotate_point(g3s_point* dest, vms_vector* src);
@@ -179,10 +333,6 @@ dbool g3_draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, grs_bitmap*
 //draw a sortof sphere - i.e., the 2d radius is proportional to the 3d
 //radius, but not to the distance from the eye
 int g3_draw_sphere(g3s_point* pnt, fix rad);
-
-//@@//return ligting value for a point
-//@@fix g3_compute_lighting_value(g3s_point *rotated_point,fix normval);
-
 
 //like g3_draw_poly(), but checks to see if facing.  If surface normal is
 //NULL, this routine must compute it, which will be slow.  It is better to 

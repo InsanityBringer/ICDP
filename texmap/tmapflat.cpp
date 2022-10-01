@@ -20,7 +20,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/mono.h"
 #include "2d/gr.h"
 #include "2d/grdef.h"
-#include "texmap/texmap.h"
+#include "3d/3d.h"
 #include "texmapl.h"
 #include "scanline.h"
 

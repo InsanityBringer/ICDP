@@ -25,14 +25,10 @@ extern int	fx_y, fx_xleft, fx_xright, per2_flag;
 extern unsigned char tmap_flat_color;
 extern unsigned char* pixptr;
 
-/*
-extern fix compute_dx_dy_lin(g3ds_tmap* t, int vlt, int vlb, fix recip_dy);
-extern fix compute_dx_dy_lin(g3ds_tmap* t, int vrt, int vrb, fix recip_dy);*/
 extern fix compute_du_dy_lin(g3ds_tmap* t, int vlt, int vlb, fix recip_dy);
 extern fix compute_du_dy_lin(g3ds_tmap* t, int vrt, int vrb, fix recip_dy);
 extern fix compute_dv_dy_lin(g3ds_tmap* t, int vlt, int vlb, fix recip_dy);
 extern fix compute_dv_dy_lin(g3ds_tmap* t, int vrt, int vrb, fix recip_dy);
-
 
 // Interface variables to assembler code
 extern	fix	fx_u, fx_v, fx_z, fx_du_dx, fx_dv_dx, fx_dz_dx;
@@ -41,7 +37,6 @@ extern	int	fx_r, fx_g, fx_b, fx_dr_dx, fx_dg_dx, fx_db_dx;
 extern	unsigned char* pixptr;
 
 extern	int	bytes_per_row;
-//extern	int	write_buffer;
 extern uint8_t* write_buffer;
 extern	int  	window_left;
 extern	int	window_right;
@@ -54,17 +49,13 @@ extern	int	linear_if_far_flag;
 extern	int	dither_intensity_lighting;
 extern	int	Interlacing_on;
 
-extern	short	_pixel_data_selector;
-
 extern uint8_t* tmap_flat_cthru_table;
 extern uint8_t tmap_flat_color;
 extern uint8_t tmap_flat_shade_value;
 
-
 extern fix fix_recip[];
 
 extern void init_interface_vars_to_assembler(void);
-extern int prevmod(int val, int modulus);
 
 #define FIX_RECIP_TABLE_SIZE	321
 

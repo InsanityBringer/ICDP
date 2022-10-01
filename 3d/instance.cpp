@@ -17,21 +17,9 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "3d/3d.h"
 #include "globvars.h"
 
-//[ISB] bumped for the moment, from 5. Because fan levels like corrupting memory. 
-//[ISB] but I also can't blame them, Parallax never published these static limits. 
-//[ISB] TODO: Look into emulating memory corruption
-#define MAX_INSTANCE_DEPTH	10
-
-struct instance_context {
-	vms_matrix m;
-	vms_vector p;
-} instance_stack[MAX_INSTANCE_DEPTH];
-
-int instance_depth = 0;
-
 //instance at specified point with specified orientation
 //if matrix==NULL, don't modify matrix.  This will be like doing an offset   
-void g3_start_instance_matrix(vms_vector* pos, vms_matrix* orient)
+void G3Instance::start_instance(vms_vector* pos, vms_matrix* orient)
 {
 	vms_vector tempv;
 	vms_matrix tempm, tempm2;
@@ -47,7 +35,7 @@ void g3_start_instance_matrix(vms_vector* pos, vms_matrix* orient)
 	vm_vec_sub(&tempv, &View_position, pos);
 
 
-	if (orient) 
+	if (orient)
 	{
 		//step 2: rotate view vector through object matrix
 		vm_vec_rotate(&View_position, &tempv, orient);
@@ -60,14 +48,13 @@ void g3_start_instance_matrix(vms_vector* pos, vms_matrix* orient)
 	}
 }
 
-
 //instance at specified point with specified orientation
 //if angles==NULL, don't modify matrix.  This will be like doing an offset
-void g3_start_instance_angles(vms_vector* pos, vms_angvec* angles)
+void G3Instance::start_instance(vms_vector* pos, vms_angvec* angles)
 {
 	vms_matrix tm;
 
-	if (angles == NULL) 
+	if (angles == NULL)
 	{
 		g3_start_instance_matrix(pos, NULL);
 		return;
@@ -77,9 +64,8 @@ void g3_start_instance_angles(vms_vector* pos, vms_angvec* angles)
 	g3_start_instance_matrix(pos, &tm);
 }
 
-
 //pops the old context
-void g3_done_instance()
+void G3Instance::done_instance()
 {
 	instance_depth--;
 
@@ -87,4 +73,26 @@ void g3_done_instance()
 
 	View_position = instance_stack[instance_depth].p;
 	View_matrix = instance_stack[instance_depth].m;
+}
+
+//instance at specified point with specified orientation
+//if matrix==NULL, don't modify matrix.  This will be like doing an offset   
+void g3_start_instance_matrix(vms_vector* pos, vms_matrix* orient)
+{
+	g3_global_inst.start_instance(pos, orient);
+}
+
+
+//instance at specified point with specified orientation
+//if angles==NULL, don't modify matrix.  This will be like doing an offset
+void g3_start_instance_angles(vms_vector* pos, vms_angvec* angles)
+{
+	g3_global_inst.start_instance(pos, angles);
+}
+
+
+//pops the old context
+void g3_done_instance()
+{
+	g3_global_inst.done_instance();
 }

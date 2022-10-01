@@ -10,17 +10,21 @@ CONTAINED HEREIN FOR REVENUE-BEARING PURPOSES.  THE END-USER UNDERSTANDS
 AND AGREES TO THE TERMS HEREIN AND ACCEPTS THE SAME BY USE OF THIS FILE.
 COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 */
+
+#include <math.h>
 #include "3d/3d.h"
 #include "globvars.h"
-#include "clipper.h"
 #include "misc/error.h"
 
-int free_point_num = 0;
+fix clip_ratios[4] =
+{
+	F1_0, //right
+	F1_0, //top
+	-F1_0, //left
+	-F1_0, //bottom
+};
 
-g3s_point temp_points[MAX_POINTS_IN_POLY];
-g3s_point* free_points[MAX_POINTS_IN_POLY];
-
-void init_free_points(void)
+void G3Instance::init_free_points(void)
 {
 	int i;
 
@@ -28,8 +32,7 @@ void init_free_points(void)
 		free_points[i] = &temp_points[i];
 }
 
-
-g3s_point* get_temp_point()
+g3s_point* G3Instance::get_temp_point()
 {
 	g3s_point* p;
 
@@ -41,8 +44,13 @@ g3s_point* get_temp_point()
 	return p;
 }
 
-void free_temp_point(g3s_point* p)
+void G3Instance::free_temp_point(g3s_point* p)
 {
+	if (free_point_num < 1)
+	{
+		Int3();
+		free_point_num = 1;
+	}
 	Assert(p->p3_flags & PF_TEMP_POINT);
 
 	free_points[--free_point_num] = p;
@@ -51,14 +59,35 @@ void free_temp_point(g3s_point* p)
 }
 
 //clips an edge against one plane. 
-g3s_point* clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt)
+g3s_point* G3Instance::clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt)
 {
 	fix psx_ratio;
+	fix plane_ratio = F1_0, abs_plane_ratio = F1_0;
 	fix a, b, kn, kd;
 	g3s_point* tmp;
 
 	//compute clipping value k = (xs-zs) / (xs-xe-zs+ze)
 	//use x or y as appropriate, and negate x/y value as appropriate
+
+	switch (plane_flag)
+	{
+	case CC_OFF_RIGHT:
+		plane_ratio = clip_ratios[0];
+		break;
+	case CC_OFF_TOP:
+		plane_ratio = clip_ratios[1];
+		break;
+	case CC_OFF_LEFT:
+		plane_ratio = clip_ratios[2];
+		break;
+	case CC_OFF_BOT:
+		plane_ratio = clip_ratios[3];
+		break;
+	default:
+		Int3();
+	}
+
+	//plane_ratio = abs(plane_ratio);
 
 	if (plane_flag & (CC_OFF_RIGHT | CC_OFF_LEFT)) 
 	{
@@ -71,40 +100,39 @@ g3s_point* clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt)
 		b = off_pnt->p3_y;
 	}
 
-	if (plane_flag & (CC_OFF_LEFT | CC_OFF_BOT))
+	//if (plane_flag & (CC_OFF_LEFT | CC_OFF_BOT))
+	if (plane_ratio < 0)
 	{
 		a = -a;
 		b = -b;
 	}
 
-	kn = a - on_pnt->p3_z;						//xs-zs
-	kd = kn - b + off_pnt->p3_z;				//xs-zs-xe+ze
+	abs_plane_ratio = abs(plane_ratio);
+
+	kn = a - fixmul(on_pnt->p3_z, abs_plane_ratio);	//xs-zs
+	kd = kn - b + fixmul(off_pnt->p3_z, abs_plane_ratio); //xs-zs-xe+ze
 
 	tmp = get_temp_point();
 
 	psx_ratio = fixdiv(kn, kd);
 
+	//tmp->p3_x = on_pnt->p3_x + fixmul((off_pnt->p3_x - on_pnt->p3_x), psx_ratio);
+	//tmp->p3_y = on_pnt->p3_y + fixmul((off_pnt->p3_y - on_pnt->p3_y), psx_ratio);
+	//tmp->p3_z = on_pnt->p3_z + fixmul((off_pnt->p3_z - on_pnt->p3_z), psx_ratio);
+	tmp->p3_x = on_pnt->p3_x + fixmuldiv((off_pnt->p3_x - on_pnt->p3_x), kn, kd);
+	tmp->p3_y = on_pnt->p3_y + fixmuldiv((off_pnt->p3_y - on_pnt->p3_y), kn, kd);
+	tmp->p3_z = on_pnt->p3_z + fixmuldiv((off_pnt->p3_z - on_pnt->p3_z), kn, kd);
 
-	// PSX_HACK!!!!
-	//	tmp->p3_x = on_pnt->p3_x + fixmuldiv(off_pnt->p3_x-on_pnt->p3_x,kn,kd);
-	//	tmp->p3_y = on_pnt->p3_y + fixmuldiv(off_pnt->p3_y-on_pnt->p3_y,kn,kd);
-
-	tmp->p3_x = on_pnt->p3_x + fixmul((off_pnt->p3_x - on_pnt->p3_x), psx_ratio);
-	tmp->p3_y = on_pnt->p3_y + fixmul((off_pnt->p3_y - on_pnt->p3_y), psx_ratio);
-
-	if (plane_flag & (CC_OFF_TOP | CC_OFF_BOT))
+	/*if (plane_flag & (CC_OFF_TOP | CC_OFF_BOT))
 		tmp->p3_z = tmp->p3_y;
 	else
 		tmp->p3_z = tmp->p3_x;
 
 	if (plane_flag & (CC_OFF_LEFT | CC_OFF_BOT))
-		tmp->p3_z = -tmp->p3_z;
+		tmp->p3_z = -tmp->p3_z;*/
 
 	if (on_pnt->p3_flags & PF_UVS) 
 	{
-		// PSX_HACK!!!!
-		//		tmp->p3_u = on_pnt->p3_u + fixmuldiv(off_pnt->p3_u-on_pnt->p3_u,kn,kd);
-		//		tmp->p3_v = on_pnt->p3_v + fixmuldiv(off_pnt->p3_v-on_pnt->p3_v,kn,kd);
 		tmp->p3_u = on_pnt->p3_u + fixmul((off_pnt->p3_u - on_pnt->p3_u), psx_ratio);
 		tmp->p3_v = on_pnt->p3_v + fixmul((off_pnt->p3_v - on_pnt->p3_v), psx_ratio);
 
@@ -113,11 +141,6 @@ g3s_point* clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt)
 
 	if (on_pnt->p3_flags & PF_LS) 
 	{
-		// PSX_HACK
-		//		tmp->p3_r = on_pnt->p3_r + fixmuldiv(off_pnt->p3_r-on_pnt->p3_r,kn,kd);
-		//		tmp->p3_g = on_pnt->p3_g + fixmuldiv(off_pnt->p3_g-on_pnt->p3_g,kn,kd);
-		//		tmp->p3_b = on_pnt->p3_b + fixmuldiv(off_pnt->p3_b-on_pnt->p3_b,kn,kd);
-
 		tmp->p3_l = on_pnt->p3_l + fixmul((off_pnt->p3_l - on_pnt->p3_l), psx_ratio);
 
 		tmp->p3_flags |= PF_LS;
@@ -129,7 +152,7 @@ g3s_point* clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt)
 }
 
 //clips a line to the viewing pyramid.
-void clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
+void G3Instance::clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 {
 	int plane_flag;
 	g3s_point* old_p1;
@@ -139,9 +162,9 @@ void clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 	(*p1)->p3_flags &= ~(PF_UVS | PF_LS);
 
 	for (plane_flag = 1; plane_flag < 16; plane_flag <<= 1)
-		if (codes_or & plane_flag) 
+	{
+		if (codes_or & plane_flag)
 		{
-
 			if ((*p0)->p3_codes & plane_flag)
 			{
 				g3s_point* t = *p0; *p0 = *p1; *p1 = t;
@@ -154,11 +177,10 @@ void clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 			if (old_p1->p3_flags & PF_TEMP_POINT)
 				free_temp_point(old_p1);
 		}
-
+	}
 }
 
-
-int clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)
+int G3Instance::clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)
 {
 	int i;
 	g3s_point** save_dest = dest;
@@ -171,12 +193,10 @@ int clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_c
 
 	for (i = 1; i <= *nv; i++) 
 	{
-
-		if (src[i]->p3_codes & plane_flag) 
-		{				//cur point off?
-
-			if (!(src[i - 1]->p3_codes & plane_flag)) {	//prev not off?
-
+		if (src[i]->p3_codes & plane_flag) //cur point off?
+		{				
+			if (!(src[i - 1]->p3_codes & plane_flag)) //prev not off?
+			{	
 				*dest = clip_edge(plane_flag, src[i - 1], src[i]);
 				cc->low |= (*dest)->p3_codes;
 				cc->high &= (*dest)->p3_codes;
@@ -185,7 +205,6 @@ int clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_c
 
 			if (!(src[i + 1]->p3_codes & plane_flag))
 			{
-
 				*dest = clip_edge(plane_flag, src[i + 1], src[i]);
 				cc->low |= (*dest)->p3_codes;
 				cc->high &= (*dest)->p3_codes;
@@ -193,13 +212,11 @@ int clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_c
 			}
 
 			//see if must free discarded point
-
 			if (src[i]->p3_flags & PF_TEMP_POINT)
 				free_temp_point(src[i]);
 		}
-		else 
-		{			//cur not off, copy to dest buffer
-
+		else //cur not off, copy to dest buffer
+		{	
 			*dest++ = src[i];
 
 			cc->low |= src[i]->p3_codes;
@@ -210,25 +227,23 @@ int clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_c
 	return (dest - save_dest);
 }
 
-
-g3s_point** clip_polygon(g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)
+g3s_point** G3Instance::clip_polygon(g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)
 {
 	int plane_flag;
 	g3s_point** t;
 
 	for (plane_flag = 1; plane_flag < 16; plane_flag <<= 1)
-
-		if (cc->low &plane_flag) 
+	{
+		if (cc->low & plane_flag)
 		{
-
 			*nv = clip_plane(plane_flag, src, dest, nv, cc);
 
 			if (cc->high)		//clipped away
 				return dest;
 
 			t = src; src = dest; dest = t;
-
 		}
+	}
 
 	return src;		//we swapped after we copied
 }

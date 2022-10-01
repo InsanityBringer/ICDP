@@ -55,7 +55,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "kconfig.h"
 #include "titles.h"
 #include "credits.h"
-#include "texmap/texmap.h"
+#include "3d/3d.h"
 #include "polyobj.h"
 #include "state.h"
 #include "mission.h"
