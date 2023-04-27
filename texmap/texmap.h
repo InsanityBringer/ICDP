@@ -15,6 +15,12 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "fix/fix.h"
 #include "2d/gr.h"
+#include "2d/rle.h"
+
+//[ISB] circular dependency nonsense
+#ifndef THREED_H
+#error "texmap.h must be included through 3d.h"
+#endif
 
 #define	NUM_LIGHTING_LEVELS 32
 #define MAX_TMAP_VERTS 25
@@ -84,6 +90,7 @@ class Texmap
 
 	uint8_t tmap_flat_color;
 	uint8_t tmap_flat_shade_value;
+	RLECache local_cache; //Local RLE cache, since the game can do late decompression on occasion. This is a bit memory-hungry. 
 
 	//Scanline drawing functions. These use the state of the current Texmap to draw a scanline. 
 

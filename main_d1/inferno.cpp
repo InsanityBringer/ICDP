@@ -58,6 +58,7 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 #include "titles.h"
 #include "player.h"
 #include "stringtable.h"
+#include "render.h"
 #ifdef NETWORK
 #include "platform/i_net.h"
 #endif
@@ -573,7 +574,7 @@ int D_DescentMain(int argc, const char** argv)
 	mprintf((0, "\nInitializing 3d system..."));
 	g3_init();
 	mprintf((0, "\nInitializing texture caching system..."));
-	texmerge_init(10);		// 10 cache bitmaps
+	//texmerge_init(10);		// 10 cache bitmaps
 	mprintf((0, "\nRunning game...\n"));
 	set_screen_mode(SCREEN_MENU);
 

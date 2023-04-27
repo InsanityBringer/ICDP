@@ -42,6 +42,8 @@ set(SHARED_SOURCES
 	3d/3d.h
 	3d/clipper.cpp
 	3d/clipper.h
+	3d/commandbuffer.cpp
+	3d/commandbuffer.h
 	3d/draw.cpp
 	3d/globvars.cpp
 	3d/globvars.h
@@ -52,6 +54,7 @@ set(SHARED_SOURCES
 	3d/points.cpp
 	3d/rod.cpp
 	3d/setup.cpp
+	3d/threading.h
 	cfile/cfile.cpp
 	cfile/cfile.h
 	fix/fix.cpp
@@ -719,55 +722,56 @@ endif()
 
 if (APPLE)
 	set(ChocolateDescentIcon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Descent1.icns")
-	set(ChocolateDescent2Icon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Descent2.icns")
+	#set(ChocolateDescent2Icon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Descent2.icns")
 	set_source_files_properties(${ChocolateDescentIcon} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-	set_source_files_properties(${ChocolateDescent2Icon} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
+	#set_source_files_properties(${ChocolateDescent2Icon} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
 	add_executable(ChocolateDescent MACOSX_BUNDLE ${ChocolateDescentIcon} ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
-	add_executable(ChocolateDescent2 MACOSX_BUNDLE ${ChocolateDescent2Icon} ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
+	#add_executable(ChocolateDescent2 MACOSX_BUNDLE ${ChocolateDescent2Icon} ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
 	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME "ChocolateDescent")
-	set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME "ChocolateDescent2")
+	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME "ChocolateDescent2")
 	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Info.plist.in")
-	set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Info.plist.in")
+	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Info.plist.in")
 	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_ICON_FILE "Descent1.icns")
-	set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_ICON_FILE "Descent2.icns")
+	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_ICON_FILE "Descent2.icns")
 	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER "com.chocolatedescent.descent1")
-	set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER "com.chocolatedescent.descent2")
+	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER "com.chocolatedescent.descent2")
 	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Chocolate Descent")
-	set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Chocolate Descent 2")
+	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Chocolate Descent 2")
 	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "${CHOCOLATE_DESCENT_VERSION}")
-	set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "${CHOCOLATE_DESCENT_VERSION}")
+	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "${CHOCOLATE_DESCENT_VERSION}")
 	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "Chocolate Descent v${CHOCOLATE_DESCENT_VERSION}")
-	set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "Chocolate Descent 2 v${CHOCOLATE_DESCENT_VERSION}")
+	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "Chocolate Descent 2 v${CHOCOLATE_DESCENT_VERSION}")
 	if(EXISTS "/usr/local/bin/dylibbundler")
 		add_custom_command(TARGET ChocolateDescent POST_BUILD COMMAND /bin/zsh -c "/usr/local/bin/dylibbundler -od -b -x \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent.app/Contents/MacOS/ChocolateDescent\" -d \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent.app/Contents/libs\"")
-		add_custom_command(TARGET ChocolateDescent2 POST_BUILD COMMAND /bin/zsh -c "/usr/local/bin/dylibbundler -od -b -x \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent2.app/Contents/MacOS/ChocolateDescent2\" -d \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent2.app/Contents/libs\"")
+		#add_custom_command(TARGET ChocolateDescent2 POST_BUILD COMMAND /bin/zsh -c "/usr/local/bin/dylibbundler -od -b -x \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent2.app/Contents/MacOS/ChocolateDescent2\" -d \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent2.app/Contents/libs\"")
 	endif()
 elseif(UNIX)
 	add_executable(ChocolateDescent ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
-	add_executable(ChocolateDescent2 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
+	#add_executable(ChocolateDescent2 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
 elseif(WIN32)
 	add_executable(ChocolateDescent WIN32 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
-	add_executable(ChocolateDescent2 WIN32 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
+	#add_executable(ChocolateDescent2 WIN32 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
 endif()
 
-set_target_properties(ChocolateDescent ChocolateDescent2 PROPERTIES CXX_STANDARD 11)
+#set_target_properties(ChocolateDescent ChocolateDescent2 PROPERTIES CXX_STANDARD 11)
+set_target_properties(ChocolateDescent PROPERTIES CXX_STANDARD 11)
 
 if (BUILD_EDITOR)
 	target_compile_definitions(ChocolateDescent PUBLIC "$<$<CONFIG:DEBUG>:EDITOR>")
-	target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:DEBUG>:EDITOR>")
+	#target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:DEBUG>:EDITOR>")
 endif()
 
 target_link_libraries(ChocolateDescent ${SHARED_LIBS} ${DESCENT1_LIBS})
-target_link_libraries(ChocolateDescent2 ${SHARED_LIBS} ${DESCENT2_LIBS})
+#target_link_libraries(ChocolateDescent2 ${SHARED_LIBS} ${DESCENT2_LIBS})
 
 target_compile_definitions(ChocolateDescent PUBLIC BUILD_DESCENT1)
-target_compile_definitions(ChocolateDescent2 PUBLIC BUILD_DESCENT2)
+#target_compile_definitions(ChocolateDescent2 PUBLIC BUILD_DESCENT2)
 target_compile_definitions(ChocolateDescent PUBLIC "$<$<CONFIG:RELEASE>:RELEASE>")
-target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:RELEASE>:RELEASE>")
+#target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:RELEASE>:RELEASE>")
 target_compile_definitions(ChocolateDescent PUBLIC "$<$<CONFIG:MINSIZEREL>:RELEASE>")
-target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:MINSIZEREL>:RELEASE>")
+#target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:MINSIZEREL>:RELEASE>")
 target_compile_definitions(ChocolateDescent PUBLIC "$<$<CONFIG:RELWITHDEBINFO>:RELEASE>")
-target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:RELWITHDEBINFO>:RELEASE>")
+#target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:RELWITHDEBINFO>:RELEASE>")
 
 set_source_files_properties(${NOT_COMPILED_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
 

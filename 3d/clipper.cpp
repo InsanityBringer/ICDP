@@ -16,15 +16,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "globvars.h"
 #include "misc/error.h"
 
-fix clip_ratios[4] =
-{
-	F1_0, //right
-	F1_0, //top
-	-F1_0, //left
-	-F1_0, //bottom
-};
-
-void G3Instance::init_free_points(void)
+void G3Drawer::init_free_points(void)
 {
 	int i;
 
@@ -32,7 +24,7 @@ void G3Instance::init_free_points(void)
 		free_points[i] = &temp_points[i];
 }
 
-g3s_point* G3Instance::get_temp_point()
+g3s_point* G3Drawer::get_temp_point()
 {
 	g3s_point* p;
 
@@ -44,7 +36,7 @@ g3s_point* G3Instance::get_temp_point()
 	return p;
 }
 
-void G3Instance::free_temp_point(g3s_point* p)
+void G3Drawer::free_temp_point(g3s_point* p)
 {
 	if (free_point_num < 1)
 	{
@@ -59,7 +51,7 @@ void G3Instance::free_temp_point(g3s_point* p)
 }
 
 //clips an edge against one plane. 
-g3s_point* G3Instance::clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt)
+g3s_point* G3Drawer::clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt)
 {
 	fix psx_ratio;
 	fix plane_ratio = F1_0, abs_plane_ratio = F1_0;
@@ -146,13 +138,13 @@ g3s_point* G3Instance::clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* o
 		tmp->p3_flags |= PF_LS;
 	}
 
-	g3_code_point(tmp);
+	code_point(tmp);
 
 	return tmp;
 }
 
 //clips a line to the viewing pyramid.
-void G3Instance::clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
+void G3Drawer::clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 {
 	int plane_flag;
 	g3s_point* old_p1;
@@ -180,7 +172,7 @@ void G3Instance::clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 	}
 }
 
-int G3Instance::clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)
+int G3Drawer::clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)
 {
 	int i;
 	g3s_point** save_dest = dest;
@@ -227,7 +219,7 @@ int G3Instance::clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, in
 	return (dest - save_dest);
 }
 
-g3s_point** G3Instance::clip_polygon(g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)
+g3s_point** G3Drawer::clip_polygon(g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)
 {
 	int plane_flag;
 	g3s_point** t;

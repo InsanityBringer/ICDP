@@ -575,9 +575,9 @@ int ToggleLighting(void)
 	char	outstr[80] = "[shift-L] ";
 	int	chindex;
 
-	Lighting_on++;
-	if (Lighting_on >= 2)
-		Lighting_on = 0;
+	int lighting_state = g3_global_inst.get_lighting_mode() + 1;
+	if (lighting_state >= 2) lighting_state = 0;
+	g3_global_inst.set_lighting_mode(lighting_state);
 
 	Update_flags |= UF_GAME_VIEW_CHANGED;
 
@@ -586,7 +586,7 @@ int ToggleLighting(void)
 	else
 		chindex = 10;
 
-	switch (Lighting_on) 
+	switch (lighting_state)
 	{
 		case 0:
 			strcpy(&outstr[chindex],"Lighting off.");
@@ -604,7 +604,7 @@ int ToggleLighting(void)
 
 	diagnostic_message(outstr);
 
-	return Lighting_on;
+	return lighting_state;
 }
 
 void find_concave_segs();

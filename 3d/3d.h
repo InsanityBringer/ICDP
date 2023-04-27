@@ -13,6 +13,12 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
+//[ISB] disgusting hack, texmap.h relies on some bits of 3d.h. 
+//3d.h needs to be able to put a texmap instance in a 3d lib instance. 
+//Including texmap on its own will invariably mess it up, so force it to be
+//included through 3d.h
+#define THREED_H
+
 #include "fix/fix.h"
 #include "vecmat/vecmat.h"
 #include "2d/gr.h"
@@ -78,7 +84,94 @@ struct instance_context
 #define G3_MAX_POINTS_PER_POLY 25
 #define G3_MAX_POINTS_IN_POLY 100
 
+//A G3Drawer, unlike a G3Instance, stores no state for anything unrelated to simple drawing. 
+//All state relating to the camera, projection matrix, and so on will have been applied to the commands executed here. 
+class G3Drawer
+{
+	fix			clip_ratios[4]; //clipping is performed during this stage, and clip ratios are stored for each tile. 
+
+	//vertex buffers for polygon drawing and clipping
+	g3s_point* Vbuf0[G3_MAX_POINTS_IN_POLY];
+	g3s_point* Vbuf1[G3_MAX_POINTS_IN_POLY];
+
+	//list of 2d coords
+	fix Vertex_list[G3_MAX_POINTS_IN_POLY * 2];
+
+	//Clipper variables
+	int free_point_num = 0;
+	g3s_point temp_points[G3_MAX_POINTS_IN_POLY];
+	g3s_point* free_points[G3_MAX_POINTS_IN_POLY];
+
+	fix Canv_w2, Canv_h2;
+
+	//A texture mapper. Each G3 drawer has one, for multithreading purposes.
+	//Can only be accessed from the outside world via draw_poly and draw_tmap.
+	Texmap texmap_instance;
+
+	//Private drawing functions
+	bool must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or);
+	bool must_clip_flat_face(int nv, g3s_codes cc, int color);
+	bool must_clip_tmap_face(int nv, g3s_codes cc, grs_bitmap* bm);
+
+	//Private clipping functions
+	void free_temp_point(g3s_point* p);
+	g3s_point* get_temp_point();
+	g3s_point* clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt);
+	int clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc);
+	g3s_point** clip_polygon(g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc);
+	void init_free_points(void);
+	void clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or);
+
+public:
+	G3Drawer();
+
+	void start_frame(fix canv_w2, fix canv_h2);
+	void end_frame();
+
+	//Begins decoding the command buffer. Decoding happens while recording may still be occurring. 
+	//This function will continue until all commands are decoded and recording has finished.
+	void decode_command_buffer();
+
+	//Needs access to thread local clip planes
+	uint8_t code_point(g3s_point* p);
+
+	//projects a point
+	void project_point(g3s_point* point);
+
+	//draw a flat-shaded face.
+	void draw_poly(int nv, g3s_point** pointlist, int color);
+	void draw_poly_direct(int nv, g3s_point* pointlist, int color);
+
+	//draw a texture-mapped face.
+	void draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, grs_bitmap* bm);
+	void draw_tmap_direct(int nv, g3s_point* pointlist, g3s_uvl* uvl_list, grs_bitmap* bm);
+
+	//draw a sortof sphere - i.e., the 2d radius is proportional to the 3d
+	//radius, but not to the distance from the eye
+	void draw_sphere(g3s_point* pnt, fix rad);
+
+	bool draw_line(g3s_point* p0, g3s_point* p1);
+
+	void draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation);
+
+	//Set clip ratios. All should be in the range [-1.0, 1.0]
+	void set_clip_ratios(fix left, fix top, fix right, fix bottom)
+	{
+		clip_ratios[0] = right;
+		clip_ratios[1] = top;
+		clip_ratios[2] = left;
+		clip_ratios[3] = bottom;
+	}
+
+	Texmap& get_texmap_instance()
+	{
+		return texmap_instance;
+	}
+};
+
 //3D library class, encapsulates most of the functionality of the 3D library for multithreading
+//The G3Instance will record to the command buffer when multithreading is enabled, or it will
+//draw directly when multithreading is disabled. 
 class G3Instance
 {
 	vms_vector	View_position;
@@ -96,6 +189,8 @@ class G3Instance
 	fix			Canv_w2;				//fixed-point width/2
 	fix			Canv_h2;				//fixed-point height/2
 
+	fix			clip_ratios[4];
+
 	//performs aspect scaling on global view matrix
 	void scale_matrix(void);
 
@@ -106,9 +201,7 @@ class G3Instance
 	//list of 2d coords
 	fix Vertex_list[G3_MAX_POINTS_IN_POLY * 2];
 
-	//A texture mapper. Each G3 instance has one, for multithreading purposes.
-	//Can only be accessed from the outside world via draw_poly and draw_tmap.
-	Texmap texmap_instance;
+	G3Drawer drawer;
 	//Instance variables
 	instance_context instance_stack[MAX_INSTANCE_DEPTH];
 	int instance_depth = 0;
@@ -129,9 +222,6 @@ class G3Instance
 	g3s_point* rod_point_list[4];
 
 	//Private drawing functions
-	dbool must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or);
-	dbool must_clip_flat_face(int nv, g3s_codes cc);
-	dbool must_clip_tmap_face(int nv, g3s_codes cc, grs_bitmap* bm);
 	dbool do_facing_check(vms_vector* norm, g3s_point** vertlist, vms_vector* p);
 
 	//Private rod-drawing functions
@@ -140,14 +230,9 @@ class G3Instance
 	//Private interp functions
 	void rotate_point_list(g3s_point* dest, vms_vector* src, int n);
 
-	//Private clipping functions
-	void free_temp_point(g3s_point* p);
-	g3s_point* get_temp_point();
-	g3s_point* clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off_pnt);
-	int clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc);
-	g3s_point** clip_polygon(g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc);
-	void init_free_points(void);
-	void clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or);
+	//Private threading functions
+	//Dispatches render threads if multithreading is enabled. Determines how many jobs to create and assigns workers to them
+	void dispatch_render_threads();
 
 public:
 	G3Instance();
@@ -155,6 +240,9 @@ public:
 
 	//start the frame
 	void start_frame();
+	//start the frame by copying the frame data from another instance (including the view position and matrix)
+	//This must be called after start_frame is called for inst, but before any instances are started.
+	void start_frame_from_inst(G3Instance& inst);
 	//set view from x,y,z & p,b,h, zoom.
 	void set_view(vms_vector* view_pos, vms_angvec* view_orient, fix zoom);
 	//set view from x,y,z, viewer matrix, and zoom.
@@ -184,7 +272,16 @@ public:
 	uint8_t rotate_point(g3s_point* dest, vms_vector* src);
 
 	//projects a point
-	void project_point(g3s_point* point);
+	void project_point(g3s_point* point)
+	{
+		drawer.project_point(point);
+	}
+
+	//Needs access to thread local clip planes
+	uint8_t code_point(g3s_point* p)
+	{
+		return drawer.code_point(p);
+	}
 
 	//calculate the depth of a point - returns the z coord of the rotated point
 	fix calc_point_depth(vms_vector* pnt);
@@ -245,30 +342,34 @@ public:
 	//alternate interpreter for morphing object
 	dbool draw_morphing_model(void* model_ptr, grs_bitmap** model_bitmaps, vms_angvec* anim_angles, fix light, vms_vector* new_points);
 
+	//Set clip ratios. All should be in the range [-1.0, 1.0]
+	void set_clip_ratios(fix left, fix top, fix right, fix bottom)
+	{
+		clip_ratios[0] = right;
+		clip_ratios[1] = top;
+		clip_ratios[2] = left;
+		clip_ratios[3] = bottom;
+		drawer.set_clip_ratios(left, top, right, bottom);
+	}
+
 	//Expose the texmapper's state function
-	void set_lighting_mode(int new_mode)
+	void set_lighting_mode(int new_mode);
+	int get_lighting_mode()
 	{
-		texmap_instance.SetLightingState(new_mode);
+		return drawer.get_texmap_instance().GetLightingState();
 	}
-
-	int get_lighting_mode() const
+	void set_interpolation_mode(int new_mode);
+	int get_interpolation_mode()
 	{
-		return texmap_instance.GetLightingState();
+		return drawer.get_texmap_instance().GetInterpolation();
 	}
+	void set_segment_depth(int depth);
+	void set_clip_window(int left, int top, int right, int bottom);
 
-	void set_interpolation_mode(int new_mode)
+	//debugging
+	void debug_decode_command_buffer()
 	{
-		texmap_instance.SetInterpolation(new_mode);
-	}
-
-	int get_interpolation_mode() const
-	{
-		return texmap_instance.GetInterpolation();
-	}
-
-	Texmap& texmap_inst()
-	{
-		return texmap_instance;
+		drawer.decode_command_buffer();
 	}
 };
 

@@ -89,6 +89,8 @@ uint16_t GameBitmapXlat[MAX_BITMAP_FILES];
 
 int piggy_page_flushed = 0;
 
+bool warn_on_late_cache = false;
+
 typedef struct DiskBitmapHeader 
 {
 	char name[8];
@@ -309,7 +311,6 @@ int piggy_init()
 #endif
 	if (Piggy_fp == NULL) return 0;
 
-	//cfread(&Pigdata_start, sizeof(int), 1, Piggy_fp);
 	Pigdata_start = cfile_read_int(Piggy_fp);
 #ifdef EDITOR
 	if (FindArg("-nobm"))
@@ -324,10 +325,9 @@ int piggy_init()
 	length = size;
 	mprintf((0, "\nReading data (%d KB) ", size / 1024));
 
-	cfread(&N_bitmaps, sizeof(int), 1, Piggy_fp);
-	size -= sizeof(int);
-	cfread(&N_sounds, sizeof(int), 1, Piggy_fp);
-	size -= sizeof(int);
+	N_bitmaps = cfile_read_int(Piggy_fp);
+	N_sounds = cfile_read_int(Piggy_fp);
+	size -= 8;
 
 	header_size = (N_bitmaps * BITMAP_HEADER_SIZE) + (N_sounds * SOUND_HEADER_SIZE);
 
@@ -340,16 +340,6 @@ int piggy_init()
 
 	for (i = 0; i < N_bitmaps; i++) 
 	{
-		//cfread(&bmh, sizeof(DiskBitmapHeader), 1, Piggy_fp);
-		//size -= sizeof(DiskBitmapHeader);
-		//[ISB] fix platform bugs, hopefully
-		/*	char name[8];
-	uint8_t dflags;
-	uint8_t	width;
-	uint8_t height;
-	uint8_t flags;
-	uint8_t avg_color;
-	int offset;*/
 		cfread(&bmh.name[0], 8 * sizeof(char), 1, Piggy_fp);
 		bmh.dflags = cfile_read_byte(Piggy_fp);
 		bmh.width = cfile_read_byte(Piggy_fp);
@@ -386,13 +376,10 @@ int piggy_init()
 
 	for (i = 0; i < N_sounds; i++) 
 	{
-		//cfread(&sndh, sizeof(DiskSoundHeader), 1, Piggy_fp);
-		//[ISB] fix platform bugs, hopefully
 		cfread(&sndh.name, 8 * sizeof(char), 1, Piggy_fp);
 		sndh.length = cfile_read_int(Piggy_fp);
 		sndh.data_length = cfile_read_int(Piggy_fp);
 		sndh.offset = cfile_read_int(Piggy_fp);
-		//size -= sizeof(DiskSoundHeader);
 		temp_sound.length = sndh.length;
 		temp_sound.data = (uint8_t*)(sndh.offset + header_size + (sizeof(int) * 2) + Pigdata_start);
 		SoundOffset[Num_sound_files] = sndh.offset + header_size + (sizeof(int) * 2) + Pigdata_start;
@@ -407,12 +394,13 @@ int piggy_init()
 	if (SoundBits == NULL)
 		Error("Not enough memory to load DESCENT.PIG sounds\n");
 
-#ifdef EDITOR
+//#ifdef EDITOR
+	//[ISB] Temp hack for ICDP, keep the piggy cache size large enough to touch every bitmap. 
 	Piggy_bitmap_cache_size = size - header_size - sbytes + 16;
 	Assert(Piggy_bitmap_cache_size > 0);
-#else
+/*#else
 	Piggy_bitmap_cache_size = PIGGY_BUFFER_SIZE;
-#endif
+#endif*/
 	BitmapBits = (uint8_t*)malloc(Piggy_bitmap_cache_size);
 	if (BitmapBits == NULL)
 		Error("Not enough memory to load DESCENT.PIG bitmaps\n");
@@ -423,12 +411,15 @@ int piggy_init()
 
 	atexit(piggy_close_file);
 
+	//[ISB] Temp hack for ICDP, touch every bitmap so no bitmap will ever be cached.
 	//	mprintf( (0, "<<<<Paging in all piggy bitmaps...>>>>>" ));
-	//	for (i=0; i < Num_bitmap_files; i++ )	{
-	//		bitmap_index bi;
-	//		bi.index = i;
-	//		PIGGY_PAGE_IN( bi );
-	//	}
+	for (i=0; i < Num_bitmap_files; i++ )	
+	{
+		bitmap_index bi;
+		bi.index = i;
+		PIGGY_PAGE_IN( bi );
+	}
+	warn_on_late_cache = true;
 	//	mprintf( (0, "\n (USed %d / %d KB)\n", Piggy_bitmap_cache_next/1024, (size - header_size - sbytes + 16)/1024 ));
 	//	key_getch();
 
@@ -514,6 +505,11 @@ void piggy_bitmap_page_in(bitmap_index bitmap)
 	Assert(i < Num_bitmap_files);
 	Assert(Piggy_bitmap_cache_size > 0);
 
+	if (warn_on_late_cache)
+	{
+		Int3();
+	}
+
 	if (i < 1) return;
 	if (i >= MAX_BITMAP_FILES) return;
 	if (i >= Num_bitmap_files) return;
@@ -592,13 +588,6 @@ void piggy_bitmap_page_in(bitmap_index bitmap)
 			Piggy_bitmap_cache_next += bmp->bm_h * bmp->bm_w;
 		}
 
-#if 0 //[ISB] ughhhhhhhhhhhhhhhhhhhh
-		if (bmp->bm_selector) 
-		{
-			if (!dpmi_modify_selector_base(bmp->bm_selector, bmp->bm_data))
-				Error("Error modifying selector base in piggy.c\n");
-		}
-#endif
 		start_time();
 	}
 
@@ -611,7 +600,7 @@ void piggy_bitmap_page_in(bitmap_index bitmap)
 
 void piggy_bitmap_page_out_all()
 {
-	int i;
+	/*int i;
 
 	Piggy_bitmap_cache_next = 0;
 
@@ -628,7 +617,7 @@ void piggy_bitmap_page_out_all()
 			GameBitmaps[i].bm_data = Piggy_bitmap_cache_data;
 		}
 	}
-	mprintf((0, "Flushing piggy bitmap cache\n"));
+	mprintf((0, "Flushing piggy bitmap cache\n"));*/
 }
 
 void piggy_load_level_data()

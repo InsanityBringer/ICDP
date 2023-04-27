@@ -76,4 +76,20 @@ G3Instance::G3Instance()
 	rod_point_list[1] = &rod_points[1];
 	rod_point_list[2] = &rod_points[2];
 	rod_point_list[3] = &rod_points[3];
+
+	set_clip_ratios(-F1_0, F1_0, F1_0, -F1_0);
+}
+
+G3Drawer::G3Drawer()
+{
+	Canv_w2 = Canv_h2 = 0;
+	memset(Vbuf0, 0, sizeof(Vbuf0));
+	memset(Vbuf1, 0, sizeof(Vbuf1));
+	memset(Vertex_list, 0, sizeof(Vertex_list));
+
+	free_point_num = 0;
+	memset(temp_points, 0, sizeof(temp_points));
+	memset(free_points, 0, sizeof(free_points));
+
+	set_clip_ratios(-F1_0, F1_0, F1_0, -F1_0);
 }

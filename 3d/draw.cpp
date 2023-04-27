@@ -47,9 +47,9 @@ int g3_get_interpolation_mode()
 	return g3_global_inst.get_interpolation_mode();
 }
 
-dbool G3Instance::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or)
+bool G3Drawer::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or)
 {
-	dbool ret;
+	bool ret;
 
 	if ((p0->p3_flags & PF_TEMP_POINT) || (p1->p3_flags & PF_TEMP_POINT))
 		ret = 0;		//line has already been clipped, so give up
@@ -72,10 +72,10 @@ dbool G3Instance::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or)
 	return ret;
 }
 
-dbool G3Instance::must_clip_flat_face(int nv, g3s_codes cc)
+bool G3Drawer::must_clip_flat_face(int nv, g3s_codes cc, int color)
 {
 	int i;
-	dbool ret = 0; //[ISB] initalize
+	bool ret = false; //[ISB] initalize
 	g3s_point** bufptr;
 
 	bufptr = clip_polygon(Vbuf0, Vbuf1, &nv, &cc);
@@ -91,7 +91,7 @@ dbool G3Instance::must_clip_flat_face(int nv, g3s_codes cc)
 
 			if (p->p3_flags & PF_OVERFLOW)
 			{
-				ret = 1;
+				ret = true;
 				goto free_points;
 			}
 
@@ -99,10 +99,10 @@ dbool G3Instance::must_clip_flat_face(int nv, g3s_codes cc)
 			Vertex_list[i * 2 + 1] = p->p3_sy;
 		}
 
-		texmap_instance.DrawFlat(grd_curcanv->cv_color, nv, (int*)Vertex_list);
+		texmap_instance.DrawFlat(color, nv, (int*)Vertex_list);
 	}
 	else
-		ret = 1;
+		ret = true;
 
 	//free temp points
 free_points:
@@ -117,7 +117,7 @@ free_points:
 	return ret;
 }
 
-dbool G3Instance::must_clip_tmap_face(int nv, g3s_codes cc, grs_bitmap* bm)
+bool G3Drawer::must_clip_tmap_face(int nv, g3s_codes cc, grs_bitmap* bm)
 {
 	g3s_point** bufptr;
 	int i;
@@ -152,7 +152,7 @@ free_points:
 
 	//	Assert(free_point_num==0);
 
-	return 0;
+	return false;
 }
 
 dbool G3Instance::do_facing_check(vms_vector* norm, g3s_point** vertlist, vms_vector* p)
@@ -186,7 +186,7 @@ dbool G3Instance::check_normal_facing(vms_vector* v, vms_vector* norm)
 
 //draw a flat-shaded face.
 //returns 1 if off screen, 0 if drew
-dbool G3Instance::draw_poly(int nv, g3s_point** pointlist)
+void G3Drawer::draw_poly(int nv, g3s_point** pointlist, int color)
 {
 	int i;
 	g3s_point** bufptr;
@@ -205,10 +205,13 @@ dbool G3Instance::draw_poly(int nv, g3s_point** pointlist)
 	}
 
 	if (cc.high)
-		return 1;	//all points off screen
+		return;// 1;	//all points off screen
 
 	if (cc.low)
-		return must_clip_flat_face(nv, cc);
+	{
+		must_clip_flat_face(nv, cc, color);
+		return;
+	}
 
 	//now make list of 2d coords (& check for overflow)
 
@@ -220,20 +223,71 @@ dbool G3Instance::draw_poly(int nv, g3s_point** pointlist)
 			project_point(p);
 
 		if (p->p3_flags & PF_OVERFLOW)
-			return must_clip_flat_face(nv, cc);
+		{
+			must_clip_flat_face(nv, cc, color);
+			return;
+		}
 
 		Vertex_list[i * 2] = p->p3_sx;
 		Vertex_list[i * 2 + 1] = p->p3_sy;
 	}
 
-	texmap_instance.DrawFlat(grd_curcanv->cv_color, nv, (int*)Vertex_list);
+	texmap_instance.DrawFlat(color, nv, (int*)Vertex_list);
+}
 
-	return 0;	//say it drew
+//draw a flat-shaded face.
+void G3Drawer::draw_poly_direct(int nv, g3s_point* pointlist, int color)
+{
+	int i;
+	g3s_point** bufptr;
+	g3s_codes cc;
+
+	cc.low = 0; cc.high = 0xff;
+
+	bufptr = Vbuf0;
+
+	for (i = 0; i < nv; i++)
+	{
+		bufptr[i] = &pointlist[i];
+
+		cc.high &= bufptr[i]->p3_codes;
+		cc.low |= bufptr[i]->p3_codes;
+	}
+
+	if (cc.high)
+		return;// 1;	//all points off screen
+
+	if (cc.low)
+	{
+		must_clip_flat_face(nv, cc, color);
+		return;
+	}
+
+	//now make list of 2d coords (& check for overflow)
+
+	for (i = 0; i < nv; i++)
+	{
+		g3s_point* p = bufptr[i];
+
+		if (!(p->p3_flags & PF_PROJECTED))
+			project_point(p);
+
+		if (p->p3_flags & PF_OVERFLOW)
+		{
+			must_clip_flat_face(nv, cc, color);
+			return;
+		}
+
+		Vertex_list[i * 2] = p->p3_sx;
+		Vertex_list[i * 2 + 1] = p->p3_sy;
+	}
+
+	texmap_instance.DrawFlat(color, nv, (int*)Vertex_list);
 }
 
 //draw a texture-mapped face.
 //returns 1 if off screen, 0 if drew
-dbool G3Instance::draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, grs_bitmap* bm)
+void G3Drawer::draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, grs_bitmap* bm)
 {
 	int i;
 	g3s_point** bufptr;
@@ -260,10 +314,13 @@ dbool G3Instance::draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, gr
 	}
 
 	if (cc.high)
-		return 1;	//all points off screen
+		return;// 1;	//all points off screen
 
 	if (cc.low)
-		return must_clip_tmap_face(nv, cc, bm);
+	{
+		must_clip_tmap_face(nv, cc, bm);
+		return;
+	}
 
 	//now make list of 2d coords (& check for overflow)
 
@@ -277,21 +334,78 @@ dbool G3Instance::draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, gr
 		if (p->p3_flags & PF_OVERFLOW)
 		{
 			Int3();		//should not overflow after clip
-			return 255;
+			return;// 255;
 		}
 	}
 
 	texmap_instance.DrawTMap(bm, nv, bufptr);
 
-	return 0;	//say it drew
+	//return 0;	//say it drew
+}
+
+//draw a texture-mapped face.
+void G3Drawer::draw_tmap_direct(int nv, g3s_point* pointlist, g3s_uvl* uvl_list, grs_bitmap* bm)
+{
+	int i;
+	g3s_point** bufptr;
+	g3s_codes cc;
+
+	cc.low = 0; cc.high = 0xff;
+
+	bufptr = Vbuf0;
+
+	for (i = 0; i < nv; i++)
+	{
+		g3s_point* p;
+
+		p = bufptr[i] = &pointlist[i];
+
+		cc.high &= p->p3_codes;
+		cc.low |= p->p3_codes;
+
+		p->p3_u = uvl_list[i].u;
+		p->p3_v = uvl_list[i].v;
+		p->p3_l = uvl_list[i].l;
+
+		p->p3_flags |= PF_UVS + PF_LS;
+	}
+
+	if (cc.high)
+		return;// 1;	//all points off screen
+
+	if (cc.low)
+	{
+		must_clip_tmap_face(nv, cc, bm);
+		return;
+	}
+
+	//now make list of 2d coords (& check for overflow)
+
+	for (i = 0; i < nv; i++)
+	{
+		g3s_point* p = bufptr[i];
+
+		if (!(p->p3_flags & PF_PROJECTED))
+			project_point(p);
+
+		if (p->p3_flags & PF_OVERFLOW)
+		{
+			Int3();		//should not overflow after clip
+			return;// 255;
+		}
+	}
+
+	texmap_instance.DrawTMap(bm, nv, bufptr);
+
+	//return 0;	//say it drew
 }
 
 int checkmuldiv(fix* r, fix a, fix b, fix c);
 //draw a sortof sphere - i.e., the 2d radius is proportional to the 3d
 //radius, but not to the distance from the eye
-int G3Instance::draw_sphere(g3s_point* pnt, fix rad)
+void G3Drawer::draw_sphere(g3s_point* pnt, fix rad)
 {
-	if (!(pnt->p3_codes & CC_BEHIND))
+	/*if (!(pnt->p3_codes & CC_BEHIND))
 	{
 		if (!(pnt->p3_flags & PF_PROJECTED))
 			project_point(pnt);
@@ -304,9 +418,7 @@ int G3Instance::draw_sphere(g3s_point* pnt, fix rad)
 			if (checkmuldiv(&t, r2, Canv_w2, pnt->p3_z))
 				return gr_disk(pnt->p3_sx, pnt->p3_sy, t);
 		}
-	}
-
-	return 0;
+	}*/
 }
 
 //like g3_draw_poly(), but checks to see if facing.  If surface normal is
@@ -332,9 +444,9 @@ dbool G3Instance::check_and_draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uv
 }
 
 //draws a line. takes two points.
-dbool G3Instance::draw_line(g3s_point* p0, g3s_point* p1)
+bool G3Drawer::draw_line(g3s_point* p0, g3s_point* p1)
 {
-	uint8_t codes_or;
+	/*uint8_t codes_or;
 
 	if (p0->p3_codes & p1->p3_codes)
 		return 0;
@@ -357,7 +469,8 @@ dbool G3Instance::draw_line(g3s_point* p0, g3s_point* p1)
 	if (p1->p3_flags & PF_OVERFLOW)
 		return must_clip_line(p0, p1, codes_or);
 
-	return (dbool)(*line_drawer_ptr)(p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);
+	return (dbool)(*line_drawer_ptr)(p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);*/
+	return true;
 }
 
 //draws a line. takes two points.  returns true if drew

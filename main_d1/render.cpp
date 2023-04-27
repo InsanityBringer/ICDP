@@ -14,11 +14,14 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <stdlib.h>
 #include <string.h>
 #include <algorithm>
+#include <vector>
+
 #include "inferno.h"
 #include "segment.h"
 #include "misc/error.h"
 #include "bm.h"
 #include "platform/mono.h"
+#include "platform/platform.h"
 #include "render.h"
 #include "game.h"
 #include "object.h"
@@ -80,25 +83,6 @@ int	Bottom_bitmap_num = 9;
 #endif
 
 fix	Face_reflectivity = (F1_0 / 2);
-
-#if 0		//this stuff could probably just be deleted
-
-int inc_render_depth(void)
-{
-	return ++Render_depth;
-}
-
-int dec_render_depth(void)
-{
-	return Render_depth == 1 ? Render_depth : --Render_depth;
-}
-
-int reset_render_depth(void)
-{
-	return Render_depth = DEFAULT_RENDER_DEPTH;
-}
-
-#endif
 
 #ifdef EDITOR
 int _search_mode = 0;			//true if looking for curseg,side,face
@@ -202,7 +186,6 @@ void draw_3d_reticle(fix eye_offset)
 		if (!reticle_canvas)
 			Error("Couldn't malloc reticle_canvas");
 		atexit(free_reticle_canvas);
-		reticle_canvas->cv_bitmap.bm_selector = 0;
 		reticle_canvas->cv_bitmap.bm_flags = BM_FLAG_TRANSPARENT;
 	}
 
@@ -364,11 +347,11 @@ void check_face(int segnum, int sidenum, int facenum, int nv, short* vp, int tma
 		gr_setcolor(0);
 		gr_pixel(_search_x, _search_y);	//set our search pixel to color zero
 		gr_setcolor(1);					//and render in color one
-		save_lighting = Lighting_on;
-		Lighting_on = 2;
+		save_lighting = g3_global_inst.get_lighting_mode();
+		g3_global_inst.set_lighting_mode(2);
 		//g3_draw_poly(nv,vp);
 		g3_draw_tmap(nv, pointlist, uvl_copy, bm);
-		Lighting_on = save_lighting;
+		g3_global_inst.set_lighting_mode(save_lighting);
 
 		if (gr_ugpixel(&grd_curcanv->cv_bitmap, _search_x, _search_y) == 1) 
 		{
@@ -432,11 +415,13 @@ void render_side(segment* segp, int sidenum)
 		//	Now, if both dot products are close to 1.0, then render two triangles as a single quad.
 		v_dot_n1 = vm_vec_dot(&tvec, &normals[1]);
 
-		if (v_dot_n0 < v_dot_n1) {
+		if (v_dot_n0 < v_dot_n1) 
+		{
 			min_dot = v_dot_n0;
 			max_dot = v_dot_n1;
 		}
-		else {
+		else 
+		{
 			min_dot = v_dot_n1;
 			max_dot = v_dot_n0;
 		}
@@ -645,7 +630,7 @@ void render_start_frame()
 		RL_framecount = 1;											//and set this frame to 1
 	}
 
-	memset(grd_curcanv->cv_bitmap.bm_data, 0, (size_t)grd_curcanv->cv_bitmap.bm_w * grd_curcanv->cv_bitmap.bm_h);
+	//memset(grd_curcanv->cv_bitmap.bm_data, 0, (size_t)grd_curcanv->cv_bitmap.bm_w * grd_curcanv->cv_bitmap.bm_h);
 }
 
 //Given a lit of point numbers, rotate any that haven't been rotated this frame
@@ -770,10 +755,6 @@ void outline_seg_side(segment* seg, int _side, int edge, int vert)
 	}
 }
 
-#endif
-
-#if 0		//this stuff could probably just be deleted
-//[ISB] k. if you say so
 #endif
 
 typedef struct window 
@@ -1292,7 +1273,6 @@ vms_angvec Player_head_angles;
 
 extern int Num_tmaps_drawn;
 extern int Total_pixels;
-//--unused-- int Total_num_tmaps_drawn=0;
 
 int Rear_view = 0;
 
@@ -1674,7 +1654,8 @@ void render_mine(int start_seg_num, fix eye_offset)
 	render_start_frame();
 
 #if defined(EDITOR) && !defined(NDEUBG)
-	if (Show_only_curside) {
+	if (Show_only_curside) 
+	{
 		rotate_list(8, &Cursegp->verts[0]);
 		render_side(Cursegp, Curside);
 		goto done_rendering;
@@ -1694,9 +1675,10 @@ void render_mine(int start_seg_num, fix eye_offset)
 		build_segment_list(start_seg_num);		//fills in Render_list & N_render_segs
 
 	//render away
+
 #ifndef NDEBUG
 	if (!window_check) 
-		g3_global_inst.texmap_inst().SetClipWindow(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
+		g3_global_inst.set_clip_window(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
 #endif
 
 #ifndef NDEBUG
@@ -1761,7 +1743,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 		// Interpolation_method = 0;
 		segnum = Render_list[nn];
-		g3_global_inst.texmap_inst().SetSegmentDepth(Seg_depth[nn]);
+		g3_global_inst.set_segment_depth(Seg_depth[nn]);
 
 		//if (!no_render_flag[nn])
 		if (segnum != -1 && (_search_mode || eye_offset > 0 || visited[segnum] != 255)) 
@@ -1771,7 +1753,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 			if (window_check) 
 			{
 				window& render_window = render_windows[nn];
-				g3_global_inst.texmap_inst().SetClipWindow(render_window.left, render_window.top,
+				g3_global_inst.set_clip_window(render_window.left, render_window.top,
 					render_window.right, render_window.bot);
 			}
 
@@ -1782,7 +1764,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 			if (window_check) //reset for objects
 			{
-				g3_global_inst.texmap_inst().SetClipWindow(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
+				g3_global_inst.set_clip_window(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
 			}
 
 			if (migrate_objects) 
@@ -1797,7 +1779,8 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 				//mprintf((0,"render objs seg %d",segnum));
 
-				for (objnp = 0; render_obj_list[listnum][objnp] != -1;) {
+				for (objnp = 0; render_obj_list[listnum][objnp] != -1;) 
+				{
 					int ObjNumber = render_obj_list[listnum][objnp];
 
 					if (ObjNumber >= 0) 

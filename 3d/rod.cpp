@@ -76,7 +76,7 @@ int G3Instance::calc_rod_corners(g3s_point* bot_point, fix bot_width, g3s_point*
 	//now code the four points
 
 	for (i = 0, codes_and = 0xff; i < 4; i++)
-		codes_and &= g3_code_point(&rod_points[i]);
+		codes_and &= code_point(&rod_points[i]);
 
 	if (codes_and)
 		return 1;		//1 means off screen
@@ -113,28 +113,28 @@ dbool G3Instance::draw_rod_tmap(grs_bitmap* bitmap, g3s_point* bot_point, fix bo
 
 //draws a bitmap with the specified 3d width & height 
 //returns 1 if off screen, 0 if drew
-dbool G3Instance::draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation)
+void G3Drawer::draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation)
 {
-	g3s_point pnt;
+	/*g3s_point pnt;
 	fix t, w, h;
 
 	if (rotate_point(&pnt, pos) & CC_BEHIND)
-		return 1;
+		return;
 
 	project_point(&pnt);
 
 	if (pnt.p3_flags & PF_OVERFLOW)
-		return 1;
+		return;
 
 	if (checkmuldiv(&t, width, Canv_w2, pnt.p3_z))
 		w = fixmul(t, Matrix_scale.x);
 	else
-		return 1;
+		return;
 
 	if (checkmuldiv(&t, height, Canv_h2, pnt.p3_z))
 		h = fixmul(t, Matrix_scale.y);
 	else
-		return 1;
+		return;
 
 	blob_vertices[0].x = pnt.p3_sx - w;
 	blob_vertices[0].y = blob_vertices[1].y = pnt.p3_sy - h;
@@ -145,9 +145,7 @@ dbool G3Instance::draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap
 	scale_bitmap(bm, blob_vertices, orientation);
 #else
 	scale_bitmap(bm, blob_vertices);
-#endif
-
-	return 0;
+#endif*/
 }
 
 //draw a polygon that is always facing you

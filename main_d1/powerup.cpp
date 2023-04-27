@@ -75,7 +75,7 @@ extern grs_point blob_vertices[]; //for mac code
 //	blob_vertices has 3 vertices in it, 4th must be computed
 void draw_blob_outline(void)
 {
-	fix	v3x, v3y;
+/*	fix	v3x, v3y;
 
 	//v3x = blob_vertices[4] - blob_vertices[2] + blob_vertices[0];
 	v3x = blob_vertices[2].x - blob_vertices[1].x + blob_vertices[0].x;
@@ -90,23 +90,27 @@ void draw_blob_outline(void)
 	gr_line(blob_vertices[1].x, blob_vertices[1].y, blob_vertices[2].x, blob_vertices[2].y);
 	gr_line(blob_vertices[2].x, blob_vertices[2].y, v3x, v3y);
 
-	gr_line(v3x, v3y, blob_vertices[0].x, blob_vertices[0].y);
+	gr_line(v3x, v3y, blob_vertices[0].x, blob_vertices[0].y);*/
 }
 #endif
 
 void draw_powerup(object* obj)
 {
+	/*
 #ifdef EDITOR
 	blob_vertices[0].x = 0x80000;
 #endif
+*/
 
 	draw_object_blob(obj, Vclip[obj->rtype.vclip_info.vclip_num].frames[obj->rtype.vclip_info.framenum]);
 
+	/*
 #ifdef EDITOR
 	if ((Function_mode == FMODE_EDITOR) && (Cur_object_index == obj - Objects))
 		if (blob_vertices[0].x != 0x80000)
 			draw_blob_outline();
 #endif
+*/
 
 }
 

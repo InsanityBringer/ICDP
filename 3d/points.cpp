@@ -13,8 +13,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "3d/3d.h"
 
-extern fix clip_ratios[4];
-
 //checks for overflow & divides if ok, fillig in r
 //returns true if div is ok, else false
 int checkmuldiv(fix* r, fix a, fix b, fix c)
@@ -60,11 +58,11 @@ uint8_t G3Instance::rotate_point(g3s_point* dest, vms_vector* src)
 
 	dest->p3_flags = 0;	//no projected
 
-	return g3_code_point(dest);
+	return code_point(dest);
 }
 
 //projects a point
-void G3Instance::project_point(g3s_point* p)
+void G3Drawer::project_point(g3s_point* p)
 {
 	fix tx, ty;
 
@@ -148,11 +146,11 @@ uint8_t G3Instance::add_delta_vec(g3s_point* dest, g3s_point* src, vms_vector* d
 	vm_vec_add(&dest->p3_vec, &src->p3_vec, deltav);
 
 	dest->p3_flags = 0;		//not projected
-	return g3_code_point(dest);
+	return code_point(dest);
 }
 
 //code a point.  fills in the p3_codes field of the point, and returns the codes
-uint8_t g3_code_point(g3s_point* p)
+uint8_t G3Drawer::code_point(g3s_point* p)
 {
 	uint8_t cc = 0;
 
@@ -173,6 +171,11 @@ uint8_t g3_code_point(g3s_point* p)
 
 	return p->p3_codes = cc;
 
+}
+
+uint8_t g3_code_point(g3s_point* p)
+{
+	return g3_global_inst.code_point(p);
 }
 
 //rotates a point. returns codes.  does not check if already rotated

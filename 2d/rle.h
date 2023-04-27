@@ -16,10 +16,9 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/types.h"
 #include "2d/gr.h"
 
-uint8_t* gr_rle_decode(uint8_t* src, uint8_t* dest); //[ISB] aaaaa.
+uint8_t* gr_rle_decode(uint8_t* src, uint8_t* dest);
 int gr_rle_encode(int org_size, uint8_t* src, uint8_t* dest);
 int gr_rle_getsize(int org_size, uint8_t* src);
-uint8_t* gr_rle_find_xth_pixel(uint8_t* src, int x, int* count, uint8_t color);
 int gr_bitmap_rle_compress(grs_bitmap* bmp);
 void gr_rle_expand_scanline_masked(uint8_t* dest, uint8_t* src, int x1, int x2);
 void gr_rle_expand_scanline(uint8_t* dest, uint8_t* src, int x1, int x2);
@@ -27,3 +26,32 @@ void gr_rle_expand_scanline(uint8_t* dest, uint8_t* src, int x1, int x2);
 grs_bitmap* rle_expand_texture(grs_bitmap* bmp);
 
 void rle_cache_flush();
+
+constexpr int MAX_CACHE_BITMAPS = 32;
+
+struct rle_cache_element
+{
+	grs_bitmap* rle_bitmap;
+	uint8_t* rle_data;
+	grs_bitmap* expanded_bitmap;
+	int last_used;
+};
+
+class RLECache
+{
+	int rle_cache_initialized = 0;
+	int rle_counter = 0;
+	int rle_next = 0;
+	rle_cache_element rle_cache[MAX_CACHE_BITMAPS];
+
+	int rle_hits = 0;
+	int rle_misses = 0;
+public:
+	RLECache();
+	~RLECache();
+
+	grs_bitmap* expand_texture(grs_bitmap* bmp);
+	void flush();
+};
+
+extern RLECache global_rle_cache;

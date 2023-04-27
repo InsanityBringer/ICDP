@@ -38,6 +38,9 @@ void plat_close();
 //Display an error message
 void plat_display_error(const char* msg);
 
+//Gets the amount of logical CPUs for this machine. 
+int plat_get_num_cpus();
+
 //-----------------------------------------------------------------------------
 //	Setting graphics modes
 //-----------------------------------------------------------------------------

@@ -13,7 +13,34 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
-int texmerge_init(int num_cached_textures);
+#include "2d/rle.h"
+
+constexpr int MAX_NUM_CACHE_BITMAPS = 50;
+
+struct TEXTURE_CACHE
+{
+	grs_bitmap* bitmap;
+	grs_bitmap* bottom_bmp;
+	grs_bitmap* top_bmp;
+	int 		orient;
+	int		last_frame_used;
+};
+
+class Texmerge
+{
+	TEXTURE_CACHE Cache[MAX_NUM_CACHE_BITMAPS];
+
+	int num_cache_entries = 0;
+
+	int cache_hits = 0;
+	int cache_misses = 0;
+public:
+	Texmerge();
+	~Texmerge();
+
+	grs_bitmap* get_cached_bitmap(RLECache& rle_cache, int tmap_bottom, int tmap_top);
+	void flush();
+};
+
 grs_bitmap * texmerge_get_cached_bitmap( int tmap_bottom, int tmap_top );
-void texmerge_close();
 void texmerge_flush();

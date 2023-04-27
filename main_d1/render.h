@@ -15,6 +15,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "3d/3d.h"
 #include "object.h"
+#include "2d/rle.h"
+#include "main_shared/texmerge.h"
 
 #define MAX_RENDER_SEGS		500
 #define OBJS_PER_SEG 		5
@@ -36,11 +38,6 @@ int find_seg_side_face(short x, short y, int* seg, int* side, int* face, int* po
 int inc_render_depth(void);
 int dec_render_depth(void);
 int reset_render_depth(void);
-
-//how many levels deep to render in perspective
-//int inc_perspective_depth(void);
-//int dec_perspective_depth(void);
-//int reset_perspective_depth(void); //[ISB] all unused
 
 //misc toggles
 int toggle_outline_mode(void);

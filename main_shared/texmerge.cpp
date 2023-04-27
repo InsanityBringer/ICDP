@@ -25,35 +25,18 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/mono.h"
 #include "2d/rle.h"
 #include "piggy.h"
+#include "texmerge.h"
 
 #if defined(POLY_ACC)
 #include "poly_acc.h"
 #endif
 
-#define MAX_NUM_CACHE_BITMAPS 50
+Texmerge global_texmerge;
 
-//static grs_bitmap * cache_bitmaps[MAX_NUM_CACHE_BITMAPS];                     
-
-typedef struct	{
-	grs_bitmap * bitmap;
-	grs_bitmap * bottom_bmp;
-	grs_bitmap * top_bmp;
-	int 		orient;
-	int		last_frame_used;
-} TEXTURE_CACHE;
-
-static TEXTURE_CACHE Cache[MAX_NUM_CACHE_BITMAPS];
-
-static int num_cache_entries = 0;
-
-static int cache_hits = 0;
-static int cache_misses = 0;
-
-void texmerge_close();
 void merge_textures_super_xparent(int type, grs_bitmap *bottom_bmp, grs_bitmap *top_bmp,
-											 uint8_t *dest_data);
+											 uint8_t *dest_data, RLECache& cache);
 void merge_textures_new(int type, grs_bitmap *bottom_bmp, grs_bitmap *top_bmp,
-								uint8_t *dest_data);
+								uint8_t *dest_data, RLECache& cache);
 
 #if defined(POLY_ACC)       // useful to all of D2 I think.
 extern grs_bitmap * rle_get_id_sub( grs_bitmap * bmp );
@@ -87,16 +70,16 @@ uint texmerge_get_unique_id( grs_bitmap * bmp )
 
 //----------------------------------------------------------------------
 
-int texmerge_init(int num_cached_textures)
+Texmerge::Texmerge()
 {
-	int i;
+	int num_cached_textures = MAX_NUM_CACHE_BITMAPS;
 
 	if ( num_cached_textures <= MAX_NUM_CACHE_BITMAPS )
 		num_cache_entries = num_cached_textures;
 	else
 		num_cache_entries = MAX_NUM_CACHE_BITMAPS;
 	
-	for (i=0; i<num_cache_entries; i++ )	
+	for (int i=0; i<num_cache_entries; i++ )	
 	{
 			// Make temp tmap for use when combining
 		Cache[i].bitmap = gr_create_bitmap( 64, 64 );
@@ -105,73 +88,54 @@ int texmerge_init(int num_cached_textures)
 		//	Error( "ERROR ALLOCATING CACHE BITMAP'S SELECTORS!!!!" );
 
 		Cache[i].last_frame_used = -1;
-		Cache[i].top_bmp = NULL;
-		Cache[i].bottom_bmp = NULL;
-		Cache[i].orient = -1;
-	}
-	atexit( texmerge_close );
-
-	return 1;
-}
-
-void texmerge_flush()
-{
-	int i;
-
-	for (i=0; i<num_cache_entries; i++ )	
-	{
-		Cache[i].last_frame_used = -1;
-		Cache[i].top_bmp = NULL;
-		Cache[i].bottom_bmp = NULL;
+		Cache[i].top_bmp = nullptr;
+		Cache[i].bottom_bmp = nullptr;
 		Cache[i].orient = -1;
 	}
 }
 
-
-//-------------------------------------------------------------------------
-void texmerge_close()
+Texmerge::~Texmerge()
 {
 	int i;
 
-	for (i=0; i<num_cache_entries; i++ )	
+	for (i = 0; i < num_cache_entries; i++)
 	{
-		gr_free_bitmap( Cache[i].bitmap );
-		Cache[i].bitmap = NULL;
+		gr_free_bitmap(Cache[i].bitmap);
+		Cache[i].bitmap = nullptr;
 	}
 }
 
-//--unused-- int info_printed = 0;
-
-grs_bitmap * texmerge_get_cached_bitmap( int tmap_bottom, int tmap_top )
+grs_bitmap* Texmerge::get_cached_bitmap(RLECache& rle_cache, int tmap_bottom, int tmap_top)
 {
-	grs_bitmap *bitmap_top, *bitmap_bottom;
+	grs_bitmap* bitmap_top, * bitmap_bottom;
 	int i, orient;
 	int lowest_frame_count;
 	int least_recently_used;
 
-//	if ( ((FrameCount % 1000)==0) && ((cache_hits+cache_misses)>0) && (!info_printed) )	{
-//		mprintf( 0, "Texmap caching:  %d hits, %d misses. (Missed=%d%%)\n", cache_hits, cache_misses, (cache_misses*100)/(cache_hits+cache_misses)  );
-//		info_printed = 1;
-//	} else {
-//		info_printed = 0;
-//	}
+	//	if ( ((FrameCount % 1000)==0) && ((cache_hits+cache_misses)>0) && (!info_printed) )	{
+	//		mprintf( 0, "Texmap caching:  %d hits, %d misses. (Missed=%d%%)\n", cache_hits, cache_misses, (cache_misses*100)/(cache_hits+cache_misses)  );
+	//		info_printed = 1;
+	//	} else {
+	//		info_printed = 0;
+	//	}
 
-	bitmap_top = &GameBitmaps[Textures[tmap_top&0x3FFF].index];
+	bitmap_top = &GameBitmaps[Textures[tmap_top & 0x3FFF].index];
 	bitmap_bottom = &GameBitmaps[Textures[tmap_bottom].index];
-	
-	orient = ((tmap_top&0xC000)>>14) & 3;
+
+	orient = ((tmap_top & 0xC000) >> 14) & 3;
 
 	least_recently_used = 0;
 	lowest_frame_count = Cache[0].last_frame_used;
-	
-	for (i=0; i<num_cache_entries; i++ )	
+
+	for (i = 0; i < num_cache_entries; i++)
 	{
-		if ( (Cache[i].last_frame_used > -1) && (Cache[i].top_bmp==bitmap_top) && (Cache[i].bottom_bmp==bitmap_bottom) && (Cache[i].orient==orient ))	{
+		if ((Cache[i].last_frame_used > -1) && (Cache[i].top_bmp == bitmap_top) && (Cache[i].bottom_bmp == bitmap_bottom) && (Cache[i].orient == orient)) 
+		{
 			cache_hits++;
 			Cache[i].last_frame_used = FrameCount;
 			return Cache[i].bitmap;
-		}	
-		if ( Cache[i].last_frame_used < lowest_frame_count )	
+		}
+		if (Cache[i].last_frame_used < lowest_frame_count)
 		{
 			lowest_frame_count = Cache[i].last_frame_used;
 			least_recently_used = i;
@@ -184,29 +148,30 @@ grs_bitmap * texmerge_get_cached_bitmap( int tmap_bottom, int tmap_top )
 	// Make sure the bitmaps are paged in...
 	piggy_page_flushed = 0;
 
-	PIGGY_PAGE_IN(Textures[tmap_top&0x3FFF]);
+	PIGGY_PAGE_IN(Textures[tmap_top & 0x3FFF]);
 	PIGGY_PAGE_IN(Textures[tmap_bottom]);
-	if (piggy_page_flushed)	
+	if (piggy_page_flushed)
 	{
 		// If cache got flushed, re-read 'em.
 		piggy_page_flushed = 0;
-		PIGGY_PAGE_IN(Textures[tmap_top&0x3FFF]);
+		PIGGY_PAGE_IN(Textures[tmap_top & 0x3FFF]);
 		PIGGY_PAGE_IN(Textures[tmap_bottom]);
 	}
-	Assert( piggy_page_flushed == 0 );
+	Assert(piggy_page_flushed == 0);
 
-	if (bitmap_top->bm_flags & BM_FLAG_SUPER_TRANSPARENT)	
+	if (bitmap_top->bm_flags & BM_FLAG_SUPER_TRANSPARENT)
 	{
-		merge_textures_super_xparent( orient, bitmap_bottom, bitmap_top, Cache[least_recently_used].bitmap->bm_data );
+		merge_textures_super_xparent(orient, bitmap_bottom, bitmap_top, Cache[least_recently_used].bitmap->bm_data, rle_cache);
 		Cache[least_recently_used].bitmap->bm_flags = BM_FLAG_TRANSPARENT;
 		Cache[least_recently_used].bitmap->avg_color = bitmap_top->avg_color;
-	} else	
+	}
+	else
 	{
-		merge_textures_new( orient, bitmap_bottom, bitmap_top, Cache[least_recently_used].bitmap->bm_data );
+		merge_textures_new(orient, bitmap_bottom, bitmap_top, Cache[least_recently_used].bitmap->bm_data, rle_cache);
 		Cache[least_recently_used].bitmap->bm_flags = bitmap_bottom->bm_flags & (~BM_FLAG_RLE);
 		Cache[least_recently_used].bitmap->avg_color = bitmap_bottom->avg_color;
 	}
-		
+
 	Cache[least_recently_used].top_bmp = bitmap_top;
 	Cache[least_recently_used].bottom_bmp = bitmap_bottom;
 	Cache[least_recently_used].last_frame_used = FrameCount;
@@ -215,15 +180,38 @@ grs_bitmap * texmerge_get_cached_bitmap( int tmap_bottom, int tmap_top )
 	return Cache[least_recently_used].bitmap;
 }
 
-void merge_textures_new( int type, grs_bitmap * bottom_bmp, grs_bitmap * top_bmp, uint8_t * dest_data )
+void Texmerge::flush()
+{
+	int i;
+
+	for (i = 0; i < num_cache_entries; i++)
+	{
+		Cache[i].last_frame_used = -1;
+		Cache[i].top_bmp = nullptr;
+		Cache[i].bottom_bmp = nullptr;
+		Cache[i].orient = -1;
+	}
+}
+
+void texmerge_flush()
+{
+	global_texmerge.flush();
+}
+
+grs_bitmap * texmerge_get_cached_bitmap( int tmap_bottom, int tmap_top )
+{
+	return global_texmerge.get_cached_bitmap(global_rle_cache, tmap_bottom, tmap_top);
+}
+
+void merge_textures_new( int type, grs_bitmap * bottom_bmp, grs_bitmap * top_bmp, uint8_t * dest_data, RLECache& cache )
 {
 	uint8_t * top_data, *bottom_data;
 
 	if ( top_bmp->bm_flags & BM_FLAG_RLE )
-		top_bmp = rle_expand_texture(top_bmp);
+		top_bmp = cache.expand_texture(top_bmp);
 
 	if ( bottom_bmp->bm_flags & BM_FLAG_RLE )
-		bottom_bmp = rle_expand_texture(bottom_bmp);
+		bottom_bmp = cache.expand_texture(bottom_bmp);
 
 //	Assert( bottom_bmp != top_bmp );
 
@@ -251,7 +239,7 @@ void merge_textures_new( int type, grs_bitmap * bottom_bmp, grs_bitmap * top_bmp
 	}
 }
 
-void merge_textures_super_xparent( int type, grs_bitmap * bottom_bmp, grs_bitmap * top_bmp, uint8_t * dest_data )
+void merge_textures_super_xparent( int type, grs_bitmap * bottom_bmp, grs_bitmap * top_bmp, uint8_t * dest_data, RLECache& cache )
 {
 	uint8_t c;
 	int x,y;
@@ -259,10 +247,10 @@ void merge_textures_super_xparent( int type, grs_bitmap * bottom_bmp, grs_bitmap
 	uint8_t * top_data, *bottom_data;
 
 	if ( top_bmp->bm_flags & BM_FLAG_RLE )
-		top_bmp = rle_expand_texture(top_bmp);
+		top_bmp = cache.expand_texture(top_bmp);
 
 	if ( bottom_bmp->bm_flags & BM_FLAG_RLE )
-		bottom_bmp = rle_expand_texture(bottom_bmp);
+		bottom_bmp = cache.expand_texture(bottom_bmp);
 
 //	Assert( bottom_bmp != top_bmp );
 

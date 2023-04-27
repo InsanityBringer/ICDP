@@ -33,6 +33,7 @@ typedef struct alias
 
 extern alias alias_list[MAX_ALIASES];
 extern int Num_aliases;
+extern bool warn_on_late_cache;
 
 typedef struct bitmap_index 
 {
