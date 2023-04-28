@@ -26,6 +26,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/platform.h"
 #include "platform/mono.h"
 
+//#define G3_DEBUG_EMPTY_CELLS
+
 bool Use_multithread = false;
 int Thread_count = 0;
 
@@ -122,6 +124,25 @@ void G3Drawer::end_frame()
 	free_point_num = 0;
 }
 
+#ifdef G3_DEBUG_EMPTY_CELLS
+//Detect cells that failed to render by drawing a couple of random pixels and checking if they're the same at the end. 
+void g3_generate_random_pixels(G3ThreadData& thread)
+{
+	int xrange = thread.current_planes.right - thread.current_planes.left;
+	int yrange = thread.current_planes.bottom - thread.current_planes.top;
+
+	thread.pixel_x = (rand() % xrange) + thread.current_planes.left;
+	thread.pixel_y = (rand() % yrange) + thread.current_planes.top;
+	thread.pixel_color = 255;
+	gr_bm_pixel(&grd_curcanv->cv_bitmap, thread.pixel_x, thread.pixel_y, thread.pixel_color);
+
+	thread.pixel2_x = (rand() % xrange) + thread.current_planes.left;
+	thread.pixel2_y = (rand() % yrange) + thread.current_planes.top;
+	thread.pixel2_color = 255;
+	gr_bm_pixel(&grd_curcanv->cv_bitmap, thread.pixel2_x, thread.pixel2_y, thread.pixel2_color);
+}
+#endif
+
 void G3Instance::dispatch_render_threads()
 {
 	//Threads probably won't be efficient if they're drawing tiny regions of the screen.
@@ -162,6 +183,12 @@ void G3Instance::dispatch_render_threads()
 
 		data.current_planes.canv_w2 = Canv_w2; data.current_planes.canv_h2 = Canv_h2;
 
+		data.drawer.reset_debug_counters();
+
+#ifdef G3_DEBUG_EMPTY_CELLS
+		g3_generate_random_pixels(data);
+#endif
+
 		/*{
 			std::unique_lock<std::mutex> lock(Render_start_mutex);
 			lock.unlock();
@@ -189,6 +216,7 @@ void G3Instance::start_frame()
 
 	s = fixmuldiv(grd_curscreen->sc_aspect, Canvas_height, Canvas_width);
 
+	//Buffer clear for debugging purposes. 
 	memset(grd_curcanv->cv_bitmap.bm_data, 0xC0, grd_curcanv->cv_bitmap.bm_rowsize * grd_curcanv->cv_bitmap.bm_h);
 
 	if (s <= F1_0) //scale x
@@ -256,6 +284,20 @@ void G3Instance::end_frame()
 		Num_render_thread_completed = 0;
 	}
 
+#ifndef NDEBUG
+	for (int i = 0; i < Num_threads_dispatched; i++)
+	{
+		G3ThreadData& data = Render_thread_data[i];
+		if (Render_thread_data[i].drawer.get_num_commands_decoded() == -1)
+			Int3(); //Thread didn't execute properly
+
+#ifdef G3_DEBUG_EMPTY_CELLS
+		if (gr_gpixel(&grd_curcanv->cv_bitmap, data.pixel_x, data.pixel_y) == data.pixel_color && gr_gpixel(&data.drawer.get_canvas()->cv_bitmap, data.pixel2_x, data.pixel2_y) == data.pixel2_color)
+			Int3();
+#endif
+	}
+#endif
+
 	//debugging the command decoder..
 	//debug_decode_command_buffer();
 }
@@ -291,6 +333,18 @@ void g3_worker_thread(int thread_num)
 			my_job.drawer.set_clip_bounds(my_job.current_planes.left, my_job.current_planes.top, my_job.current_planes.right, my_job.current_planes.bottom);
 			my_job.drawer.decode_command_buffer();
 			my_job.drawer.end_frame();
+
+#ifdef G3_DEBUG_EMPTY_CELLS
+			if (gr_gpixel(&my_job.drawer.get_canvas()->cv_bitmap, my_job.pixel_x, my_job.pixel_y) == my_job.pixel_color && gr_gpixel(&my_job.drawer.get_canvas()->cv_bitmap, my_job.pixel2_x, my_job.pixel2_y) == my_job.pixel2_color)
+				Int3();
+#endif
+
+#ifndef NDEBUG
+			if (my_job.drawer.get_num_commands_decoded() == 0 || my_job.drawer.get_num_commands_decoded() == -1)
+			{
+				Int3();
+			}
+#endif
 		}
 
 		{

@@ -120,6 +120,11 @@ class G3Drawer
 	//I wonder if I should make bitmap scaling use the texmapper instead?
 	GrScalar scalar_instance;
 
+	grs_canvas* canv;
+
+	//Debugging: Amount of commands decoded
+	int num_commands_decoded = -1;
+
 	//Private drawing functions
 	bool must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or);
 	bool must_clip_flat_face(int nv, g3s_codes cc, int color);
@@ -211,6 +216,7 @@ public:
 	//Sets the canvas. ATM this just passes the canvas down to the various drawers
 	void set_canvas(grs_canvas* canvas)
 	{
+		canv = canvas;
 		texmap_instance.SetCanvas(canvas);
 		scalar_instance.set_canvas(canvas);
 	}
@@ -218,6 +224,21 @@ public:
 	Texmap& get_texmap_instance()
 	{
 		return texmap_instance;
+	}
+
+	int get_num_commands_decoded()
+	{
+		return num_commands_decoded;
+	}
+
+	void reset_debug_counters()
+	{
+		num_commands_decoded = -1;
+	}
+
+	grs_canvas* get_canvas()
+	{
+		return canv;
 	}
 };
 

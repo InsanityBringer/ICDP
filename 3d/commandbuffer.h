@@ -86,10 +86,13 @@ class G3CommandBuffer
 	std::atomic_bool is_recording;
 	std::atomic_size_t finalized_size;
 
+	int num_commands_recorded = -1;
+
 	void* reserve_space(size_t size);
 	void commit_space()
 	{
 		finalized_size = used_size;
+		num_commands_recorded++;
 	}
 public:
 	G3CommandBuffer();
@@ -120,6 +123,11 @@ public:
 	void cmd_set_window(int left, int top, int right, int bottom);
 
 	void end_recording();
+
+	int get_num_commands_recorded()
+	{
+		return num_commands_recorded;
+	}
 
 	//Threads will be executing the command buffer while it's being recorded, so drawing can proceed while other operations like rotation are occurring.
 	//This is using an atomic to hopefully ensure proper memory ordering? I'm not entirely sure here. Ordering may need to be explicitly specified for ARM systems.

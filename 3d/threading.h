@@ -20,4 +20,8 @@ struct G3ThreadData
 {
 	G3Drawer drawer;
 	G3DrawJob current_planes;
+
+	//Debugging
+	int pixel_x, pixel_y, pixel_color;
+	int pixel2_x, pixel2_y, pixel2_color;
 };

@@ -54,6 +54,7 @@ void G3CommandBuffer::start_recording()
 	used_size = 0;
 	finalized_size = 0;
 	is_recording = true;
+	num_commands_recorded = 0;
 }
 
 void G3CommandBuffer::end_recording()
@@ -305,7 +306,9 @@ void G3Drawer::decode_command_buffer()
 	size_t decode_cursor = 0;
 	size_t buffer_size = g3_command_buffer.get_finalized_size();
 
-	while (g3_command_buffer.recording() || decode_cursor < buffer_size)
+	num_commands_decoded = 0;
+
+	while (g3_command_buffer.recording() || decode_cursor < g3_command_buffer.get_finalized_size())
 	{
 		buffer_size = g3_command_buffer.get_finalized_size();
 		while (decode_cursor < buffer_size)
@@ -370,9 +373,9 @@ void G3Drawer::decode_command_buffer()
 			break;
 			}
 
+			num_commands_decoded++;
 			decode_cursor += cmd_p->length;
 		}
-		buffer_size = g3_command_buffer.get_finalized_size();
 	}
 	
 }
