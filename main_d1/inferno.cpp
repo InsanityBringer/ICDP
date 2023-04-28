@@ -497,6 +497,15 @@ int D_DescentMain(int argc, const char** argv)
 			screen_height = 480;
 			screen_compatible = 0;
 		}
+
+		if (FindArg("-1280x1024"))
+		{
+			if (Inferno_verbose) printf("Using 1280x1024...\n");
+			screen_mode = SM_1280x1024V;
+			screen_width = 1280;
+			screen_height = 1024;
+			screen_compatible = 0;
+		}
 		if (FindArg("-320x100")) 
 		{
 			if (Inferno_verbose) printf("Using 320x100 VGA...\n");

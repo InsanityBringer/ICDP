@@ -12,6 +12,8 @@ struct G3DrawJob
 	int left, top, right, bottom;
 	//Clipping planes for the screen region this job will cover, for polygons.
 	fix clip_left, clip_top, clip_right, clip_bottom;
+	//These are here to avoid race conditions with calculating them in the thread
+	fix canv_w2, canv_h2;
 };
 
 struct G3ThreadData

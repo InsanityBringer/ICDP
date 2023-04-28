@@ -2163,8 +2163,6 @@ void game()
 	if (Function_mode != FMODE_EDITOR)
 		gr_palette_fade_out(gr_palette, 32, 0);			// Fade out before going to menu
 
-	//_MARK_("end of game");//Commented out -KRB
-
 	clear_warn_func(game_show_warning);     //don't use this func anymore
 
 	game_disable_cheats();

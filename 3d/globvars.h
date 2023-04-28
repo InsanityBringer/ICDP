@@ -15,24 +15,3 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #define MAX_POINTS_IN_POLY 100
 
-extern int Canvas_width, Canvas_height;	//the actual width & height
-extern fix Canv_w2, Canv_h2;				//fixed-point width,height/2
-
-#ifdef __powerc
-extern double fCanv_w2, fCanv_h2;
-#endif
-
-extern vms_vector Window_scale;
-extern int free_point_num;
-
-extern fix View_zoom;
-extern vms_vector View_position, Matrix_scale;
-extern vms_matrix View_matrix, Unscaled_matrix;
-
-
-//vertex buffers for polygon drawing and clipping
-extern g3s_point* Vbuf0[];
-extern g3s_point* Vbuf1[];
-
-//list of 2d coords
-extern fix Vertex_list[];

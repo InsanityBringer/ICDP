@@ -1678,7 +1678,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 #ifndef NDEBUG
 	if (!window_check) 
-		g3_global_inst.set_clip_window(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
+		g3_global_inst.set_clip_window(0, 0, grd_curcanv->cv_bitmap.bm_w - 1, grd_curcanv->cv_bitmap.bm_h - 1);
 #endif
 
 #ifndef NDEBUG
@@ -1764,7 +1764,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 			if (window_check) //reset for objects
 			{
-				g3_global_inst.set_clip_window(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
+				g3_global_inst.set_clip_window(0, 0, grd_curcanv->cv_bitmap.bm_w - 1, grd_curcanv->cv_bitmap.bm_h - 1);
 			}
 
 			if (migrate_objects) 

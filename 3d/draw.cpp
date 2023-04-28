@@ -15,6 +15,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "3d/3d.h"
 #include "texmap/texmap.h"
 #include "misc/types.h"
+#include <string.h>
 
 int (*line_drawer_ptr)(fix x0, fix y0, fix x1, fix y1) = gr_line;
 
@@ -246,9 +247,15 @@ void G3Drawer::draw_poly_direct(int nv, g3s_point* pointlist, int color)
 
 	bufptr = Vbuf0;
 
+	//this is far from elegant, but I need a copy of the points for each thread. Otherwise the coding will leak into the command buffer
+	memcpy(temp_point_buffer, pointlist, nv * sizeof(g3s_point));
+
 	for (i = 0; i < nv; i++)
 	{
-		bufptr[i] = &pointlist[i];
+		bufptr[i] = &temp_point_buffer[i];
+
+		//Well I totally messed up here, all points need to be recoded with the new clip planes for this region
+		code_point(bufptr[i]);
 
 		cc.high &= bufptr[i]->p3_codes;
 		cc.low |= bufptr[i]->p3_codes;
@@ -353,12 +360,18 @@ void G3Drawer::draw_tmap_direct(int nv, g3s_point* pointlist, g3s_uvl* uvl_list,
 	cc.low = 0; cc.high = 0xff;
 
 	bufptr = Vbuf0;
+	
+	//this is far from elegant, but I need a copy of the points for each thread. Otherwise the coding will leak into the command buffer
+	memcpy(temp_point_buffer, pointlist, nv * sizeof(g3s_point));
 
 	for (i = 0; i < nv; i++)
 	{
 		g3s_point* p;
 
-		p = bufptr[i] = &pointlist[i];
+		p = bufptr[i] = &temp_point_buffer[i];
+
+		//Well I totally messed up here, all points need to be recoded with the new clip planes for this region
+		code_point(bufptr[i]);
 
 		cc.high &= p->p3_codes;
 		cc.low |= p->p3_codes;

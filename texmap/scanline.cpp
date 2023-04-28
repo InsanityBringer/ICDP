@@ -255,10 +255,6 @@ void Texmap::DrawScanlinePerspective()
 
 #define NBITS 4
 #define ZSHIFT 4
-uint16_t ut, vt;
-uint16_t ui, vi;
-int uvt, uvi;
-fix U0, V0, Z0, U1, V1;
 
 fix pdiv(int a, int b)
 {
@@ -314,8 +310,6 @@ fix pdiv(int a, int b)
 										l += dldx;\
 										if (--num_left_over == 0) return;
 
-int loop_count, num_left_over;
-dbool new_end;
 
 void Texmap::DrawScanlinePerspectivePer16()
 {
@@ -473,7 +467,7 @@ void Texmap::DrawScanlinePerspectivePer16()
 					C_TMAP_SCANLINE_PLT_LOOP_F
 			}
 
-			Int3();
+			//Int3();
 			return;
 		}
 	}

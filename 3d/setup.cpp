@@ -16,6 +16,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <condition_variable>
 #include <vector>
 #include <algorithm>
+#include <atomic>
 
 #include "misc/error.h"
 
@@ -30,10 +31,12 @@ int Thread_count = 0;
 
 std::condition_variable Render_start_signal;
 std::condition_variable Render_complete_signal;
+std::condition_variable Render_thread_obtain_signal;
 std::mutex Render_start_mutex;
+std::mutex Render_thread_obtain_mutex;
 std::mutex Render_complete_mutex;
 //Protected by the start CV, A thread will read this and start working with Render_thread_data[Render_thread_start_num]
-int Render_thread_start_num;
+std::atomic_int Render_thread_start_num;
 //Protected by the completion CV, waiting is done when this equals Thread_count
 int Num_render_thread_completed;
 //Number of threads that were dispatched when calling start_frame. end_frame will wait until Num_threads_dispatched == Num_render_thread_completed
@@ -122,29 +125,55 @@ void G3Drawer::end_frame()
 void G3Instance::dispatch_render_threads()
 {
 	//Threads probably won't be efficient if they're drawing tiny regions of the screen.
-	//Therefore I use 128x128 tiles as a baseline for determining how many threads to use.
+	//Therefore I use 256x256 tiles as a baseline for determining how many threads to use.
 	//On high resolution canvases, the amount of tiles will be bounded to Num_cells_x and Num_cells_y,
 	//resulting in much larger tiles.
 
-	int num_threads_x = std::min(Canvas_width / 128 + 1, Num_cells_x);
-	int num_threads_y = std::min(Canvas_height / 128 + 1, Num_cells_y);
+	//TODO: The tiles need some adjustment. At 640x480 the overhead is slightly higher than rendering without threads. 
 
-	int total_threads = num_threads_x * num_threads_y;
+	Render_thread_start_num = 0;
+	int num_threads_x = std::min(Canvas_width / 256 + 1, Num_cells_x);
+	int num_threads_y = std::min(Canvas_height / 256 + 1, Num_cells_y);
 
-	for (int i = 0; i < total_threads; i++)
+	Num_threads_dispatched = num_threads_x * num_threads_y;
+
+	for (int i = 0; i < Num_threads_dispatched; i++)
 	{
 		int cell_x = i % num_threads_x;
-		int cell_y = i / num_threads_y;
+		int cell_y = i / num_threads_x;
+
+		//Compute clipping planes and screen regions for this thread
+		fix x_frac_left = fixdiv(i2f(cell_x), i2f(num_threads_x));
+		fix x_frac_right = fixdiv(i2f(cell_x + 1), i2f(num_threads_x));
+
+		fix y_frac_top = F1_0 - fixdiv(i2f(cell_y), i2f(num_threads_y));
+		fix y_frac_bottom = F1_0 - fixdiv(i2f(cell_y + 1), i2f(num_threads_y));
+
+		G3ThreadData& data = Render_thread_data[i];
+		data.current_planes.left = f2i(x_frac_left * Canvas_width);
+		data.current_planes.right = f2i(x_frac_right * Canvas_width);
+		data.current_planes.top = f2i(y_frac_top * Canvas_height);
+		data.current_planes.bottom = f2i(y_frac_bottom * Canvas_height);
+
+		data.current_planes.clip_left = x_frac_left * 2 - F1_0;
+		data.current_planes.clip_right = x_frac_right * 2 - F1_0;
+		data.current_planes.clip_top = (y_frac_top * 2 - F1_0);
+		data.current_planes.clip_bottom = (y_frac_bottom * 2 - F1_0);
+
+		data.current_planes.canv_w2 = Canv_w2; data.current_planes.canv_h2 = Canv_h2;
+
+		/*{
+			std::unique_lock<std::mutex> lock(Render_start_mutex);
+			lock.unlock();
+
+			Render_start_signal.notify_one();
+		}*/
 	}
 
 	{
 		std::unique_lock<std::mutex> lock(Render_start_mutex);
-		Render_thread_start_num = 0;
-		lock.unlock();
-
-		Render_start_signal.notify_one();
+		Render_start_signal.notify_all();
 	}
-	Num_threads_dispatched = 1;
 }
 
 //start the frame
@@ -160,8 +189,9 @@ void G3Instance::start_frame()
 
 	s = fixmuldiv(grd_curscreen->sc_aspect, Canvas_height, Canvas_width);
 
-	//if (s <= 0) //scale x
-	if (s <= F1_0)
+	//memset(grd_curcanv->cv_bitmap.bm_data, 0, grd_curcanv->cv_bitmap.bm_rowsize * grd_curcanv->cv_bitmap.bm_h);
+
+	if (s <= F1_0) //scale x
 	{
 		Window_scale.x = s;
 		Window_scale.y = f1_0;
@@ -178,13 +208,13 @@ void G3Instance::start_frame()
 	drawer.get_texmap_instance().SetCanvas(grd_curcanv);
 	drawer.start_frame(Canv_w2, Canv_h2);
 
+	g3_command_buffer.start_recording();
 	//Use_multithread = false; //debugging
 	if (Use_multithread)
 	{
 		dispatch_render_threads();
 	}
 
-	g3_command_buffer.start_recording();
 	//This is a bit of a legacy of the global state, but ensure all drawers have the right interpolation and lighting
 	g3_command_buffer.cmd_set_lighting(get_lighting_mode());
 	g3_command_buffer.cmd_set_interpolation(get_interpolation_mode());
@@ -220,7 +250,7 @@ void G3Instance::end_frame()
 	{
 		{
 			std::unique_lock<std::mutex> lock(Render_complete_mutex);
-			Render_complete_signal.wait(lock, [] {return Num_render_thread_completed == Num_threads_dispatched; });
+			Render_complete_signal.wait(lock, [] {return Num_render_thread_completed == Thread_count; });
 		}
 
 		Num_render_thread_completed = 0;
@@ -246,21 +276,20 @@ void g3_worker_thread(int thread_num)
 {
 	while (true)
 	{
-		int my_job_num = 0;
 		{
 			std::unique_lock<std::mutex> lock(Render_start_mutex);
 			Render_start_signal.wait(lock);
-			my_job_num = Render_thread_start_num;
 		}
 
 		//emit pixels
-
-		int Canvas_width, Canvas_height;
-		fix Canv_w2 = (Canvas_width = grd_curcanv->cv_bitmap.bm_w) << 15;
-		fix Canv_h2 = (Canvas_height = grd_curcanv->cv_bitmap.bm_h) << 15;
-		Render_thread_data[my_job_num].drawer.start_frame(Canv_w2, Canv_h2);
-		Render_thread_data[my_job_num].drawer.decode_command_buffer();
-		Render_thread_data[my_job_num].drawer.end_frame();
+		if (thread_num < Num_threads_dispatched) //Notifying all threads to check if they have work to do isn't the most elegant, but it'll work for now. 
+		{
+			G3ThreadData& my_job = Render_thread_data[thread_num];
+			my_job.drawer.start_frame(my_job.current_planes.canv_w2, my_job.current_planes.canv_h2);
+			my_job.drawer.set_clip_ratios(my_job.current_planes.clip_left, my_job.current_planes.clip_top, my_job.current_planes.clip_right, my_job.current_planes.clip_bottom);
+			my_job.drawer.decode_command_buffer();
+			my_job.drawer.end_frame();
+		}
 
 		{
 			std::unique_lock<std::mutex> lock(Render_complete_mutex);

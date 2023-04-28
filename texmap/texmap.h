@@ -92,6 +92,16 @@ class Texmap
 	uint8_t tmap_flat_shade_value;
 	RLECache local_cache; //Local RLE cache, since the game can do late decompression on occasion. This is a bit memory-hungry. 
 
+	//Formerly global state for the scanline drawers. 
+	//no idea why these are globals TBH, I may make them local to the scanline functions
+	int loop_count, num_left_over;
+	dbool new_end;
+
+	uint16_t ut, vt;
+	uint16_t ui, vi;
+	int uvt, uvi;
+	fix U0, V0, Z0, U1, V1;
+
 	//Scanline drawing functions. These use the state of the current Texmap to draw a scanline. 
 
 	void DrawScanlinePerspective();

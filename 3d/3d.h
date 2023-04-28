@@ -101,6 +101,10 @@ class G3Drawer
 	int free_point_num = 0;
 	g3s_point temp_points[G3_MAX_POINTS_IN_POLY];
 	g3s_point* free_points[G3_MAX_POINTS_IN_POLY];
+	
+	//OPTIMIZE: Currently I copy all points into this temporary buffer
+	//because they need to be coded specifically for each cell
+	g3s_point temp_point_buffer[G3_MAX_POINTS_IN_POLY];
 
 	fix Canv_w2, Canv_h2;
 
