@@ -140,6 +140,16 @@ g3s_point* G3Drawer::clip_edge(int plane_flag, g3s_point* on_pnt, g3s_point* off
 
 	code_point(tmp);
 
+	//This is to try to deal with the clipper and projection being imprecise, bleeding one pixel over.
+	project_point(tmp);
+
+	//Fix the x or y coordinate of the projected point to the clipping plane directly, to ensure it ends up at the right place. 
+	if (plane_flag == CC_OFF_LEFT || plane_flag == CC_OFF_RIGHT)
+		tmp->p3_sx = fixmul(Canv_w2, plane_ratio) + Canv_w2;
+
+	else if (plane_flag == CC_OFF_TOP || plane_flag == CC_OFF_BOT)
+		tmp->p3_sy = fixmul(Canv_h2, -plane_ratio) + Canv_h2;
+
 	return tmp;
 }
 
