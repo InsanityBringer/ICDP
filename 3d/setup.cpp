@@ -114,7 +114,7 @@ void G3Drawer::start_frame(fix canv_w2, fix canv_h2)
 	Canv_h2 = canv_h2;
 
 	init_free_points();
-	texmap_instance.SetCanvas(grd_curcanv);
+	set_canvas(grd_curcanv);
 }
 
 void G3Drawer::end_frame()
@@ -146,19 +146,19 @@ void G3Instance::dispatch_render_threads()
 		fix x_frac_left = fixdiv(i2f(cell_x), i2f(num_threads_x));
 		fix x_frac_right = fixdiv(i2f(cell_x + 1), i2f(num_threads_x));
 
-		fix y_frac_top = F1_0 - fixdiv(i2f(cell_y), i2f(num_threads_y));
-		fix y_frac_bottom = F1_0 - fixdiv(i2f(cell_y + 1), i2f(num_threads_y));
+		fix y_frac_top = fixdiv(i2f(cell_y), i2f(num_threads_y));
+		fix y_frac_bottom = fixdiv(i2f(cell_y + 1), i2f(num_threads_y));
 
 		G3ThreadData& data = Render_thread_data[i];
 		data.current_planes.left = f2i(x_frac_left * Canvas_width);
-		data.current_planes.right = f2i(x_frac_right * Canvas_width);
+		data.current_planes.right = f2i(x_frac_right * Canvas_width) - 1;
 		data.current_planes.top = f2i(y_frac_top * Canvas_height);
-		data.current_planes.bottom = f2i(y_frac_bottom * Canvas_height);
+		data.current_planes.bottom = f2i(y_frac_bottom * Canvas_height) - 1;
 
 		data.current_planes.clip_left = x_frac_left * 2 - F1_0;
 		data.current_planes.clip_right = x_frac_right * 2 - F1_0;
-		data.current_planes.clip_top = (y_frac_top * 2 - F1_0);
-		data.current_planes.clip_bottom = (y_frac_bottom * 2 - F1_0);
+		data.current_planes.clip_top = (F1_0 - y_frac_top) * 2 - F1_0;
+		data.current_planes.clip_bottom = (F1_0 - y_frac_bottom) * 2 - F1_0;
 
 		data.current_planes.canv_w2 = Canv_w2; data.current_planes.canv_h2 = Canv_h2;
 
@@ -189,7 +189,7 @@ void G3Instance::start_frame()
 
 	s = fixmuldiv(grd_curscreen->sc_aspect, Canvas_height, Canvas_width);
 
-	//memset(grd_curcanv->cv_bitmap.bm_data, 0, grd_curcanv->cv_bitmap.bm_rowsize * grd_curcanv->cv_bitmap.bm_h);
+	memset(grd_curcanv->cv_bitmap.bm_data, 0xC0, grd_curcanv->cv_bitmap.bm_rowsize * grd_curcanv->cv_bitmap.bm_h);
 
 	if (s <= F1_0) //scale x
 	{
@@ -283,10 +283,12 @@ void g3_worker_thread(int thread_num)
 
 		//emit pixels
 		if (thread_num < Num_threads_dispatched) //Notifying all threads to check if they have work to do isn't the most elegant, but it'll work for now. 
+		//if (thread_num == 0)
 		{
 			G3ThreadData& my_job = Render_thread_data[thread_num];
 			my_job.drawer.start_frame(my_job.current_planes.canv_w2, my_job.current_planes.canv_h2);
 			my_job.drawer.set_clip_ratios(my_job.current_planes.clip_left, my_job.current_planes.clip_top, my_job.current_planes.clip_right, my_job.current_planes.clip_bottom);
+			my_job.drawer.set_clip_bounds(my_job.current_planes.left, my_job.current_planes.top, my_job.current_planes.right, my_job.current_planes.bottom);
 			my_job.drawer.decode_command_buffer();
 			my_job.drawer.end_frame();
 		}

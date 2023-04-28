@@ -38,6 +38,7 @@ set(SHARED_SOURCES
 	2d/rle.cpp
 	2d/rle.h
 	2d/roller.cpp
+	2d/scale.h
 	2d/scanline2d.cpp
 	3d/3d.h
 	3d/clipper.cpp

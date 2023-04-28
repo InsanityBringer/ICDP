@@ -22,6 +22,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "fix/fix.h"
 #include "vecmat/vecmat.h"
 #include "2d/gr.h"
+#include "2d/scale.h"
 
 extern int g3d_interp_outline;		//if on, polygon models outlined in white
 
@@ -88,7 +89,9 @@ struct instance_context
 //All state relating to the camera, projection matrix, and so on will have been applied to the commands executed here. 
 class G3Drawer
 {
-	fix			clip_ratios[4]; //clipping is performed during this stage, and clip ratios are stored for each tile. 
+	fix	clip_ratios[4]; //clipping is performed during this stage, and clip ratios are stored for each tile. 
+	//Local clipping window. Used to clamp the window given to the texture mapper. 
+	int window_left, window_top, window_right, window_bottom;
 
 	//vertex buffers for polygon drawing and clipping
 	g3s_point* Vbuf0[G3_MAX_POINTS_IN_POLY];
@@ -106,11 +109,16 @@ class G3Drawer
 	//because they need to be coded specifically for each cell
 	g3s_point temp_point_buffer[G3_MAX_POINTS_IN_POLY];
 
+	grs_point blob_vertices[4];
+
 	fix Canv_w2, Canv_h2;
 
 	//A texture mapper. Each G3 drawer has one, for multithreading purposes.
 	//Can only be accessed from the outside world via draw_poly and draw_tmap.
 	Texmap texmap_instance;
+	//A bitmap scalar, since the scalar was also dependent on global state.
+	//I wonder if I should make bitmap scaling use the texmapper instead?
+	GrScalar scalar_instance;
 
 	//Private drawing functions
 	bool must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or);
@@ -156,7 +164,7 @@ public:
 
 	bool draw_line(g3s_point* p0, g3s_point* p1);
 
-	void draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation);
+	void draw_bitmap(g3s_point* pnt, fix w, fix h, grs_bitmap* bm, int orientation);
 
 	//Set clip ratios. All should be in the range [-1.0, 1.0]
 	void set_clip_ratios(fix left, fix top, fix right, fix bottom)
@@ -165,6 +173,46 @@ public:
 		clip_ratios[1] = top;
 		clip_ratios[2] = left;
 		clip_ratios[3] = bottom;
+	}
+
+	void set_clip_bounds(int left, int top, int right, int bottom)
+	{
+		window_left = left; window_top = top; window_right = right; window_bottom = bottom;
+
+		scalar_instance.set_clip_bounds(left, top, right, bottom);
+	}
+
+	//This sets the Texmap clip window, but clamped to ensure it remains in the 
+	void set_tmap_clip_window(int left, int top, int right, int bottom)
+	{
+		if (left < window_left)
+			left = window_left;
+		else if (left > window_right)
+			left = window_right;
+
+		if (top < window_top)
+			top = window_top;
+		else if (top > window_bottom)
+			top = window_bottom;
+
+		if (right < window_left)
+			right = window_left;
+		else if (right > window_right)
+			right = window_right;
+
+		if (bottom < window_top)
+			bottom = window_top;
+		else if (bottom > window_bottom)
+			bottom = window_bottom;
+
+		texmap_instance.SetClipWindow(left, top, right, bottom);
+	}
+
+	//Sets the canvas. ATM this just passes the canvas down to the various drawers
+	void set_canvas(grs_canvas* canvas)
+	{
+		texmap_instance.SetCanvas(canvas);
+		scalar_instance.set_canvas(canvas);
 	}
 
 	Texmap& get_texmap_instance()
@@ -221,7 +269,6 @@ class G3Instance
 	g3s_point* point_list[G3_MAX_POINTS_PER_POLY];
 
 	//rod variables
-	grs_point blob_vertices[4];
 	g3s_point rod_points[4];
 	g3s_point* rod_point_list[4];
 

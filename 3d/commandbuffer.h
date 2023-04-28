@@ -1,3 +1,9 @@
+/*
+The code contained in this file is not the property of Parallax Software,
+and is not under the terms of the Parallax Software Source license.
+Instead, it is released under the terms of the MIT License.
+*/
+
 #pragma once
 
 #include <atomic>
@@ -52,6 +58,15 @@ struct G3CmdDrawSphere
 	fix radius;
 };
 
+struct G3CmdDrawBitmap
+{
+	G3CmdBase base;
+	g3s_point point;
+	fix w, h;
+	grs_bitmap* bm;
+	int orientation;
+};
+
 struct G3CmdVarSet
 {
 	G3CmdBase base;
@@ -90,7 +105,7 @@ public:
 	//Records a line draw command
 	void cmd_draw_line(g3s_point* p0, g3s_point* p1);
 	//Records a bitmap draw command
-	void cmd_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation);
+	void cmd_draw_bitmap(g3s_point* pnt, fix width, fix height, grs_bitmap* bm, int orientation);
 
 	//Variable setting commands. These will change the state of the texmapper when decoded
 	//Records a texture mapper lighting change. 0 is no lighting, 1 is lighting, and 2 is "editor" lighting, for pick tests.

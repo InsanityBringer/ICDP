@@ -410,7 +410,7 @@ void G3Drawer::draw_tmap_direct(int nv, g3s_point* pointlist, g3s_uvl* uvl_list,
 
 	texmap_instance.DrawTMap(bm, nv, bufptr);
 
-	//return 0;	//say it drew
+	//return 0;	//say it drew*/
 }
 
 int checkmuldiv(fix* r, fix a, fix b, fix c);

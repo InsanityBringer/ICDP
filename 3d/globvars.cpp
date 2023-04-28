@@ -70,7 +70,6 @@ G3Instance::G3Instance()
 	glow_num = 0;
 	memset(point_list, 0, sizeof(point_list));
 
-	memset(blob_vertices, 0, sizeof(blob_vertices));
 	memset(rod_points, 0, sizeof(rod_points));
 	rod_point_list[0] = &rod_points[0];
 	rod_point_list[1] = &rod_points[1];
@@ -91,5 +90,6 @@ G3Drawer::G3Drawer()
 	memset(temp_points, 0, sizeof(temp_points));
 	memset(free_points, 0, sizeof(free_points));
 
+	memset(blob_vertices, 0, sizeof(blob_vertices));
 	set_clip_ratios(-F1_0, F1_0, F1_0, -F1_0);
 }

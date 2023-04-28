@@ -113,39 +113,14 @@ dbool G3Instance::draw_rod_tmap(grs_bitmap* bitmap, g3s_point* bot_point, fix bo
 
 //draws a bitmap with the specified 3d width & height 
 //returns 1 if off screen, 0 if drew
-void G3Drawer::draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation)
+void G3Drawer::draw_bitmap(g3s_point* pnt, fix w, fix h, grs_bitmap* bm, int orientation)
 {
-	/*g3s_point pnt;
-	fix t, w, h;
+	blob_vertices[0].x = pnt->p3_sx - w;
+	blob_vertices[0].y = blob_vertices[1].y = pnt->p3_sy - h;
+	blob_vertices[1].x = blob_vertices[2].x = pnt->p3_sx + w;
+	blob_vertices[2].y = pnt->p3_sy + h;
 
-	if (rotate_point(&pnt, pos) & CC_BEHIND)
-		return;
-
-	project_point(&pnt);
-
-	if (pnt.p3_flags & PF_OVERFLOW)
-		return;
-
-	if (checkmuldiv(&t, width, Canv_w2, pnt.p3_z))
-		w = fixmul(t, Matrix_scale.x);
-	else
-		return;
-
-	if (checkmuldiv(&t, height, Canv_h2, pnt.p3_z))
-		h = fixmul(t, Matrix_scale.y);
-	else
-		return;
-
-	blob_vertices[0].x = pnt.p3_sx - w;
-	blob_vertices[0].y = blob_vertices[1].y = pnt.p3_sy - h;
-	blob_vertices[1].x = blob_vertices[2].x = pnt.p3_sx + w;
-	blob_vertices[2].y = pnt.p3_sy + h;
-
-#ifdef BUILD_DESCENT2
-	scale_bitmap(bm, blob_vertices, orientation);
-#else
-	scale_bitmap(bm, blob_vertices);
-#endif*/
+	scalar_instance.scale_bitmap(bm, blob_vertices, orientation);
 }
 
 //draw a polygon that is always facing you

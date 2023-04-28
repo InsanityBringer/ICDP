@@ -1,3 +1,9 @@
+/*
+The code contained in this file is not the property of Parallax Software,
+and is not under the terms of the Parallax Software Source license.
+Instead, it is released under the terms of the MIT License.
+*/
+
 #include <stdlib.h>
 #include "commandbuffer.h"
 #include "misc/error.h"
@@ -114,6 +120,21 @@ void G3CommandBuffer::cmd_draw_sphere(g3s_point* pnt, fix rad)
 
 void G3CommandBuffer::cmd_draw_line(g3s_point* p0, g3s_point* p1)
 {
+}
+
+void G3CommandBuffer::cmd_draw_bitmap(g3s_point* pnt, fix width, fix height, grs_bitmap* bm, int orientation)
+{
+	size_t cmd_size = sizeof(G3CmdDrawBitmap);
+
+	G3CmdDrawBitmap* cmd = (G3CmdDrawBitmap*)reserve_space(cmd_size);
+	cmd->base.type = G3CmdType::draw_bitmap;
+	cmd->base.length = cmd_size;
+	cmd->point = *pnt;
+	cmd->w = width; cmd->h = height;
+	cmd->bm = bm;
+	cmd->orientation = orientation;
+
+	commit_space();
 }
 
 void G3CommandBuffer::cmd_set_lighting(int lighting)
@@ -247,9 +268,35 @@ int G3Instance::draw_sphere(g3s_point* pnt, fix rad)
 	return 0;
 }
 
+int checkmuldiv(fix* r, fix a, fix b, fix c);
 dbool G3Instance::draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation)
 {
-	//TODO: This will need to rotate the point itself
+	g3s_point pnt;
+	fix t, w, h;
+
+	if (rotate_point(&pnt, pos) & CC_BEHIND)
+		return 1;
+
+	project_point(&pnt);
+
+	if (pnt.p3_flags & PF_OVERFLOW)
+		return 1;
+
+	if (checkmuldiv(&t, width, Canv_w2, pnt.p3_z))
+		w = fixmul(t, Matrix_scale.x);
+	else
+		return 1;
+
+	if (checkmuldiv(&t, height, Canv_h2, pnt.p3_z))
+		h = fixmul(t, Matrix_scale.y);
+	else
+		return 1;
+
+	if (Use_multithread)
+		g3_command_buffer.cmd_draw_bitmap(&pnt, w, h, bm, orientation);
+	else
+		drawer.draw_bitmap(&pnt, w, h, bm, orientation);
+
 	return 0;
 }
 
@@ -280,8 +327,11 @@ void G3Drawer::decode_command_buffer()
 			}
 			break;
 			case G3CmdType::draw_bitmap:
-				//TODO
-				break;
+			{
+				G3CmdDrawBitmap* draw_p = (G3CmdDrawBitmap*)cmd_p;
+				draw_bitmap(&draw_p->point, draw_p->w, draw_p->h, draw_p->bm, draw_p->orientation);
+			}
+			break;
 			case G3CmdType::draw_line:
 				//TODO
 				break;
@@ -315,7 +365,7 @@ void G3Drawer::decode_command_buffer()
 			case G3CmdType::set_tmap_clip_window:
 			{
 				G3CmdWindowSet* window_p = (G3CmdWindowSet*)cmd_p;
-				texmap_instance.SetClipWindow(window_p->left, window_p->top, window_p->right, window_p->bottom);
+				set_tmap_clip_window(window_p->left, window_p->top, window_p->right, window_p->bottom);
 			}
 			break;
 			}
