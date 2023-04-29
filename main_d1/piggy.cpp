@@ -635,7 +635,7 @@ void piggy_dump_all()
 	FILE* fp1;
 	FILE* fp2;
 #endif
-	char* filename;
+	const char* filename;
 	int data_offset;
 	int org_offset;
 	DiskBitmapHeader bmh;

@@ -2233,7 +2233,7 @@ menu:
 			m[opt].type = NM_TYPE_MENU; m[opt].text = Netgame.players[i].callsign; pnums[opt] = i; opt++;
 		}
 	}
-	m[opt].type = NM_TYPE_TEXT; m[opt].text = ""; opt++;
+	m[opt].type = NM_TYPE_TEXT; m[opt].text = (char*)""; opt++;
 	m[opt].type = NM_TYPE_MENU; m[opt].text = TXT_ACCEPT; opt++;
 
 	Assert(opt <= MAX_PLAYERS + 4);

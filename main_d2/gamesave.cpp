@@ -1646,7 +1646,7 @@ int load_mine_data_compiled(CFILE* LoadFile);
 //7 -> 8  made version 8 to be not compatible with D2 1.0 & 1.1
 
 #ifndef RELEASE
-char* Level_being_loaded = NULL;
+const char* Level_being_loaded = NULL;
 #endif
 
 #ifdef COMPACT_SEGS

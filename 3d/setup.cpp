@@ -17,6 +17,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <vector>
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 
 #include "misc/error.h"
 
@@ -204,7 +205,7 @@ void G3Instance::dispatch_render_threads()
 }
 
 //TODO: Fixed pixel ratio!
-fix g3_aspect = i2f(4) / 3;
+fix g3_aspect = F1_0;
 
 //start the frame
 void G3Instance::start_frame()
@@ -281,7 +282,11 @@ void G3Instance::end_frame()
 	{
 		{
 			std::unique_lock<std::mutex> lock(Render_complete_mutex);
-			Render_complete_signal.wait(lock, [] {return Num_render_thread_completed == Thread_count; });
+			bool succeeded = Render_complete_signal.wait_for(lock, std::chrono::milliseconds(100), [] {return Num_render_thread_completed == Thread_count; });
+			if (!succeeded) //debugging main thread stall
+			{
+				Int3();
+			}
 		}
 
 		Num_render_thread_completed = 0;
@@ -343,10 +348,8 @@ void g3_worker_thread(int thread_num)
 #endif
 
 #ifndef NDEBUG
-			if (my_job.drawer.get_num_commands_decoded() == 0 || my_job.drawer.get_num_commands_decoded() == -1)
-			{
+			if (my_job.drawer.get_num_commands_decoded() <= 0)
 				Int3();
-			}
 #endif
 		}
 

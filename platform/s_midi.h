@@ -69,7 +69,7 @@ enum class GenDevices
 extern GenDevices PreferredGenDevice;
 extern char SoundFontFilename[];
 
-typedef struct
+struct midievent_t
 {
 	uint32_t delta;
 
@@ -81,7 +81,7 @@ typedef struct
 	uint8_t* data;
 
 	//Used for branches. Ugh. 
-	uint32_t startPtr;  
+	uint32_t startPtr;
 
 	uint32_t EncodeShortMessage()
 	{
@@ -98,8 +98,7 @@ typedef struct
 	{
 		return status & 15;
 	}
-
-} midievent_t;
+};
 
 struct BranchControlChange
 {

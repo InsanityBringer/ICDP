@@ -16,7 +16,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 typedef struct
 {
-	char *  name;
+	const char *  name;
 	int     nparams;
 	int  (*cfunction)(void);
 } FUNCTION;
@@ -25,7 +25,7 @@ void func_init( FUNCTION * funtable, int size );
 void func_close();
 int (*func_get( char * name, int * numparams ))(void);
 int func_howmany();
-int (*func_nget( int func_number, int * numparams, char **name ))(void);
+int (*func_nget( int func_number, int * numparams, const char **name ))(void);
 void func_set_param( int n, int value );
 int func_get_param( int n );
 int func_get_index( char * name );

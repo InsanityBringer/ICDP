@@ -324,9 +324,9 @@ int gr_palette_fade_out(uint8_t* pal, int nsteps, int allow_keys)
 		}
 		plat_write_palette(0, 255, &fade_palette_raw[0]);
 #ifndef BUILD_DESCENT2
-		plat_blit_canvas(grd_curcanv);
+		//plat_blit_canvas(grd_curcanv);
 #endif
-		plat_present_canvas(0);
+		//plat_present_canvas(0);
 	}
 	gr_palette_faded_out = 1;
 	return 0;
@@ -373,9 +373,9 @@ int gr_palette_fade_in(uint8_t* pal, int nsteps, int allow_keys)
 		}
 		plat_write_palette(0, 255, &fade_palette_raw[0]);
 #ifndef BUILD_DESCENT2 //[ISB] why does this cause problems in Descent 2 but not Descent 1?
-		plat_blit_canvas(grd_curcanv);
+		//plat_blit_canvas(grd_curcanv);
 #endif
-		plat_present_canvas(0);
+		//plat_present_canvas(0);
 		plat_do_events();
 	}
 	gr_palette_faded_out = 0;

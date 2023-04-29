@@ -21,11 +21,11 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define MENU_BORDER 2
 #define MENU_VERT_SPACING 2
 
-int MenuX(int x, int y, int NumButtons, char* text[])
+int MenuX(int x, int y, int NumButtons, const char** text)
 {
 	UI_WINDOW* wnd;
 	UI_GADGET_BUTTON** ButtonG;
-	char** Button;
+	const char** Button;
 
 	int button_width, button_height, width, height;
 
@@ -35,7 +35,7 @@ int MenuX(int x, int y, int NumButtons, char* text[])
 	int choice;
 
 	ButtonG = (UI_GADGET_BUTTON * *)malloc(sizeof(UI_GADGET_BUTTON*) * NumButtons);
-	Button = (char**)malloc(sizeof(char*) * NumButtons);
+	Button = (const char**)malloc(sizeof(char*) * NumButtons);
 
 	button_width = button_height = 0;
 

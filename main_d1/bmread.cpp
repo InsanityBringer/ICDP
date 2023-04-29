@@ -136,9 +136,9 @@ static int			num_sounds = 0;
 #define REMOVE_DOTS(s)  	remove_char((s),'.')
 
 #define IFTOK(str) if (!strcmp(arg, str))
-char* space = { " \t" };
+const char* space = { " \t" };
 //--unused-- char *equal = { "=" };
-char* equal_space = { " \t=" };
+const char* equal_space = { " \t=" };
 
 void remove_char(char* s, char c)
 {

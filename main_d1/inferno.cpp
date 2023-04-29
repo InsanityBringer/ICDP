@@ -309,9 +309,9 @@ int D_DescentMain(int argc, const char** argv)
 
 	strcpy(Menu_pcx_name, "menu.pcx");	//	Used to be menu2.pcx.
 
+#ifdef EDITOR
 	Inferno_is_800x600_available = true;
 
-#ifdef EDITOR
 	if (!Inferno_is_800x600_available) 
 	{
 		printf("The editor will not be available...\n");
@@ -393,8 +393,6 @@ int D_DescentMain(int argc, const char** argv)
 			if (Inferno_verbose) printf("%s\n", TXT_NETWORK_DISABLED);
 			Network_active = 0;		// Assume no network
 		}
-		ipx_read_user_file("descent.usr");
-		ipx_read_network_file("descent.net");
 		if (FindArg("-dynamicsockets"))
 			Network_allow_socket_changes = 1;
 		else
@@ -444,12 +442,13 @@ int D_DescentMain(int argc, const char** argv)
 			screen_compatible = 0;
 		}
 
-		if (FindArg("-1280x1024"))
+		if (FindArg("-1920x1080"))
 		{
-			if (Inferno_verbose) printf("Using 1280x1024...\n");
-			screen_width = 1280;
-			screen_height = 1024;
+			if (Inferno_verbose) printf("Using 1920x1080...\n");
+			screen_width = 1920;
+			screen_height = 1080;
 			screen_compatible = 0;
+			Game_aspect = ASPECT_16_9;
 		}
 		if (FindArg("-320x100")) 
 		{

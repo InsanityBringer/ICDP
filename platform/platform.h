@@ -69,6 +69,9 @@ void plat_read_palette(uint8_t* dest);
 //-----------------------------------------------------------------------------
 
 constexpr float ASPECT_4_3 = 3.f / 4.f;
+constexpr float ASPECT_5_4 = 4.f / 5.f;
+constexpr float ASPECT_16_9 = 9.f / 16.f;
+constexpr float ASPECT_16_10 = 10.f / 16.f;
 
 //I have no idea how this is going to work... attempt to wait on a VBL if possible.
 void plat_wait_for_vbl();
@@ -90,6 +93,12 @@ void plat_present_canvas(grs_canvas& canv);
 //Aspect ratio is height / width.
 //The rowsize of the canvas must match its width or weird things will happen.
 void plat_present_canvas(grs_canvas& canv, float aspect);
+
+//Masked canvases are similar to normal canvases, but any usage of palette index 255 will render as transparent. This can be used to overlay graphics
+void plat_present_canvas_masked(grs_canvas& canv, float aspect);
+
+//Flips the native back buffer. This is no longer implicit because the new presentation system lets you present multiple canvases
+void plat_flip();
 
 //-----------------------------------------------------------------------------
 //	Control operations

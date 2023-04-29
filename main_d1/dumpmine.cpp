@@ -31,7 +31,7 @@
 #ifdef EDITOR
 
 void dump_used_textures_level(FILE* my_file, int level_num);
-void say_totals(FILE* my_file, char* level_name);
+void say_totals(FILE* my_file, const char* level_name);
 
 extern uint8_t bogus_data[64 * 64];
 extern grs_bitmap bogus_bitmap;
@@ -63,7 +63,7 @@ char* object_ids(int objnum)
 	return	NULL;
 }
 
-void err_printf(FILE* my_file, char* format, ...)
+void err_printf(FILE* my_file, const char* format, ...)
 {
 	va_list	args;
 	char		message[256];
@@ -77,7 +77,7 @@ void err_printf(FILE* my_file, char* format, ...)
 	Errors_in_mine++;
 }
 
-void warning_printf(FILE* my_file, char* format, ...)
+void warning_printf(FILE* my_file, const char* format, ...)
 {
 	va_list	args;
 	char		message[256];
@@ -517,7 +517,7 @@ void write_trigger_text(FILE* my_file)
 }
 
 //	------------------------------------------------------------------------------------------
-void write_game_text_file(char* filename)
+void write_game_text_file(const char* filename)
 {
 	char	my_filename[128];
 	int	namelen;
@@ -708,7 +708,7 @@ void say_used_tmaps(FILE* my_file, int* tb)
 void say_used_once_tmaps(FILE* my_file, int* tb, int8_t* tb_lnum)
 {
 	int	i;
-	char* level_name;
+	const char* level_name;
 
 	for (i = 0; i < Num_tmaps; i++)
 		if (tb[i] == 1) {
@@ -758,7 +758,7 @@ void say_unused_walls(FILE* my_file, int* tb)
 }
 
 //	-------------------------------------------------------------------------------------------------
-void say_totals(FILE* my_file, char* level_name)
+void say_totals(FILE* my_file, const char* level_name)
 {
 	int	i, objnum;
 	int	total_robots = 0;

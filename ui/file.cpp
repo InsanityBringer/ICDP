@@ -537,10 +537,10 @@ int ui_get_file(char* filename, int filenamelen, char* Filespec)
 		//[ISB] TODO: Long file names?
 		MALLOC( text[i], char, 15 );
 		strncpy(text[i], filename_list[i], 14);
-		text[14] = '\0';
+		text[i][14] = '\0';
 	}
 
-	x = MenuX(-1, -1, NumFiles, text);
+	x = MenuX(-1, -1, NumFiles, (const char**)text);
 
 	if (x > 0)
 		strncpy(filename, filename_list[x - 1], filenamelen);

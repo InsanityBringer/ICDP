@@ -283,8 +283,6 @@ extern grs_canvas* grd_curcanv;             //active canvas
 extern grs_screen* grd_curscreen;           //active screen
 extern unsigned char Test_bitmap_data[64 * 64];
 
-//extern unsigned int FixDivide(unsigned int x, unsigned int y); //[ISB] never called
-
 extern void gr_show_canvas(grs_canvas* canv);
 extern void gr_set_current_canvas(grs_canvas* canv);
 

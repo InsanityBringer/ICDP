@@ -52,7 +52,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #ifdef EDITOR
 #ifdef SHAREWARE
-char* Shareware_level_names[NUM_SHAREWARE_LEVELS] = {
+const char* Shareware_level_names[NUM_SHAREWARE_LEVELS] = {
 	"level01.sdl",
 	"level02.sdl",
 	"level03.sdl",
@@ -62,7 +62,7 @@ char* Shareware_level_names[NUM_SHAREWARE_LEVELS] = {
 	"level07.sdl"
 };
 #else
-char* Shareware_level_names[NUM_SHAREWARE_LEVELS] = {
+const char* Shareware_level_names[NUM_SHAREWARE_LEVELS] = {
 	"level01.rdl",
 	"level02.rdl",
 	"level03.rdl",
@@ -73,7 +73,7 @@ char* Shareware_level_names[NUM_SHAREWARE_LEVELS] = {
 };
 #endif
 
-char* Registered_level_names[NUM_REGISTERED_LEVELS] = {
+const char* Registered_level_names[NUM_REGISTERED_LEVELS] = {
 	"level08.rdl",
 	"level09.rdl",
 	"level10.rdl",
@@ -197,7 +197,7 @@ int Gamesave_num_org_robots = 0;
 #ifdef EDITOR
 //	Return true if this level has a name of the form "level??"
 //	Note that a pathspec can appear at the beginning of the filename.
-int is_real_level(char* filename)
+int is_real_level(const char* filename)
 {
 	int	len = strlen(filename);
 
@@ -209,7 +209,7 @@ int is_real_level(char* filename)
 
 }
 
-void convert_name_to_CDL(char* dest, char* src)
+void convert_name_to_CDL(char* dest, const char* src)
 {
 	int i;
 
@@ -265,7 +265,7 @@ void convert_name_to_CDL(char* dest, char* src)
 }
 #endif
 
-void convert_name_to_LVL(char* dest, char* src)
+void convert_name_to_LVL(char* dest, const char* src)
 {
 	int i;
 
@@ -1333,12 +1333,12 @@ int load_mine_data_compiled(CFILE* LoadFile);
 #define LEVEL_FILE_VERSION		1
 
 #ifndef RELEASE
-char* Level_being_loaded = NULL;
+const char* Level_being_loaded = NULL;
 #endif
 
 
 //loads a level (.LVL) file from disk
-int load_level(char* filename_passed)
+int load_level(const char* filename_passed)
 {
 #ifdef EDITOR
 	int use_compiled_level = 1;
@@ -1523,7 +1523,7 @@ int get_level_name()
 
 	newmenu_item m[2];
 
-	m[0].type = NM_TYPE_TEXT; m[0].text = "Please enter a name for this mine:";
+	m[0].type = NM_TYPE_TEXT; m[0].text = const_cast<char*>("Please enter a name for this mine:");
 	m[1].type = NM_TYPE_INPUT; m[1].text = Current_level_name; m[1].text_len = LEVEL_NAME_LEN;
 
 	newmenu_do(NULL, "Enter mine name", 2, m, NULL);
@@ -1700,7 +1700,7 @@ int save_mine_data(FILE* SaveFile);
 
 // -----------------------------------------------------------------------------
 // Save game
-int save_level_sub(char* filename, int compiled_version)
+int save_level_sub(const char* filename, int compiled_version)
 {
 	FILE* SaveFile;
 	char temp_filename[128];
@@ -1812,7 +1812,7 @@ int save_level_sub(char* filename, int compiled_version)
 
 }
 
-int save_level(char* filename)
+int save_level(const char* filename)
 {
 	int r1;
 

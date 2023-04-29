@@ -16,20 +16,20 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define	NUM_SHAREWARE_LEVELS	7
 #define	NUM_REGISTERED_LEVELS	23
 
-extern char* Shareware_level_names[NUM_SHAREWARE_LEVELS];
-extern char* Registered_level_names[NUM_REGISTERED_LEVELS];
+extern const char* Shareware_level_names[NUM_SHAREWARE_LEVELS];
+extern const char* Registered_level_names[NUM_REGISTERED_LEVELS];
 
 int get_level_name(void);
 
-extern int load_level(char* filename);
-extern int save_level(char* filename);
+extern int load_level(const char* filename);
+extern int save_level(const char* filename);
 
 extern char Gamesave_current_filename[];
 extern int Gamesave_num_org_robots;
 
 //	In dumpmine.c
 #ifdef EDITOR
-extern void write_game_text_file(char* filename);
+extern void write_game_text_file(const char* filename);
 #endif
 
 extern	int	Errors_in_mine;

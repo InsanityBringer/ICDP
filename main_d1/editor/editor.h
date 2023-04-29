@@ -286,14 +286,14 @@ extern	int med_save_mine(char *name);
 //	Returns:
 //	 0 = successfully loaded.
 //	 1 = unable to load.
-extern	int med_load_group( char *filename, short *vertex_ids, short *segment_ids, int *num_vertices, int *num_segments);
+extern	int med_load_group(const char *filename, short *vertex_ids, short *segment_ids, int *num_vertices, int *num_segments);
 
 // Saves group *filename from disk.
 //	Saves group defined by vertex_ids and segment_ids to disk. 
 //	Returns:
 //	 0 = successfully saved.
 //	 1 = unable to save.
-extern	int med_save_group( char *filename, short *vertex_ids, short *segment_ids, int num_vertices, int num_segments);
+extern	int med_save_group(const char *filename, short *vertex_ids, short *segment_ids, int num_vertices, int num_segments);
 
 // Updates the screen... (I put the prototype here for curves.c)
 extern   int medlisp_update_screen();

@@ -331,7 +331,7 @@ extern UI_GADGET_USERBOX* ui_add_gadget_userbox(UI_WINDOW* wnd, short x, short y
 extern void ui_draw_userbox(UI_GADGET_USERBOX* userbox);
 
 
-extern int MenuX(int x, int y, int NumButtons, char* text[]);
+extern int MenuX(int x, int y, int NumButtons, const char** text);
 
 // Changes to a drive if valid.. 1=A, 2=B, etc
 // If flag, then changes to it.

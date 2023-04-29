@@ -220,7 +220,7 @@ void ui_pad_deactivate()
 static void ui_pad_set_active(int n)
 {
 	int np;
-	char* name;
+	const char* name;
 	int i, j;
 
 	gr_set_current_canvas(ui_canvas);

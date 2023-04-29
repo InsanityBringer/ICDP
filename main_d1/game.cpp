@@ -761,7 +761,6 @@ int set_screen_mode(int sm)
 	return 1;
 }
 
-#ifndef RELEASE
 fix frame_time_list[8] = { 0,0,0,0,0,0,0,0 };
 fix frame_time_total = 0;
 int frame_time_cntr = 0;
@@ -795,7 +794,6 @@ void show_framerate()
 	ftoa(temp, rate);	// Convert fixed to string
 	gr_printf(grd_curcanv->cv_w - 50, grd_curcanv->cv_h - 20, "FPS: %s ", temp);
 }
-#endif
 
 static int timer_paused = 0;
 
@@ -1185,10 +1183,8 @@ void game_draw_hud_stuff()
 	arcade_frame_info();
 #endif
 
-#ifndef RELEASE
 	if (framerate_on)
 		show_framerate();
-#endif
 
 #ifndef SHAREWARE
 	if ((Newdemo_state == ND_STATE_PLAYBACK))
@@ -2957,7 +2953,10 @@ void ReadControls()
 		case KEY_ALTED + KEY_F2:	state_save_all(0);		break;	// 0 means not between levels.
 		case KEY_ALTED + KEY_F3:	state_restore_all(1);		break;
 #endif
-		//[ISB] kill VR stuff
+
+#ifdef RELEASE
+		case KEY_ALTED + KEY_F: framerate_on = !framerate_on; break;
+#endif
 
 			//use function keys for window sizing
 
