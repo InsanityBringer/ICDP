@@ -127,7 +127,7 @@ void autodemo_menu_check(int nitems, newmenu_item* items, int* last_key, int cit
 	if (Menu_draw_copyright) 
 	{
 		Menu_draw_copyright = 0;
-		gr_set_current_canvas(NULL);
+		gr_set_current_canvas(VR_screen_buffer);
 		gr_set_curfont(GAME_FONT);
 		gr_set_fontcolor(BM_XRGB(6, 6, 6), -1);
 		gr_printf(0x8000, grd_curcanv->cv_bitmap.bm_h - GAME_FONT->ft_h - 2, TXT_COPYRIGHT);

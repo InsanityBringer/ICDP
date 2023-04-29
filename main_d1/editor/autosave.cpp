@@ -113,7 +113,8 @@ void autosave_mine(char *name) {
 }
 
 
-void print_clock( int seconds, char message[10] ) {
+void print_clock( int seconds, char message[10] ) 
+{
 	int w,h,aw;
 	char	*p;
 
@@ -122,13 +123,13 @@ void print_clock( int seconds, char message[10] ) {
 		if ((p = strchr(message, ':')) != NULL)
 			*p = ' ';
 
-	gr_set_current_canvas( NULL );
-	gr_set_fontcolor( CBLACK, CGREY );
+	gr_set_current_canvas(ui_canvas);
+	gr_set_fontcolor(CBLACK, CGREY);
 	gr_get_string_size( message, &w, &h, &aw );
 	gr_setcolor( CGREY );
 	gr_rect( 700, 0, 799, h+1 );
 	gr_string( 700, 0, message );
-	gr_set_fontcolor( CBLACK, CWHITE );
+	gr_set_fontcolor(CBLACK, CWHITE);
 }
 
 static char the_time[14];	// changed from 10, I don't think that was long enough

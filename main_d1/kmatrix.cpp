@@ -47,6 +47,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define CENTERING_OFFSET(x) ((300 - (70 + (x)*25 ))/2)
 
 int kmatrix_kills_changed = 0;
+grs_canvas* kmatrix_canvas;
 
 void kmatrix_draw_item(int  i, int* sorted)
 {
@@ -155,7 +156,7 @@ void kmatrix_redraw()
 
 	multi_sort_kill_list();
 
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(kmatrix_canvas);
 
 	pcx_error = pcx_read_bitmap("STARS.PCX", &grd_curcanv->cv_bitmap, grd_curcanv->cv_bitmap.bm_type, NULL);
 	Assert(pcx_error == PCX_ERROR_NONE);
@@ -196,6 +197,7 @@ void kmatrix_view(int network)
 	int key = 0;
 
 	set_screen_mode(SCREEN_MENU);
+	kmatrix_canvas = gr_create_canvas(320, 200);
 
 	kmatrix_redraw();
 
@@ -207,7 +209,7 @@ void kmatrix_view(int network)
 	while (!done) 
 	{
 		I_MarkStart();
-		plat_present_canvas(0);
+		plat_present_canvas(*kmatrix_canvas, ASPECT_4_3);
 		plat_do_events();
 		for (i = 0; i < 4; i++)
 			if (joy_get_button_down_cnt(i) > 0) done = 1;
@@ -252,5 +254,6 @@ void kmatrix_view(int network)
 	gr_palette_fade_out(gr_palette, 32, 0);
 
 	game_flush_inputs();
+	gr_free_canvas(kmatrix_canvas);
 }
 #endif

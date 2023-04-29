@@ -1060,7 +1060,7 @@ void died_in_mine_message(void)
 
 	gr_palette_fade_out(gr_palette, 32, 0);
 
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(VR_screen_buffer);
 
 	pcx_error = pcx_read_bitmap("STARS.PCX", &grd_curcanv->cv_bitmap, grd_curcanv->cv_bitmap.bm_type, NULL);
 	Assert(pcx_error == PCX_ERROR_NONE);

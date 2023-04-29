@@ -87,23 +87,26 @@ int ui_mouse_find_gadget(short n)
 
 void ui_mouse_show()
 {
-	if (Mouse.hidden == 1) {
+	if (Mouse.hidden == 1) 
+	{
 		Mouse.hidden = 0;
 		// Save the background under new pointer
 		Mouse.bg_saved = 1;
 		Mouse.bg_x = Mouse.x; Mouse.bg_y = Mouse.y;
-		gr_bm_ubitblt(Mouse.background->bm_w, Mouse.background->bm_h, 0, 0, Mouse.bg_x, Mouse.bg_y, &(grd_curscreen->sc_canvas.cv_bitmap), Mouse.background);
+		gr_bm_ubitblt(Mouse.background->bm_w, Mouse.background->bm_h, 0, 0, Mouse.bg_x, Mouse.bg_y, &(ui_canvas->cv_bitmap), Mouse.background);
 		// Draw the new pointer
-		gr_bm_ubitbltm(Mouse.pointer->bm_w, Mouse.pointer->bm_h, Mouse.x, Mouse.y, 0, 0, Mouse.pointer, &(grd_curscreen->sc_canvas.cv_bitmap));
+		gr_bm_ubitbltm(Mouse.pointer->bm_w, Mouse.pointer->bm_h, Mouse.x, Mouse.y, 0, 0, Mouse.pointer, &(ui_canvas->cv_bitmap));
 	}
 }
 
 void ui_mouse_hide()
 {
-	if (Mouse.hidden == 0) {
+	if (Mouse.hidden == 0) 
+	{
 		Mouse.hidden = 1;
-		if (Mouse.bg_saved == 1) {
-			gr_bm_ubitblt(Mouse.background->bm_w, Mouse.background->bm_h, Mouse.bg_x, Mouse.bg_y, 0, 0, Mouse.background, &(grd_curscreen->sc_canvas.cv_bitmap));
+		if (Mouse.bg_saved == 1) 
+		{
+			gr_bm_ubitblt(Mouse.background->bm_w, Mouse.background->bm_h, Mouse.bg_x, Mouse.bg_y, 0, 0, Mouse.background, &(ui_canvas->cv_bitmap));
 			Mouse.bg_saved = 0;
 		}
 	}
@@ -126,8 +129,8 @@ void ui_mouse_process()
 	Mouse.x += Mouse.dx;
 	Mouse.y += Mouse.dy;
 
-	w = grd_curscreen->sc_w;
-	h = grd_curscreen->sc_h;
+	w = ui_canvas->cv_w;
+	h = ui_canvas->cv_h;
 
 	if (Mouse.x < 0) Mouse.x = 0;
 	if (Mouse.y < 0) Mouse.y = 0;
@@ -144,7 +147,7 @@ void ui_mouse_process()
 	{
 		// Restore the background under old pointer
 		if (Mouse.bg_saved == 1) {
-			gr_bm_ubitblt(Mouse.background->bm_w, Mouse.background->bm_h, Mouse.bg_x, Mouse.bg_y, 0, 0, Mouse.background, &(grd_curscreen->sc_canvas.cv_bitmap));
+			gr_bm_ubitblt(Mouse.background->bm_w, Mouse.background->bm_h, Mouse.bg_x, Mouse.bg_y, 0, 0, Mouse.background, &(ui_canvas->cv_bitmap));
 		}
 		Mouse.bg_saved = 0;
 
@@ -154,10 +157,10 @@ void ui_mouse_process()
 			Mouse.bg_saved = 1;
 			Mouse.bg_x = Mouse.x; Mouse.bg_y = Mouse.y;
 
-			gr_bm_ubitblt(Mouse.background->bm_w, Mouse.background->bm_h, 0, 0, Mouse.bg_x, Mouse.bg_y, &(grd_curscreen->sc_canvas.cv_bitmap), Mouse.background);
+			gr_bm_ubitblt(Mouse.background->bm_w, Mouse.background->bm_h, 0, 0, Mouse.bg_x, Mouse.bg_y, &(ui_canvas->cv_bitmap), Mouse.background);
 
 			// Draw the new pointer
-			gr_bm_ubitbltm(Mouse.pointer->bm_w, Mouse.pointer->bm_h, Mouse.x, Mouse.y, 0, 0, Mouse.pointer, &(grd_curscreen->sc_canvas.cv_bitmap));
+			gr_bm_ubitbltm(Mouse.pointer->bm_w, Mouse.pointer->bm_h, Mouse.x, Mouse.y, 0, 0, Mouse.pointer, &(ui_canvas->cv_bitmap));
 		}
 	}
 
@@ -228,8 +231,8 @@ void ui_mouse_init()
 
 	//mouse_init();
 
-	w = grd_curscreen->sc_w;
-	h = grd_curscreen->sc_h;
+	w = ui_canvas->cv_w;
+	h = ui_canvas->cv_h;
 
 	mouse_set_limits(0, 0, w - 1, h - 1);
 

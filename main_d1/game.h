@@ -55,6 +55,8 @@ extern int ft_preference;
 #define	NDL	5		//	Number of difficulty levels.
 #define	NUM_DETAIL_LEVELS	6
 
+extern float Game_aspect;
+
 extern int Game_mode;
 
 extern int Game_paused;
@@ -198,7 +200,7 @@ extern int			VR_compatible_menus;
 extern grs_canvas* VR_offscreen_buffer;		// The offscreen data buffer
 extern grs_canvas	VR_render_buffer;					//  Two offscreen buffers for left/right eyes.
 extern grs_canvas	VR_render_sub_buffer;			//  Two sub buffers for left/right eyes.
-extern grs_canvas	VR_screen_buffer;
+extern grs_canvas*	VR_screen_buffer;
 
 void game_init_render_buffers(int screen_mode, int render_max_w, int render_max_h, int compatible_menus);
 

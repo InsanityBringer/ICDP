@@ -375,6 +375,8 @@ void scores_view(int citem)
 	int k;
 	int8_t fades[64] = { 1,1,1,2,2,3,4,4,5,6,8,9,10,12,13,15,16,17,19,20,22,23,24,26,27,28,28,29,30,30,31,31,31,31,31,30,30,29,28,28,27,26,24,23,22,20,19,17,16,15,13,12,10,9,8,6,5,4,4,3,2,2,1,1 };
 
+	grs_canvas* scores_canvas = gr_create_canvas(320, 200);
+
 ReshowScores:
 	scores_read();
 
@@ -478,8 +480,10 @@ ReshowScores:
 
 	// Restore background and exit
 	gr_palette_fade_out(gr_palette, 32, 0);
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(VR_screen_buffer);
 
 	game_flush_inputs();
+
+	gr_free_canvas(scores_canvas);
 }
 

@@ -208,8 +208,8 @@ UI_WINDOW* ui_open_window(short x, short y, short w, short h, int flags)
 
 	add_window_to_end(wnd);
 
-	sw = grd_curscreen->sc_w;
-	sh = grd_curscreen->sc_h;
+	sw = ui_canvas->cv_w;
+	sh = ui_canvas->cv_h;
 
 	mouse_set_limits(0, 0, sw - 1, sh - 1);
 
@@ -242,19 +242,19 @@ UI_WINDOW* ui_open_window(short x, short y, short w, short h, int flags)
 	if (flags & WIN_SAVE_BG)
 	{
 		W_BACKGROUND = gr_create_bitmap(w, h);
-		gr_bm_ubitblt(w, h, 0, 0, x, y, &(grd_curscreen->sc_canvas.cv_bitmap), W_BACKGROUND);
+		gr_bm_ubitblt(w, h, 0, 0, x, y, &(ui_canvas->cv_bitmap), W_BACKGROUND);
 	}
 	else
 		W_BACKGROUND = NULL;
 
 	if (flags & WIN_BORDER)
 	{
-		W_CANVAS = gr_create_sub_canvas(&(grd_curscreen->sc_canvas), x + BORDER_WIDTH, y + BORDER_WIDTH, req_w, req_h);
-		gr_set_current_canvas(NULL);
+		W_CANVAS = gr_create_sub_canvas(ui_canvas, x + BORDER_WIDTH, y + BORDER_WIDTH, req_w, req_h);
+		gr_set_current_canvas(ui_canvas);
 		ui_draw_frame(x, y, x + w - 1, y + h - 1);
 	}
 	else
-		W_CANVAS = gr_create_sub_canvas(&(grd_curscreen->sc_canvas), x, y, req_w, req_h);
+		W_CANVAS = gr_create_sub_canvas(ui_canvas, x, y, req_w, req_h);
 
 	gr_set_current_canvas(W_CANVAS);
 
@@ -281,12 +281,12 @@ void ui_close_window(UI_WINDOW* wnd)
 
 	if (W_BACKGROUND)
 	{
-		gr_bm_ubitblt(W_WIDTH, W_HEIGHT, W_X, W_Y, 0, 0, W_BACKGROUND, &(grd_curscreen->sc_canvas.cv_bitmap));
+		gr_bm_ubitblt(W_WIDTH, W_HEIGHT, W_X, W_Y, 0, 0, W_BACKGROUND, &(ui_canvas->cv_bitmap));
 		gr_free_bitmap(W_BACKGROUND);
 	}
 	else
 	{
-		gr_set_current_canvas(NULL);
+		gr_set_current_canvas(ui_canvas);
 		gr_setcolor(CBLACK);
 		gr_rect(W_X, W_Y, W_X + W_WIDTH - 1, W_Y + W_HEIGHT - 1);
 	}
@@ -494,20 +494,17 @@ void ui_mega_process()
 		Mouse.new_buttons = 0;
 		last_keypress = 0;
 
-		if (keyd_last_pressed) {
-			//_disable();
+		if (keyd_last_pressed) 
+		{
 			k = keyd_last_pressed;
 			keyd_last_pressed = 0;
-			//_disable(); //[ISB] HOW THE FUCK DID THIS GAME EVEN FUNCTION
 			SavedState[k] = 1;
 		}
 
 		if (keyd_last_released)
 		{
-			//_disable();
 			k = keyd_last_released;
 			keyd_last_released = 0;
-			//_disable();
 			SavedState[k] = 0;
 		}
 
@@ -519,7 +516,8 @@ void ui_mega_process()
 			break;
 		}
 
-		if (EventBuffer == NULL) {
+		if (EventBuffer == NULL) 
+		{
 			restore_state();
 			Record = 0;
 			break;

@@ -61,7 +61,7 @@ void item_show(MENU* menu, int n)
 {
 	ITEM* item = &menu->Item[n];
 
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(ui_canvas);
 	// If this is a seperator, then draw it.
 	if (item->Text[0] == '-')
 	{
@@ -111,12 +111,12 @@ void menu_show(MENU* menu)
 
 	ui_mouse_hide();
 
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(ui_canvas);
 	// Don't save background it if it's already drawn
 	if (!menu->Displayed)
 	{
 		// Save the background
-		gr_bm_ubitblt(menu->w, menu->h, 0, 0, menu->x, menu->y, &(grd_curscreen->sc_canvas.cv_bitmap), menu->Background);
+		gr_bm_ubitblt(menu->w, menu->h, 0, 0, menu->x, menu->y, &(ui_canvas->cv_bitmap), menu->Background);
 
 		// Draw the menu background
 		gr_setcolor(CGREY);
@@ -152,7 +152,7 @@ void menu_hide(MENU* menu)
 	// Restore the background
 	ui_mouse_hide();
 
-	gr_bm_ubitblt(menu->w, menu->h, menu->x, menu->y, 0, 0, menu->Background, &(grd_curscreen->sc_canvas.cv_bitmap));
+	gr_bm_ubitblt(menu->w, menu->h, menu->x, menu->y, 0, 0, menu->Background, &(ui_canvas->cv_bitmap));
 
 	ui_mouse_show();
 

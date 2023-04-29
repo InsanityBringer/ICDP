@@ -54,8 +54,8 @@ int MenuX(int x, int y, int NumButtons, char* text[])
 	height = (button_height * NumButtons) + (MENU_VERT_SPACING * (NumButtons - 1));
 	height += (MENU_BORDER + 3) * 2;
 
-	w = grd_curscreen->sc_w;
-	h = grd_curscreen->sc_h;
+	w = ui_canvas->cv_w;
+	h = ui_canvas->cv_h;
 
 	if (x == -1) x = Mouse.x - width / 2;
 	if (y == -1) y = Mouse.y;

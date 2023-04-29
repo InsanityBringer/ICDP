@@ -236,6 +236,7 @@ typedef struct {
 #define B1_JUST_RELEASED    (Mouse.b1_status & BUTTON_JUST_RELEASED)
 #define B1_DOUBLE_CLICKED   (Mouse.b1_status & BUTTON_DOUBLE_CLICKED)
 
+extern grs_canvas* ui_canvas;
 extern grs_font * ui_small_font;
 
 extern UI_MOUSE Mouse;
@@ -257,6 +258,9 @@ extern void ui_draw_line_in(short x1, short y1, short x2, short y2);
 
 void ui_init();
 void ui_close();
+
+void ui_init_canvas(int width, int height);
+
 int MessageBox(short x, short y, int NumButtons, const char* text, ...);
 void ui_string_centered(short x, short y, const char* s);
 int PopupMenu(int NumItems, const char* text[]);
@@ -345,10 +349,6 @@ int file_chdir(const char* dir);
 int file_getdirlist(int MaxNum, char list[][13]);
 int file_getfilelist(int MaxNum, char list[][13], const char* filespec);
 int ui_get_filename(char* filename, int bufsize, const char* Filespec, const char* message);
-
-//[ISB] unused
-//void* ui_malloc(int size);
-//void ui_free(void* buffer);
 
 UI_GADGET_KEYTRAP* ui_add_gadget_keytrap(UI_WINDOW* wnd, int key_to_trap, int (*function_to_call)(void));
 void ui_keytrap_do(UI_GADGET_KEYTRAP* keytrap, int keypress);

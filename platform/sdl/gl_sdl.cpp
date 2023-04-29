@@ -274,24 +274,8 @@ bool I_InitGLContext(SDL_Window *win)
 	return false;
 }
 
-extern uint8_t* gr_video_memory;
 void GL_SetVideoMode(int w, int h, SDL_Rect *bounds)
 {
-	sglActiveTexture(GL_TEXTURE0);
-	sglBindTexture(GL_TEXTURE_2D, sourceFBName);
-	//I'd prefer immutable textures for this, but I'd rather have wider compatibility if possible
-	//I've heard whispers that sampler objects perform better, so being able to use those too would be nice.
-
-	//Create the texture with the current contents of video memory.
-	//TODO: Do a GL version check and conditionally use immutable textures/samplers.
-	sglTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, w, h, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, gr_video_memory);
-	GL_ErrorCheck("Creating source framebuffer texture");
-	sglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	sglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	GL_ErrorCheck("Setting source framebuffer filter mode");
-
-	//TODO: Does this need to be DPI aware in order to work on macs?
-	sglViewport(bounds->x, bounds->y, bounds->w, bounds->h);
 }
 
 void GL_SetPalette(uint32_t* pal)
@@ -302,18 +286,25 @@ void GL_SetPalette(uint32_t* pal)
 
 void GL_DrawPhase1()
 {
-	SDL_GL_MakeCurrent(window, context);
-	//Blit the current contents of the buffer
-	sglActiveTexture(GL_TEXTURE0);
-	//I need to explicitly rebind the texture any time we do something with it. 
-	//Discord disrupts the binding at GL_TEXTURE0 when you start streaming using it.
-	//I could move to a "safe" slot, but if this is a problem to contend with, maybe it's safer
-	//to take the minor perf penalty and just make sure we're safely bound each frame. 
-	sglBindTexture(GL_TEXTURE_2D, sourceFBName);
+}
 
-	sglTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, grd_curscreen->sc_w, grd_curscreen->sc_h, GL_RED_INTEGER, GL_UNSIGNED_BYTE, gr_video_memory);
-
+void GL_Clear()
+{
 	sglClear(GL_COLOR_BUFFER_BIT);
+}
+
+void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds)
+{
+	SDL_GL_MakeCurrent(window, context);
+	sglActiveTexture(GL_TEXTURE0);
+	sglBindTexture(GL_TEXTURE_2D, sourceFBName);
+	sglTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, canvas.cv_bitmap.bm_w, canvas.cv_bitmap.bm_h, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, canvas.cv_bitmap.bm_data);
+	GL_ErrorCheck("Creating source framebuffer texture");
+	sglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	sglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	GL_ErrorCheck("Setting source framebuffer filter mode");
+
+	sglViewport(bounds.x, bounds.y, bounds.w, bounds.h);
 	sglDrawArrays(GL_TRIANGLE_FAN, 0, 3);
 }
 

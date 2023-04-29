@@ -322,7 +322,7 @@ void paging_touch_all()
 	}
 
 	show_boxed_message(TXT_LOADING);
-	plat_present_canvas(0);
+	plat_present_canvas(*VR_screen_buffer, ASPECT_4_3);
 	plat_do_events(); 
 
 	mprintf((0, "Loading all textures in mine..."));

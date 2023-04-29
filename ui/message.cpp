@@ -44,13 +44,13 @@ int MessageBoxN(short xc, short yc, int NumButtons, const char* text, const char
 
 	button_width = button_height = 0;
 
-	gr_set_current_canvas(&grd_curscreen->sc_canvas);
-	w = grd_curscreen->sc_w;
-	h = grd_curscreen->sc_h;
-	temp_font = grd_curscreen->sc_canvas.cv_font;
+	gr_set_current_canvas(ui_canvas);
+	w = ui_canvas->cv_w;
+	h = ui_canvas->cv_h;
+	temp_font = ui_canvas->cv_font;
 
 	if (w < 640) {
-		grd_curscreen->sc_canvas.cv_font = ui_small_font;
+		ui_canvas->cv_font = ui_small_font;
 	}
 
 	for (i = 0; i < NumButtons; i++)
@@ -160,7 +160,7 @@ int MessageBoxN(short xc, short yc, int NumButtons, const char* text, const char
 
 	ui_close_window(wnd);
 
-	grd_curscreen->sc_canvas.cv_font = temp_font;
+	ui_canvas->cv_font = temp_font;
 
 	return choice;
 

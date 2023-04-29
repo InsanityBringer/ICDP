@@ -137,10 +137,11 @@ UI_EVENT * DemoBuffer = NULL;
 int	Found_seg_index=0;				// Index in Found_segs corresponding to Cursegp
 
 
-void print_status_bar( char message[DIAGNOSTIC_MESSAGE_MAX] ) {
+void print_status_bar( char message[DIAGNOSTIC_MESSAGE_MAX] ) 
+{
 	int w,h,aw;
 
-	gr_set_current_canvas( NULL );
+	gr_set_current_canvas(ui_canvas);
 	gr_set_curfont(editor_font);
 	gr_set_fontcolor( CBLACK, CGREY );
 	gr_get_string_size( message, &w, &h, &aw );
@@ -150,10 +151,11 @@ void print_status_bar( char message[DIAGNOSTIC_MESSAGE_MAX] ) {
 	gr_rect( 4+w, 583, 799, 599 );
 }
 
-void print_diagnostic( char message[DIAGNOSTIC_MESSAGE_MAX] ) {
+void print_diagnostic( char message[DIAGNOSTIC_MESSAGE_MAX] ) 
+{
 	int w,h,aw;
 
-	gr_set_current_canvas( NULL );
+	gr_set_current_canvas(ui_canvas);
 	gr_set_curfont(editor_font);
 	gr_set_fontcolor( CBLACK, CGREY );
 	gr_get_string_size( message, &w, &h, &aw );
@@ -235,7 +237,7 @@ void editor_sub_status( const char *format, ... )
 	vsprintf(sub_status_line, format, ap);
 	va_end(ap);
 
-	gr_set_current_canvas( NULL );
+	gr_set_current_canvas(ui_canvas);
 	gr_set_curfont(editor_font);
 	gr_set_fontcolor( BM_XRGB(0,0,31), CGREY );
 	gr_get_string_size( sub_status_line, &w, &h, &aw );
@@ -693,7 +695,7 @@ void init_editor_screen()
 
 	if (editor_screen_open) return;
 
-	grd_curscreen->sc_canvas.cv_font = editor_font;
+	ui_canvas->cv_font = editor_font;
 	
 	//create canvas for game on the editor screen
 	initializing = 1;
@@ -779,18 +781,18 @@ void init_editor_screen()
 
 	EditorWindow->keyboard_focus_gadget = (UI_GADGET *)LargeViewBox;
 
-	canv_offscreen->cv_font = grd_curscreen->sc_canvas.cv_font;
+	canv_offscreen->cv_font = ui_canvas->cv_font;
 //	BigCanvas[0]->cv_font = grd_curscreen->sc_canvas.cv_font; 
 //	BigCanvas[1]->cv_font = grd_curscreen->sc_canvas.cv_font; 
 //	BigCanvasFirstTime = 1;
 
 	// Draw status box
-	gr_set_current_canvas( NULL );
+	gr_set_current_canvas(ui_canvas);
 	gr_setcolor( CGREY );
 	gr_rect(STATUS_X,STATUS_Y,STATUS_X+STATUS_W-1,STATUS_Y+STATUS_H-1);			//0, 582, 799, 599 );
 
 	// Draw icon box
-	// gr_set_current_canvas( NULL );
+	// gr_set_current_canvas(ui_canvas);
 	//  gr_setcolor( CBRIGHT );
 	//  gr_rect( 528, 2, 798, 22);
 	//  gr_setcolor( CGREY);
@@ -984,7 +986,7 @@ void editor(void)
 		return;
 	}
 
-	gr_set_current_canvas( NULL );
+	gr_set_current_canvas(ui_canvas);
 	gr_set_curfont(editor_font);
 
 	//Editor renders into full (320x200) game screen 

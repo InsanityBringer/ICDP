@@ -105,6 +105,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "editor\editor.h"
 #endif
 
+float Game_aspect = 3.f / 4.f;
+
 int	speedtest_on = 0;
 
 #ifndef NDEBUG
@@ -141,7 +143,7 @@ int			VR_compatible_menus = 0;
 grs_canvas* VR_offscreen_buffer = NULL;		// The offscreen data buffer
 grs_canvas	VR_render_buffer;
 grs_canvas	VR_render_sub_buffer;			//  Two sub buffers for left/right eyes.
-grs_canvas	VR_screen_buffer;
+grs_canvas*	VR_screen_buffer;
 grs_canvas	VR_editor_canvas;						//  The canvas that the editor writes to.
 
 int Debug_pause = 0;				//John's debugging pause system
@@ -338,14 +340,14 @@ void update_cockpits(int force_redraw)
 	{
 	case CM_FULL_COCKPIT:
 	case CM_REAR_VIEW:
-		gr_set_current_canvas(&VR_screen_buffer);
+		gr_set_current_canvas(VR_screen_buffer);
 		PIGGY_PAGE_IN(cockpit_bitmap[Cockpit_mode]);
 		gr_ubitmapm(0, 0, &GameBitmaps[cockpit_bitmap[Cockpit_mode].index]);
 		break;
 	case CM_FULL_SCREEN:
 		break;
 	case CM_STATUS_BAR:
-		gr_set_current_canvas(&VR_screen_buffer);
+		gr_set_current_canvas(VR_screen_buffer);
 		PIGGY_PAGE_IN(cockpit_bitmap[Cockpit_mode]);
 		gr_ubitmapm(0, max_window_h, &GameBitmaps[cockpit_bitmap[Cockpit_mode].index]);
 		w = Game_window_w;
@@ -355,12 +357,12 @@ void update_cockpits(int force_redraw)
 		fill_background(x, y, w, h, x, y);
 		break;
 	case CM_LETTERBOX:
-		gr_set_current_canvas(&VR_screen_buffer);
+		gr_set_current_canvas(VR_screen_buffer);
 		gr_clear_canvas(BM_XRGB(0, 0, 0));
 		break;
 	}
 
-	gr_set_current_canvas(&VR_screen_buffer);
+	gr_set_current_canvas(VR_screen_buffer);
 
 	if (Cockpit_mode == CM_FULL_COCKPIT || Cockpit_mode == CM_STATUS_BAR)
 		init_gauges();
@@ -376,7 +378,7 @@ void init_cockpit()
 	int minx, maxx, miny, maxy;
 
 	//Initialize the on-screen canvases
-	if (VR_screen_mode != SM_320x200C)
+	if (VR_render_width != 320 || VR_render_height != 200)
 	{
 		Cockpit_mode = CM_FULL_SCREEN;
 	}
@@ -443,7 +445,7 @@ void init_cockpit()
 		break;
 	}
 	}
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(VR_screen_buffer);
 }
 
 //selects a given cockpit (or lack of one).  See types in game.h
@@ -586,13 +588,11 @@ void copy_background_rect(int left, int top, int right, int bot)
 		ofs_y = 0;
 		dest_y += h;
 	}
-
-
 }
 
 void fill_background(int x, int y, int w, int h, int dx, int dy)
 {
-	gr_set_current_canvas(&VR_screen_buffer);
+	gr_set_current_canvas(VR_screen_buffer);
 	copy_background_rect(x - dx, y - dy, x - 1, y + h + dy - 1);
 	copy_background_rect(x + w, y - dy, x + w + dx - 1, y + h + dy - 1);
 	copy_background_rect(x, y - dy, x + w - 1, y - 1);
@@ -612,7 +612,8 @@ void shrink_window()
 		return;
 	}
 
-	if (Cockpit_mode == CM_FULL_SCREEN) {
+	if (Cockpit_mode == CM_FULL_SCREEN) 
+	{
 		Game_window_h = max_window_h;
 		select_cockpit(CM_STATUS_BAR);
 		return;
@@ -621,7 +622,8 @@ void shrink_window()
 	if (Cockpit_mode != CM_STATUS_BAR)
 		return;
 
-	if (Game_window_w > WINDOW_MIN_W) {
+	if (Game_window_w > WINDOW_MIN_W) 
+	{
 		int x, y;
 
 		Game_window_w -= WINDOW_W_DELTA;
@@ -661,10 +663,7 @@ void game_init_render_buffers(int screen_mode, int render_w, int render_h, int c
 		Game_window_w = render_w;
 		Game_window_h = render_h;
 
-		if (render_h < 200)
-			VR_offscreen_buffer = gr_create_canvas(render_w, 200);
-		else
-			VR_offscreen_buffer = gr_create_canvas(render_w, render_h);
+		VR_offscreen_buffer = gr_create_canvas(render_w, render_h);
 
 		gr_init_sub_canvas(&VR_render_buffer, VR_offscreen_buffer, 0, 0, render_w, render_h);
 
@@ -692,7 +691,7 @@ int set_screen_mode(int sm)
 
 	if (Screen_mode == sm)
 	{
-		gr_set_current_canvas(&VR_screen_buffer);
+		gr_set_current_canvas(VR_screen_buffer);
 		return 1;
 	}
 
@@ -702,57 +701,51 @@ int set_screen_mode(int sm)
 	Canv_editor = NULL;
 #endif
 
+	if (VR_screen_buffer)
+		gr_free_canvas(VR_screen_buffer);
+
 	switch (Screen_mode) 
 	{
 	case SCREEN_MENU:
 		plat_set_mouse_relative_mode(0); //[ISB] doesn't work rip
-		if (grd_curscreen->sc_mode != SM_320x200C) 
+		/*if (grd_curscreen->sc_mode != SM_320x200C) 
 		{
 			if (gr_set_mode(SM_320x200C)) Error("Cannot set screen mode for game!");
 			gr_palette_load(gr_palette);
-		}
+		}*/
 
-		gr_init_sub_canvas(&VR_screen_buffer, &grd_curscreen->sc_canvas, 0, 0, grd_curscreen->sc_w, grd_curscreen->sc_h);
+		gr_palette_load(gr_palette);
+		
+		VR_screen_buffer = gr_create_canvas(320, 200);
+
 		break;
 	case SCREEN_GAME:
 		plat_set_mouse_relative_mode(1);
-		if (grd_curscreen->sc_mode != VR_screen_mode)
-			if (gr_set_mode(VR_screen_mode)) 
-			{
-				if (VR_screen_mode != SM_640x480V)
-					Error("Cannot set screen mode for game!");
-				else
-					Error("Cannot set screen mode for game!\nMake sure that you have a VESA driver loaded\nthat can display 640x480 in 256 colors.\n");
-			}
 
 		if (max_window_h == 0) 
 		{
-			max_window_h = grd_curscreen->sc_h - GameBitmaps[cockpit_bitmap[CM_STATUS_BAR].index].bm_h;
+			max_window_h = VR_render_height - GameBitmaps[cockpit_bitmap[CM_STATUS_BAR].index].bm_h;
 			Game_window_h = max_window_h;
 		}
 		else 
 		{
-			max_window_h = grd_curscreen->sc_h - GameBitmaps[cockpit_bitmap[CM_STATUS_BAR].index].bm_h;
+			max_window_h = VR_render_height - GameBitmaps[cockpit_bitmap[CM_STATUS_BAR].index].bm_h;
 		}
 
-		gr_init_sub_canvas(&VR_screen_buffer, &grd_curscreen->sc_canvas, 0, 0, grd_curscreen->sc_w, grd_curscreen->sc_h);
+		VR_screen_buffer = gr_create_canvas(VR_render_width, VR_render_height);
+		//gr_init_sub_canvas(&VR_screen_buffer, &grd_curscreen->sc_canvas, 0, 0, grd_curscreen->sc_w, grd_curscreen->sc_h);
 		break;
 #ifdef EDITOR
 	case SCREEN_EDITOR:
-		if (grd_curscreen->sc_mode != SM_800x600V) 
-		{
-			int gr_error;
-			if ((gr_error = gr_set_mode(SM_800x600V)) != 0) //force into game scrren
-			{ 
-				Warning("Cannot init editor screen (error=%d)", gr_error);
-				return 0;
-			}
-		}
+
 		gr_palette_load(gr_palette);
 
-		gr_init_sub_canvas(&VR_editor_canvas, &grd_curscreen->sc_canvas, 0, 0, grd_curscreen->sc_w, grd_curscreen->sc_h);
-		Canv_editor = &VR_editor_canvas;
-		gr_init_sub_canvas(&VR_screen_buffer, Canv_editor, 0, 0, Canv_editor->cv_w, Canv_editor->cv_h);
+		//gr_init_sub_canvas(&VR_editor_canvas, &grd_curscreen->sc_canvas, 0, 0, grd_curscreen->sc_w, grd_curscreen->sc_h);
+		//Canv_editor = &VR_editor_canvas;
+		//gr_init_sub_canvas(VR_screen_buffer, Canv_editor, 0, 0, Canv_editor->cv_w, Canv_editor->cv_h);
+		VR_screen_buffer = gr_create_canvas(800, 600);
+		Canv_editor = VR_screen_buffer;
+
 		gr_set_current_canvas(Canv_editor);
 		init_editor_screen();   //setup other editor stuff
 		break;
@@ -763,7 +756,7 @@ int set_screen_mode(int sm)
 
 	init_cockpit();
 
-	gr_set_current_canvas(&VR_screen_buffer);
+	gr_set_current_canvas(VR_screen_buffer);
 
 	return 1;
 }
@@ -1222,7 +1215,7 @@ void game_render_frame_mono(void)
 {
 	grs_canvas Screen_3d_window;
 
-	gr_init_sub_canvas(&Screen_3d_window, &VR_screen_buffer,
+	gr_init_sub_canvas(&Screen_3d_window, VR_screen_buffer,
 		VR_render_sub_buffer.cv_bitmap.bm_x, VR_render_sub_buffer.
 		cv_bitmap.bm_y, VR_render_sub_buffer.cv_bitmap.bm_w,
 		VR_render_sub_buffer.cv_bitmap.bm_h);
@@ -1242,11 +1235,11 @@ void game_render_frame_mono(void)
 	{
 		if (Game_cockpit_copy_code == NULL) 
 		{
-			gr_bm_ubitblt(VR_render_sub_buffer.cv_w, VR_render_sub_buffer.cv_h, VR_render_sub_buffer.cv_bitmap.bm_x, VR_render_sub_buffer.cv_bitmap.bm_y, 0, 0, &VR_render_sub_buffer.cv_bitmap, &VR_screen_buffer.cv_bitmap);
+			gr_bm_ubitblt(VR_render_sub_buffer.cv_w, VR_render_sub_buffer.cv_h, VR_render_sub_buffer.cv_bitmap.bm_x, VR_render_sub_buffer.cv_bitmap.bm_y, 0, 0, &VR_render_sub_buffer.cv_bitmap, &VR_screen_buffer->cv_bitmap);
 		}
 		else 
 		{
-			gr_ibitblt(&VR_render_buffer.cv_bitmap, &VR_screen_buffer.cv_bitmap, Game_cockpit_copy_code);
+			gr_ibitblt(&VR_render_buffer.cv_bitmap, &VR_screen_buffer->cv_bitmap, Game_cockpit_copy_code);
 		}
 	}
 
@@ -1302,7 +1295,7 @@ void save_screen_shot(int automap_flag)
 {
 	fix t1;
 	char message[100];
-	grs_canvas* screen_canv = &grd_curscreen->sc_canvas;
+	grs_canvas* screen_canv = VR_screen_buffer;
 	grs_font* save_font;
 	static int savenum = 0;
 	grs_canvas* temp_canv, * save_canv;
@@ -1321,13 +1314,13 @@ void save_screen_shot(int automap_flag)
 	sprintf(savename, "screen%02d.pcx", savenum++);
 	sprintf(message, "%s '%s'", TXT_DUMPING_SCREEN, savename);
 
-	gr_set_current_canvas(&VR_screen_buffer);
+	gr_set_current_canvas(VR_screen_buffer);
 	save_font = grd_curcanv->cv_font;
 	gr_set_curfont(GAME_FONT);
 	gr_set_fontcolor(gr_find_closest_color_current(0, 31, 0), -1);
 	gr_get_string_size(message, &w, &h, &aw);
-	x = (VR_screen_buffer.cv_w - w) / 2;
-	y = (VR_screen_buffer.cv_h - h) / 2;
+	x = (VR_screen_buffer->cv_w - w) / 2;
+	y = (VR_screen_buffer->cv_h - h) / 2;
 
 	if (automap_flag) 
 	{
@@ -1679,15 +1672,16 @@ void show_boxed_message(char* msg)
 	int w, h, aw;
 	int x, y;
 
-	gr_set_current_canvas(&VR_screen_buffer);
+	gr_set_current_canvas(VR_screen_buffer);
 	gr_set_curfont(HELP_FONT);
 
 	gr_get_string_size(msg, &w, &h, &aw);
 
-	x = (grd_curscreen->sc_w - w) / 2;
-	y = (grd_curscreen->sc_h - h) / 2;
+	x = (VR_screen_buffer->cv_w - w) / 2;
+	y = (VR_screen_buffer->cv_h - h) / 2;
 
-	if (bg.bmp) {
+	if (bg.bmp) 
+	{
 		gr_free_bitmap(bg.bmp);
 		bg.bmp = NULL;
 	}
@@ -1696,7 +1690,7 @@ void show_boxed_message(char* msg)
 	bg.x = x; bg.y = y; bg.w = w; bg.h = h;
 
 	bg.bmp = gr_create_bitmap(w + 30, h + 30);
-	gr_bm_ubitblt(w + 30, h + 30, 0, 0, x - 15, y - 15, &(grd_curscreen->sc_canvas.cv_bitmap), bg.bmp);
+	gr_bm_ubitblt(w + 30, h + 30, 0, 0, x - 15, y - 15, &(VR_screen_buffer->cv_bitmap), bg.bmp);
 
 	nm_draw_background(x - 15, y - 15, x + w + 15 - 1, y + h + 15 - 1);
 
@@ -1743,12 +1737,12 @@ int do_game_pause(int allow_menu)
 	gr_palette_load(gr_palette);
 
 	show_boxed_message(TXT_PAUSE);
-	//plat_present_canvas(0);
+	plat_present_canvas(*VR_screen_buffer, Game_aspect);
 
 	while (paused) 
 	{
 		I_MarkStart();
-		plat_present_canvas(0);
+		plat_present_canvas(*VR_screen_buffer, Game_aspect);
 		plat_do_events();
 		key = key_getch();
 
@@ -2136,7 +2130,7 @@ void game()
 				longjmp(LeaveGame, 0);
 
 			//[ISB] assumption is that anything calling without renderflag (basically network mode) will already be updating. 
-			plat_present_canvas(0);
+			plat_present_canvas(*VR_screen_buffer, Game_aspect);
 			plat_do_events();
 			//waiting loop for polled fps mode
 			uint64_t numUS = 1000000 / FPSLimit;
@@ -2200,7 +2194,7 @@ void close_game()
 
 grs_canvas* get_current_game_screen()
 {
-	return &VR_screen_buffer;
+	return VR_screen_buffer;
 }
 
 uint8_t exploding_flag = 0;

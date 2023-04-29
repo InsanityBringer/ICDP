@@ -199,7 +199,7 @@ void texpage_init( UI_WINDOW * win )
 
 	TmapCurrent = ui_add_gadget_userbox( win, TMAPCURBOX_X, TMAPCURBOX_Y, 64, 64 );
 
-	TmapnameCanvas = gr_create_sub_canvas(&grd_curscreen->sc_canvas, TMAPCURBOX_X , TMAPCURBOX_Y + TMAPBOX_H + 10, 100, 20);
+	TmapnameCanvas = gr_create_sub_canvas(ui_canvas, TMAPCURBOX_X , TMAPCURBOX_Y + TMAPBOX_H + 10, 100, 20);
 	gr_set_current_canvas( TmapnameCanvas );
 	gr_set_curfont( ui_small_font ); 
    gr_set_fontcolor( CBLACK, CWHITE );

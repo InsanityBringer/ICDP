@@ -68,6 +68,8 @@ void plat_read_palette(uint8_t* dest);
 //	Screen operations
 //-----------------------------------------------------------------------------
 
+constexpr float ASPECT_4_3 = 3.f / 4.f;
+
 //I have no idea how this is going to work... attempt to wait on a VBL if possible.
 void plat_wait_for_vbl();
 
@@ -77,6 +79,17 @@ void plat_present_canvas(int sync);
 
 //Composition nightmare: Blit given canvas to window buffer, don't trigger redraw. This is needed for paged graphics modes in Descent 1. 
 void plat_blit_canvas(grs_canvas *canv);
+
+//New screen drawing commands. Unlike the original Chocolate video system, there are no virtual screen modes, instead software canvases are explicitly drawn using the following functions
+//Clears the screen. Call when you're drawing a new screen.
+void plat_clear_screen();
+//Presents the contents of a canvas in the center of the screen
+//The rowsize of the canvas must match its width or weird things will happen.
+void plat_present_canvas(grs_canvas& canv);
+//Presents the contents of a canvas in the center of the screen, contorted to a box that fits the specified aspect ratio.
+//Aspect ratio is height / width.
+//The rowsize of the canvas must match its width or weird things will happen.
+void plat_present_canvas(grs_canvas& canv, float aspect);
 
 //-----------------------------------------------------------------------------
 //	Control operations

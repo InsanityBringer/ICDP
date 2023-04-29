@@ -474,6 +474,8 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 	if (nitems < 1)
 		return -1;
 
+	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
+
 	set_screen_mode(SCREEN_MENU);
 	plat_set_mouse_relative_mode(0);
 
@@ -489,7 +491,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 	}
 
 	save_canvas = grd_curcanv;
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(menu_canvas);
 	save_font = grd_curcanv->cv_font;
 
 	tw = th = 0;
@@ -665,7 +667,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 	}
 
 	// Save the background of the display
-	bg.menu_canvas = gr_create_sub_canvas(&grd_curscreen->sc_canvas, x, y, w, h);
+	bg.menu_canvas = gr_create_sub_canvas(menu_canvas, x, y, w, h);
 	gr_set_current_canvas(bg.menu_canvas);
 
 	if (filename == NULL) 
@@ -674,7 +676,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 		bg.saved = gr_create_bitmap(w, h);
 		Assert(bg.saved != NULL);
 		gr_bm_bitblt(w, h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.saved);
-		gr_set_current_canvas(NULL);
+		gr_set_current_canvas(menu_canvas);
 		nm_draw_background(x, y, x + w - 1, y + h - 1);
 		bg.background = gr_create_sub_bitmap(&nm_background, 0, 0, w, h);
 		gr_set_current_canvas(bg.menu_canvas);
@@ -1070,7 +1072,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 		{
 			gr_palette_fade_in(gr_palette, 32, 0);
 		}
-		plat_present_canvas(0);
+		plat_present_canvas(*menu_canvas, 3.f/4.f);
 		I_MarkEnd(US_70FPS);
 	}
 
@@ -1091,7 +1093,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 
 	gr_free_sub_canvas(bg.menu_canvas);
 
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(menu_canvas);
 	grd_curcanv->cv_font = save_font;
 	gr_set_current_canvas(save_canvas);
 	keyd_repeat = old_keyd_repeat;
@@ -1100,6 +1102,8 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 
 	if (time_stopped)
 		start_time();
+
+	gr_free_canvas(menu_canvas);
 
 	//NO_SOUND_PAUSE	if ( sound_stopped )
 	//NO_SOUND_PAUSE		digi_resume_all();
@@ -1263,6 +1267,8 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	citem = 0;
 	keyd_repeat = 1;
 
+	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
+
 #if !defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	if (!_strfcmp(filespec, "*.plr"))
 		player_mode = 1;
@@ -1335,7 +1341,7 @@ ReadFileNames:
 	if (!initialized)
 	{
 		set_screen_mode(SCREEN_MENU);
-		gr_set_current_canvas(NULL);
+		gr_set_current_canvas(menu_canvas);
 
 		w_w = 230 - 90 + 1 + 30;
 		w_h = 170 - 30 + 1 + 30;
@@ -1567,7 +1573,7 @@ ReadFileNames:
 				gr_string(105, y, (&filenames[i * 14]) + ((player_mode && filenames[i * 14] == '$') ? 1 : 0));
 			}
 		}
-		plat_present_canvas(0);
+		plat_present_canvas(*menu_canvas, 3.f/4.f);
 		I_MarkEnd(US_70FPS);
 	}
 
@@ -1592,6 +1598,8 @@ ExitFileMenu:
 
 	if (filenames)
 		free(filenames);
+
+	gr_free_canvas(menu_canvas);
 
 	return exit_value;
 }
@@ -1633,8 +1641,10 @@ int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abo
 	int width, height, wx, wy, title_height;
 	keyd_repeat = 1;
 
+	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
+
 	set_screen_mode(SCREEN_MENU);
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(menu_canvas);
 	grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_3];
 
 	width = 0;
@@ -1831,12 +1841,14 @@ int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abo
 				gr_string(wx + 5, y, items[i]);
 			}
 		}
-		plat_present_canvas(0);
+		plat_present_canvas(*menu_canvas, 3.f/4.f);
 		I_MarkEnd(US_70FPS);
 	}
 	keyd_repeat = old_keyd_repeat;
 
 	gr_bm_bitblt(320, 200, 0, 0, 0, 0, &(VR_offscreen_buffer->cv_bitmap), &(grd_curcanv->cv_bitmap));
+
+	gr_free_canvas(menu_canvas);
 
 	return citem;
 }

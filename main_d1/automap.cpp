@@ -115,9 +115,8 @@ static short DrawingListBright[MAX_EDGES];
 #define ROT_SPEED_DIVISOR		(115000)
 
 // Screen anvas variables
-static int current_page = 0;
-static grs_canvas Pages[2];
-static grs_canvas DrawingPages[2];
+static grs_canvas Pages;
+static grs_canvas DrawingPages;
 
 // Flags
 static int Automap_cheat = 0;		// If set, show everything
@@ -179,8 +178,7 @@ void draw_automap()
 	vms_vector viewer_position;
 	g3s_point sphere_point;
 
-	//current_page ^= 1; //[ISB] cut paging for the moment
-	gr_set_current_canvas(&DrawingPages[current_page]);
+	gr_set_current_canvas(&DrawingPages);
 
 	gr_clear_canvas(0);
 
@@ -253,7 +251,7 @@ void draw_automap()
 
 	gr_bitmapm(5, 5, &name_canv->cv_bitmap);
 
-	gr_show_canvas(&Pages[current_page]);
+	//gr_show_canvas(&Pages[0]);
 
 }
 
@@ -325,13 +323,10 @@ void modex_print_message(int x, int y, char* str)
 {
 	int	i;
 
-	for (i = 0; i < 2; i++) 
-	{
-		gr_set_current_canvas(&Pages[i]);
-		modex_printf(x, y, str, GFONT_MEDIUM_1);
-	}
+	gr_set_current_canvas(&Pages);
+	modex_printf(x, y, str, GFONT_MEDIUM_1);
 
-	gr_set_current_canvas(&DrawingPages[current_page]);
+	gr_set_current_canvas(&DrawingPages);
 }
 
 extern void GameLoop(int, int);
@@ -381,13 +376,13 @@ void do_automap(int key_code)
 	mprintf((0, "Num_vertices=%d, Max_edges=%d, (MAX:%d)\n", Num_vertices, Max_edges, MAX_EDGES));
 	mprintf((0, "Allocated %d K for automap edge list\n", (sizeof(Edge_info) + sizeof(short)) * Max_edges / 1024));
 
-	gr_set_mode(SM_320x400U);
+	//gr_set_mode(SM_320x400U);
 	gr_palette_clear();
 
-	gr_init_sub_canvas(&Pages[0], grd_curcanv, 0, 0, 320, 400);
-	gr_init_sub_canvas(&Pages[1], grd_curcanv, 0, 401, 320, 400);
-	gr_init_sub_canvas(&DrawingPages[0], &Pages[0], 16, 69, 288, 272);
-	gr_init_sub_canvas(&DrawingPages[1], &Pages[1], 16, 69, 288, 272);
+	grs_canvas* automap_canvas = gr_create_canvas(320, 400);
+
+	gr_init_sub_canvas(&Pages, automap_canvas, 0, 0, 320, 400);
+	gr_init_sub_canvas(&DrawingPages, &Pages, 16, 69, 288, 272);
 
 	Automap_background.bm_data = NULL;
 	pcx_error = pcx_read_bitmap(filename, &Automap_background, BM_LINEAR, NULL);
@@ -398,20 +393,18 @@ void do_automap(int key_code)
 		return;
 	}
 
-	for (i = 0; i < 2; i++) 
-	{
-		gr_set_current_canvas(&Pages[i]);
-		gr_bitmap(0, 0, &Automap_background);
-		modex_printf(40, 22, TXT_AUTOMAP, GFONT_BIG_1);
-		modex_printf(70, 353, TXT_TURN_SHIP, GFONT_SMALL);
-		modex_printf(70, 369, TXT_SLIDE_UPDOWN, GFONT_SMALL);
-		modex_printf(70, 385, TXT_VIEWING_DISTANCE, GFONT_SMALL);
-	}
+	gr_set_current_canvas(&Pages);
+	gr_bitmap(0, 0, &Automap_background);
+	modex_printf(40, 22, TXT_AUTOMAP, GFONT_BIG_1);
+	modex_printf(70, 353, TXT_TURN_SHIP, GFONT_SMALL);
+	modex_printf(70, 369, TXT_SLIDE_UPDOWN, GFONT_SMALL);
+	modex_printf(70, 385, TXT_VIEWING_DISTANCE, GFONT_SMALL);
+
 	if (Automap_background.bm_data)
 		free(Automap_background.bm_data);
 	Automap_background.bm_data = NULL;
 
-	gr_set_current_canvas(&DrawingPages[current_page]);
+	gr_set_current_canvas(&DrawingPages);
 
 	automap_build_edge_list();
 
@@ -571,7 +564,7 @@ void do_automap(int key_code)
 			gr_palette_load(gr_palette);
 		}
 
-		plat_present_canvas(0);
+		plat_present_canvas(*automap_canvas, ASPECT_4_3);
 		plat_do_events();
 		//[ISB] framerate limiter 
 		//waiting loop for polled fps mode
@@ -591,7 +584,8 @@ void do_automap(int key_code)
 
 	//free(Edges);
 	//free(DrawingListBright);
-	gr_free_canvas(name_canv);  name_canv = NULL;
+	gr_free_canvas(name_canv);  name_canv = nullptr;
+	gr_free_canvas(automap_canvas); automap_canvas = nullptr;
 
 	mprintf((0, "Automap memory freed\n"));
 

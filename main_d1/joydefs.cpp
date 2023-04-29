@@ -107,10 +107,6 @@ void joydef_menuset_1(int nitems, newmenu_item* items, int* last_key, int citem)
 
 }
 
-extern uint8_t kc_use_external_control;
-extern uint8_t kc_enable_external_control;
-extern uint8_t* kc_external_name;
-
 void joydefs_config()
 {
 	char xtext[128];
@@ -130,13 +126,6 @@ void joydefs_config()
 		m[5].type = NM_TYPE_MENU; m[5].text = TXT_CUST_ABOVE;
 		m[6].type = NM_TYPE_TEXT; m[6].text = (char*)"";
 		m[7].type = NM_TYPE_MENU; m[7].text = TXT_CUST_KEYBOARD;
-
-		if (kc_use_external_control) 
-		{
-			sprintf(xtext, "Enable %s", kc_external_name);
-			m[10].type = NM_TYPE_CHECK; m[10].text = xtext; m[10].value = kc_enable_external_control;
-			nitems = nitems + 1;
-		}
 
 		m[choco_id_to_menu_remap[Config_control_type]].value = 1;
 
@@ -188,21 +177,5 @@ void joydefs_config()
 			break;
 		}
 
-		if (kc_use_external_control) 
-		{
-			kc_enable_external_control = m[10].value;
-		}
-
 	} while (i1 > -1);
-
-	/*switch (Config_control_type) 
-	{
-	case	CONTROL_JOYSTICK:
-	case	CONTROL_FLIGHTSTICK_PRO:
-	case	CONTROL_THRUSTMASTER_FCS:
-	case	CONTROL_GRAVIS_GAMEPAD:
-		if (joydefs_calibrate_flag)
-			joydefs_calibrate();
-		break;
-	}*/
 }

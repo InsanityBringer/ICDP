@@ -84,69 +84,35 @@ int pcx_read_bitmap(const char* filename, grs_bitmap* bmp, int bitmap_type, uint
 		}
 	}
 
-	//if (bmp->bm_type == BM_LINEAR) 
+	for (row = 0; row < ysize; row++) 
 	{
-		for (row = 0; row < ysize; row++) 
+		pixdata = &bmp->bm_data[bmp->bm_rowsize * row];
+		for (col = 0; col < xsize; ) 
 		{
-			pixdata = &bmp->bm_data[bmp->bm_rowsize * row];
-			for (col = 0; col < xsize; ) 
+			if (cfread(&data, 1, 1, PCXfile) != 1) 
 			{
+				cfclose(PCXfile);
+				return PCX_ERROR_READING;
+			}
+			if ((data & 0xC0) == 0xC0) 
+			{
+				count = data & 0x3F;
 				if (cfread(&data, 1, 1, PCXfile) != 1) 
 				{
 					cfclose(PCXfile);
 					return PCX_ERROR_READING;
 				}
-				if ((data & 0xC0) == 0xC0) 
-				{
-					count = data & 0x3F;
-					if (cfread(&data, 1, 1, PCXfile) != 1) 
-					{
-						cfclose(PCXfile);
-						return PCX_ERROR_READING;
-					}
-					memset(pixdata, data, count);
-					pixdata += count;
-					col += count;
-				}
-				else 
-				{
-					*pixdata++ = data;
-					col++;
-				}
+				memset(pixdata, data, count);
+				pixdata += count;
+				col += count;
+			}
+			else 
+			{
+				*pixdata++ = data;
+				col++;
 			}
 		}
 	}
-	/*else 
-	{
-		for (row = 0; row < ysize; row++) 
-		{
-			for (col = 0; col < xsize; ) 
-			{
-				if (cfread(&data, 1, 1, PCXfile) != 1) 
-				{
-					cfclose(PCXfile);
-					return PCX_ERROR_READING;
-				}
-				if ((data & 0xC0) == 0xC0) 
-				{
-					count = data & 0x3F;
-					if (cfread(&data, 1, 1, PCXfile) != 1) 
-					{
-						cfclose(PCXfile);
-						return PCX_ERROR_READING;
-					}
-					for (i = 0; i < count; i++)
-						gr_bm_pixel(bmp, col + i, row, data);
-					col += count;
-				}
-				else 
-				{
-					gr_bm_pixel(bmp, col, row, data);
-					col++;
-				}
-			}
-		}
-	}*/
 
 	// Read the extended palette at the end of PCX file
 	if (palette != NULL) 

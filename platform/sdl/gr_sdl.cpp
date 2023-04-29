@@ -48,7 +48,6 @@ int Fullscreen = 0;
 int SwapInterval = 0;
 
 SDL_Rect screenRectangle, sourceRectangle;
-SDL_Surface* softwareSurf = nullptr;
 
 uint32_t localPal[256];
 
@@ -56,7 +55,6 @@ uint32_t localPal[256];
 SDL_Color colors[256];
 
 int refreshDuration = US_70FPS;
-bool usingSoftware = false;
 
 int plat_init()
 {
@@ -88,11 +86,8 @@ int plat_create_window()
 
 	CurWindowWidth = WindowWidth;
 	CurWindowHeight = WindowHeight;
-	int flags = SDL_WINDOW_HIDDEN;
-	if (!NoOpenGL)
-		flags |= SDL_WINDOW_OPENGL;
-	else
-		usingSoftware = true;
+	int flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL;
+
 	if (Fullscreen)
 		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_BORDERLESS;
 	//SDL is good, create a game window
@@ -109,19 +104,13 @@ int plat_create_window()
 	//where else do i do this...
 	I_InitSDLJoysticks();
 
-	if (!NoOpenGL && I_InitGLContext(gameWindow))
+	if (I_InitGLContext(gameWindow))
 	{
 		//Failed to initialize OpenGL, try simple surface code instead
 		SDL_DestroyWindow(gameWindow);
-		usingSoftware = true;
 
-		flags &= ~SDL_WINDOW_OPENGL;
-		gameWindow = SDL_CreateWindow(titleMsg, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WindowWidth, WindowHeight, flags);
-		if (!gameWindow)
-		{
-			Error("Error creating game window, after falling back to software: %s\n", SDL_GetError());
-			return 1;
-		}
+		Error("Error creating OpenGL context: %s\n", SDL_GetError());
+		return 1;
 	}
 
 	SDL_ShowWindow(gameWindow);
@@ -133,8 +122,7 @@ void plat_close_window()
 {
 	if (gameWindow)
 	{
-		if (!usingSoftware)
-			I_ShutdownGL();
+		I_ShutdownGL();
 
 		SDL_DestroyWindow(gameWindow);
 		gameWindow = NULL;
@@ -143,152 +131,50 @@ void plat_close_window()
 
 int plat_check_gr_mode(int mode)
 {
-	//For now, high color modes are rejected (were those ever well supported? or even used?)
-	switch (mode)
-	{
-	case SM_320x200C:
-	case SM_320x200U:
-	case SM_320x240U:
-	case SM_360x200U:
-	case SM_360x240U:
-	case SM_376x282U:
-	case SM_320x400U:
-	case SM_320x480U:
-	case SM_360x400U:
-	case SM_360x480U:
-	case SM_360x360U:
-	case SM_376x308U:
-	case SM_376x564U:
-	case SM_640x400V:
-	case SM_640x480V:
-	case SM_800x600V:
-	case SM_1024x768V:
-	case 19:
-	case 21:
-	case SM_1280x1024V: return 0;
-	}
-	return 11;
+	return 0;
 }
 
-void I_SetScreenRect(int w, int h)
+void I_SetScreenRect(int w, int h, float aspect)
 {
 	//Create the destination rectangle for the game screen
-	int bestWidth = CurWindowHeight * 4 / 3;
+	float inv_aspect = 1.f / aspect;
+	int bestWidth = CurWindowHeight * inv_aspect;
 	if (CurWindowWidth < bestWidth) bestWidth = CurWindowWidth;
 	sourceRectangle.x = sourceRectangle.y = 0;
 	sourceRectangle.w = w; sourceRectangle.h = h;
 
-	if (!usingSoftware)
+	if (BestFit == FITMODE_FILTERED && h <= 400)
 	{
-		if (BestFit == FITMODE_FILTERED && h <= 400)
-		{
-			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
-			w *= 2; h *= 2;
-		}
-		else
-			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
+		w *= 2; h *= 2;
 	}
+	else
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 
 	if (BestFit == FITMODE_BEST)
 	{
 		int numWidths = bestWidth / w;
 		screenRectangle.w = numWidths * w;
-		screenRectangle.h = (screenRectangle.w * 3 / 4);
+		screenRectangle.h = (screenRectangle.w * aspect);
 		screenRectangle.x = (CurWindowWidth - screenRectangle.w) / 2;
 		screenRectangle.y = (CurWindowHeight - screenRectangle.h) / 2;
 	}
 	else
 	{
 		screenRectangle.w = bestWidth;
-		screenRectangle.h = (screenRectangle.w * 3 / 4);
+		screenRectangle.h = (screenRectangle.w * aspect);
 		screenRectangle.x = screenRectangle.y = 0;
 		screenRectangle.x = (CurWindowWidth - screenRectangle.w) / 2;
 		screenRectangle.y = (CurWindowHeight - screenRectangle.h) / 2;
 	}
 
-	if (!usingSoftware)
-		GL_SetVideoMode(w, h, &screenRectangle);
-	else
-	{
-		if (softwareSurf)
-			SDL_FreeSurface(softwareSurf);
-		
-		softwareSurf = SDL_CreateRGBSurface(0, w, h, 32, 0, 0, 0, 0);
-		if (!softwareSurf)
-			Error("Error creating software surface: %s\n", SDL_GetError());
-	}
+	//GL_SetVideoMode(w, h, &screenRectangle);
 }
 
 int plat_set_gr_mode(int mode)
 {
-	int w, h;
-
-	refreshDuration = US_60FPS;
-	switch (mode)
-	{
-	case SM_320x200C:
-	case SM_320x200U:
-		w = 320; h = 200; refreshDuration = US_70FPS;
-		break;
-	case SM_320x240U:
-		w = 320; h = 240; refreshDuration = US_70FPS; //these need to be checked
-		break;
-	case SM_360x200U:
-		w = 360; h = 200; refreshDuration = US_70FPS;
-		break;
-	case SM_360x240U:
-		w = 360; h = 240;
-		break;
-	case SM_376x282U:
-		w = 376; h = 282;
-		break;
-	case SM_320x400U:
-		w = 320; h = 400;
-		break;
-	case SM_320x480U:
-		w = 320; h = 480;
-		break;
-	case SM_360x400U:
-		w = 360; h = 400;
-		break;
-	case SM_360x480U:
-		w = 360; h = 480;
-		break;
-	case SM_376x308U:
-		w = 376; h = 308;
-		break;
-	case SM_376x564U:
-		w = 376; h = 564;
-		break;
-	case SM_640x400V:
-		w = 640; h = 400;
-		break;
-	case SM_640x480V:
-		w = 640; h = 480;
-		break;
-	case SM_800x600V:
-		w = 800; h = 600;
-		break;
-	case SM_1024x768V:
-		w = 1024; h = 768;
-		break;
-	case 19:
-		w = 320; h = 100;
-		break;
-	case 21:
-		w = 160; h = 100;
-		break;
-	case SM_1280x1024V:
-		w = 1280; h = 1024;
-		break;
-	default:
-		Error("plat_set_gr_mode: bad mode %d\n", mode);
-		return 0;
-	}
-
 	//[ISB] this should hopefully fix all instances of the screen flashing white when changing modes
 	plat_write_palette(0, 255, gr_palette);
-	I_SetScreenRect(w, h);
 
 	return 0;
 }
@@ -343,8 +229,6 @@ void plat_do_events()
 					SDL_SetWindowPosition(gameWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 					Fullscreen = 0;
 				}
-
-				I_SetScreenRect(grd_curscreen->sc_w, grd_curscreen->sc_h);
 			}
 			else
 				I_KeyHandler(ev.key.keysym.scancode, ev.key.state);
@@ -396,8 +280,7 @@ void plat_write_palette(int start, int end, uint8_t* data)
 		colors[i].b = (Uint8)(data[i * 3 + 2] * 255 / 63);
 		localPal[start+i] = (255 << 24) | (colors[i].r << 16) | (colors[i].g << 8) | (colors[i].b);
 	}
-	if (!usingSoftware)
-		GL_SetPalette(localPal);
+	GL_SetPalette(localPal);
 }
 
 void plat_blank_palette()
@@ -429,32 +312,10 @@ void plat_wait_for_vbl()
 }
 
 extern uint8_t* gr_video_memory;
-void I_SoftwareBlit()
+
+void plat_clear_screen()
 {
-	int x, y;
-	int sourcePitch = grd_curscreen->sc_canvas.cv_bitmap.bm_rowsize;
-	int destPitch = softwareSurf->pitch;
-	uint8_t* source = gr_video_memory;
-	if (SDL_LockSurface(softwareSurf))
-		Error("Failed to lock software surface for blitting");
-
-	uint8_t* dest = (uint8_t*)softwareSurf->pixels;
-
-	for (y = 0; y < softwareSurf->h; y++)
-	{
-		for (x = 0; x < softwareSurf->w; x++)
-		{
-			*(uint32_t*)&dest[x<<2] = localPal[source[x]];
-		}
-		source += sourcePitch;
-		dest += destPitch;
-	}
-
-	SDL_UnlockSurface(softwareSurf);
-
-	SDL_Surface* windowSurf = SDL_GetWindowSurface(gameWindow);
-	//SDL_BlitSurface(softwareSurf, &sourceRectangle, windowSurf, &sourceRectangle);
-	SDL_BlitScaled(softwareSurf, &sourceRectangle, windowSurf, &screenRectangle);
+	GL_Clear();
 }
 
 void plat_present_canvas(int sync)
@@ -464,23 +325,30 @@ void plat_present_canvas(int sync)
 		SDL_Delay(1000 / 70);
 	}
 
-	if (!usingSoftware)
-	{
-		GL_DrawPhase1();
-		SDL_GL_SwapWindow(gameWindow);
-	}
-	else
-	{
-		I_SoftwareBlit();
-		SDL_UpdateWindowSurface(gameWindow);
-	}
+	GL_Clear();
+	I_SetScreenRect(grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h, 3.f / 4.f);
+	GL_DrawCanvas(*grd_curcanv, screenRectangle);
+
+	SDL_GL_SwapWindow(gameWindow);
+}
+
+void plat_present_canvas(grs_canvas& canvas, float aspect)
+{
+	GL_Clear();
+	I_SetScreenRect(canvas.cv_bitmap.bm_w, canvas.cv_bitmap.bm_h, aspect);
+	GL_DrawCanvas(canvas, screenRectangle);
+
+	SDL_GL_SwapWindow(gameWindow);
+}
+
+void plat_present_canvas(grs_canvas& canvas)
+{
+	float aspect = (float)canvas.cv_bitmap.bm_h / canvas.cv_bitmap.bm_w;
+	plat_present_canvas(canvas, aspect);
 }
 
 void plat_blit_canvas(grs_canvas *canv)
 {
-	//[ISB] Under the assumption that the screen buffer is always static and valid, memcpy the contents of the canvas into it
-	if (canv->cv_bitmap.bm_type == BM_SVGA)
-		memcpy(gr_video_memory, canv->cv_bitmap.bm_data, canv->cv_bitmap.bm_w * canv->cv_bitmap.bm_h);
 }
 
 void plat_close()

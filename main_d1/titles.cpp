@@ -70,6 +70,8 @@ int	Briefing_foreground_colors[MAX_BRIEFING_COLORS], Briefing_background_colors[
 int	Current_color = 0;
 int	Erase_color;
 
+grs_canvas* briefing_canvas;
+
 int local_key_inkey(void)
 {
 	int	rval;
@@ -95,10 +97,10 @@ int show_title_screen(const char* filename, int allow_keys)
 {
 	fix timer;
 	int pcx_error;
-	grs_bitmap title_bm;
 
-	title_bm.bm_data = NULL;
-	if ((pcx_error = pcx_read_bitmap(filename, &title_bm, BM_LINEAR, New_pal)) != PCX_ERROR_NONE) 
+	grs_canvas* title_canvas = gr_create_canvas(320, 200);
+
+	if ((pcx_error = pcx_read_bitmap(filename, &title_canvas->cv_bitmap, BM_LINEAR, New_pal)) != PCX_ERROR_NONE)
 	{
 		printf("File '%s', PCX load error: %s (%i)\n  (No big deal, just no title screen.)\n", filename, pcx_errormsg(pcx_error), pcx_error);
 		mprintf((0, "File '%s', PCX load error: %s (%i)\n  (No big deal, just no title screen.)\n", filename, pcx_errormsg(pcx_error), pcx_error));
@@ -107,8 +109,7 @@ int show_title_screen(const char* filename, int allow_keys)
 	}
 
 	gr_palette_clear();
-	gr_set_current_canvas(NULL);
-	gr_bitmap(0, 0, &title_bm);
+	gr_set_current_canvas(title_canvas);
 	if (gr_palette_fade_in(New_pal, 32, allow_keys))
 		return 1;
 
@@ -133,12 +134,11 @@ int show_title_screen(const char* filename, int allow_keys)
 			}
 		}
 #endif
-		plat_present_canvas(0);
+		plat_present_canvas(*title_canvas, ASPECT_4_3);
 		I_MarkEnd(US_70FPS);
 	}
 	if (gr_palette_fade_out(New_pal, 32, allow_keys))
 		return 1;
-	free(title_bm.bm_data);
 	return 0;
 }
 
@@ -300,15 +300,17 @@ void show_bitmap_frame(void)
 
 		switch (Animating_bitmap_type) 
 		{
-		case 0:	bitmap_canv = gr_create_sub_canvas(grd_curcanv, 220, 45, 64, 64);	break;
-		case 1:	bitmap_canv = gr_create_sub_canvas(grd_curcanv, 220, 45, 94, 94);	break;	//	Adam: Change here for your new animating bitmap thing. 94, 94 are bitmap size.
+		case 0:	bitmap_canv = gr_create_sub_canvas(briefing_canvas, 220, 45, 64, 64);	break;
+		case 1:	bitmap_canv = gr_create_sub_canvas(briefing_canvas, 220, 45, 94, 94);	break;	//	Adam: Change here for your new animating bitmap thing. 94, 94 are bitmap size.
 		default:	Int3();	//	Impossible, illegal value for Animating_bitmap_type
 		}
 
 		if (!bitmap_canv) return;
 
 		curcanv_save = grd_curcanv;
-		grd_curcanv = bitmap_canv;
+		//grd_curcanv = bitmap_canv;
+
+		gr_set_current_canvas(bitmap_canv);
 
 		pound_signp = strchr(Bitmap_name, '#');
 		Assert(pound_signp != NULL);
@@ -361,7 +363,7 @@ void show_bitmap_frame(void)
 		}
 
 		gr_bitmapm(0, 0, bitmap_ptr);
-		grd_curcanv = curcanv_save;
+		gr_set_current_canvas(curcanv_save);
 		free(bitmap_canv);
 
 		switch (Animating_bitmap_type) 
@@ -390,11 +392,11 @@ void show_briefing_bitmap(grs_bitmap* bmp)
 {
 	grs_canvas* curcanv_save, * bitmap_canv;
 
-	bitmap_canv = gr_create_sub_canvas(grd_curcanv, 220, 45, 166, 138);
+	bitmap_canv = gr_create_sub_canvas(briefing_canvas, 220, 45, 166, 138);
 	curcanv_save = grd_curcanv;
-	grd_curcanv = bitmap_canv;
+	gr_set_current_canvas(bitmap_canv);
 	gr_bitmapm(0, 0, bmp);
-	grd_curcanv = curcanv_save;
+	gr_set_current_canvas(curcanv_save);
 	free(bitmap_canv);
 }
 
@@ -403,14 +405,15 @@ void show_spinning_robot_frame(int robot_num)
 {
 	grs_canvas* curcanv_save;
 
-	if (robot_num != -1) {
+	if (robot_num != -1) 
+	{
 		Robot_angles.h += 150;
 
 		curcanv_save = grd_curcanv;
-		grd_curcanv = Robot_canv;
+		gr_set_current_canvas(Robot_canv);
 		Assert(Robot_info[robot_num].model_num != -1);
 		draw_model_picture(Robot_info[robot_num].model_num, &Robot_angles);
-		grd_curcanv = curcanv_save;
+		gr_set_current_canvas(curcanv_save);
 	}
 
 }
@@ -422,13 +425,13 @@ void init_spinning_robot(void)
 	Robot_angles.b += 0;
 	Robot_angles.h += 0;
 
-	Robot_canv = gr_create_sub_canvas(grd_curcanv, 138, 55, 166, 138);
+	Robot_canv = gr_create_sub_canvas(briefing_canvas, 138, 55, 166, 138);
 }
 
 //	-----------------------------------------------------------------------------
 void init_briefing_bitmap(void)
 {
-	Robot_canv = gr_create_sub_canvas(grd_curcanv, 138, 55, 166, 138);
+	Robot_canv = gr_create_sub_canvas(briefing_canvas, 138, 55, 166, 138);
 }
 
 //	-----------------------------------------------------------------------------
@@ -471,7 +474,7 @@ int show_char_delay(char the_char, int delay, int robot_num, int cursor_flag)
 
 	if (delay != 0) //Don't update if message should progress instantly. 
 	{
-		plat_present_canvas(0);
+		plat_present_canvas(*briefing_canvas, ASPECT_4_3);
 		plat_do_events();
 	}
 	//[ISB] draw right before the erase
@@ -501,7 +504,7 @@ int load_briefing_screen(int screen_num)
 {
 	int	pcx_error;
 
-	if ((pcx_error = pcx_read_bitmap(&Briefing_screens[screen_num].bs_name[0], &grd_curcanv->cv_bitmap, grd_curcanv->cv_bitmap.bm_type, New_pal)) != PCX_ERROR_NONE) 
+	if ((pcx_error = pcx_read_bitmap(&Briefing_screens[screen_num].bs_name[0], &briefing_canvas->cv_bitmap, briefing_canvas->cv_bitmap.bm_type, New_pal)) != PCX_ERROR_NONE)
 	{
 		printf("File '%s', PCX load error: %s\n  (It's a briefing screen.  Does this cause you pain?)\n", Briefing_screens[screen_num].bs_name, pcx_errormsg(pcx_error));
 		printf(0, "File '%s', PCX load error: %s (%i)\n  (It's a briefing screen.  Does this cause you pain?)\n", Briefing_screens[screen_num].bs_name, pcx_errormsg(pcx_error), pcx_error);
@@ -730,7 +733,7 @@ int show_briefing_message(int screen_num, char* message)
 					}
 					while (timer_get_fixed_seconds() < start_time + KEY_DELAY_DEFAULT / 2)
 					{
-						plat_present_canvas(0);
+						plat_present_canvas(*briefing_canvas, ASPECT_4_3);
 						plat_do_events();
 					};
 					flash_cursor(flashing_cursor);
@@ -841,7 +844,7 @@ int show_briefing_message(int screen_num, char* message)
 				while (timer_get_approx_seconds() < start_time + KEY_DELAY_DEFAULT / 2)
 				{
 					//[ISB] the amount of frames that will get 2 events done is going to be high
-					plat_present_canvas(0);
+					plat_present_canvas(*briefing_canvas, ASPECT_4_3);
 					plat_do_events();
 				};
 				flash_cursor(flashing_cursor);
@@ -1015,7 +1018,8 @@ void do_briefing_screens(int level_num)
 	int	abort_briefing_screens = 0;
 	int	cur_briefing_screen = 0;
 
-	if (Skip_briefing_screens) {
+	if (Skip_briefing_screens) 
+	{
 		mprintf((0, "Skipping all briefing screens.\n"));
 		return;
 	}
@@ -1023,23 +1027,28 @@ void do_briefing_screens(int level_num)
 	if (!Briefing_text_filename[0])		//no filename?
 		return;
 
+	briefing_canvas = gr_create_canvas(320, 200);
+
 	songs_play_song(SONG_BRIEFING, 1);
 
 	set_screen_mode(SCREEN_MENU);
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(briefing_canvas);
 
 	key_flush();
 
 	load_screen_text(Briefing_text_filename, &Briefing_text);
 
-	if (level_num == 1) {
-		while ((!abort_briefing_screens) && (Briefing_screens[cur_briefing_screen].level_num == 0)) {
+	if (level_num == 1) 
+	{
+		while ((!abort_briefing_screens) && (Briefing_screens[cur_briefing_screen].level_num == 0)) 
+		{
 			abort_briefing_screens = show_briefing_screen(cur_briefing_screen, 0);
 			cur_briefing_screen++;
 		}
 	}
 
-	if (!abort_briefing_screens) {
+	if (!abort_briefing_screens) 
+	{
 		for (cur_briefing_screen = 0; cur_briefing_screen < MAX_BRIEFING_SCREEN; cur_briefing_screen++)
 			if (Briefing_screens[cur_briefing_screen].level_num == level_num)
 				if (show_briefing_screen(cur_briefing_screen, 0))
@@ -1048,6 +1057,7 @@ void do_briefing_screens(int level_num)
 
 
 	free(Briefing_text);
+	gr_free_canvas(briefing_canvas);
 
 	key_flush();
 }
@@ -1129,8 +1139,9 @@ extern void show_order_form(void);
 
 void do_end_game(void)
 {
+	briefing_canvas = gr_create_canvas(320, 200);
 	set_screen_mode(SCREEN_MENU);
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(briefing_canvas);
 
 	key_flush();
 
@@ -1162,4 +1173,5 @@ void do_end_game(void)
 	show_order_form();
 #endif
 
+	gr_free_canvas(briefing_canvas);
 }

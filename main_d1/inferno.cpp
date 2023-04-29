@@ -145,54 +145,6 @@ void check_id_checksum_and_date()
 	printf("%s %s\n", TXT_REGISTRATION, name);
 }
 
-int init_graphics()
-{
-	int result;
-
-	result = gr_check_mode(SM_320x200C);
-#ifdef EDITOR
-	if (result == 0)
-		result = gr_check_mode(SM_800x600V);
-#endif
-
-	switch (result) {
-	case  0:		//Mode set OK
-#ifdef EDITOR
-		Inferno_is_800x600_available = 1;
-#endif
-		break;
-	case  1:		//No VGA adapter installed
-		printf("%s\n", TXT_REQUIRES_VGA);
-		return 1;
-	case 10:		//Error allocating selector for A0000h
-		printf("%s\n", TXT_ERROR_SELECTOR);
-		return 1;
-	case 11:		//Not a valid mode support by gr.lib
-		printf("%s\n", TXT_ERROR_GRAPHICS);
-		return 1;
-#ifdef EDITOR
-	case  3:		//Monitor doesn't support that VESA mode.
-	case  4:		//Video card doesn't support that VESA mode.
-
-		printf("Your VESA driver or video hardware doesn't support 800x600 256-color mode.\n");
-		break;
-	case  5:		//No VESA driver found.
-		printf("No VESA driver detected.\n");
-		break;
-	case  2:		//Program doesn't support this VESA granularity
-	case  6:		//Bad Status after VESA call/
-	case  7:		//Not enough DOS memory to call VESA functions.
-	case  8:		//Error using DPMI.
-	case  9:		//Error setting logical line width.
-	default:
-		printf("Error %d using 800x600 256-color VESA mode.\n", result);
-		break;
-#endif
-	}
-
-	return 0;
-}
-
 extern fix fixed_frametime;
 
 #define NEEDED_DOS_MEMORY   			( 300*1024)		// 300 K
@@ -357,7 +309,7 @@ int D_DescentMain(int argc, const char** argv)
 
 	strcpy(Menu_pcx_name, "menu.pcx");	//	Used to be menu2.pcx.
 
-	if (init_graphics()) return 1;
+	Inferno_is_800x600_available = true;
 
 #ifdef EDITOR
 	if (!Inferno_is_800x600_available) 
@@ -455,9 +407,7 @@ int D_DescentMain(int argc, const char** argv)
 	}
 #endif
 
-	//[ISB] kill a ridiculous amount of VR stuff. it'd be cool to try to get some sort of crude VR working but...
 	{
-		int screen_mode = SM_320x200C;
 		int screen_width = 320;
 		int screen_height = 200;
 		int screen_compatible = 1;
@@ -465,7 +415,6 @@ int D_DescentMain(int argc, const char** argv)
 		if (FindArg("-320x240")) 
 		{
 			if (Inferno_verbose) printf("Using 320x240 ModeX...\n");
-			screen_mode = SM_320x240U;
 			screen_width = 320;
 			screen_height = 240;
 			screen_compatible = 0;
@@ -474,7 +423,6 @@ int D_DescentMain(int argc, const char** argv)
 		if (FindArg("-320x400")) 
 		{
 			if (Inferno_verbose) printf("Using 320x400 ModeX...\n");
-			screen_mode = SM_320x400U;
 			screen_width = 320;
 			screen_height = 400;
 			screen_compatible = 0;
@@ -483,7 +431,6 @@ int D_DescentMain(int argc, const char** argv)
 		if (FindArg("-640x400"))
 		{
 			if (Inferno_verbose) printf("Using 640x400 VESA...\n");
-			screen_mode = SM_640x400V;
 			screen_width = 640;
 			screen_height = 400;
 			screen_compatible = 0;
@@ -492,7 +439,6 @@ int D_DescentMain(int argc, const char** argv)
 		if (FindArg("-640x480")) 
 		{
 			if (Inferno_verbose) printf("Using 640x480 VESA...\n");
-			screen_mode = SM_640x480V;
 			screen_width = 640;
 			screen_height = 480;
 			screen_compatible = 0;
@@ -501,7 +447,6 @@ int D_DescentMain(int argc, const char** argv)
 		if (FindArg("-1280x1024"))
 		{
 			if (Inferno_verbose) printf("Using 1280x1024...\n");
-			screen_mode = SM_1280x1024V;
 			screen_width = 1280;
 			screen_height = 1024;
 			screen_compatible = 0;
@@ -509,13 +454,12 @@ int D_DescentMain(int argc, const char** argv)
 		if (FindArg("-320x100")) 
 		{
 			if (Inferno_verbose) printf("Using 320x100 VGA...\n");
-			screen_mode = 19;
 			screen_width = 320;
 			screen_height = 100;
 			screen_compatible = 0;
 		}
 
-		game_init_render_buffers(screen_mode, screen_width, screen_height, screen_compatible);
+		game_init_render_buffers(0, screen_width, screen_height, screen_compatible);
 	}
 
 #ifdef NETWORK
@@ -530,11 +474,10 @@ int D_DescentMain(int argc, const char** argv)
 #endif
 
 	if (Inferno_verbose) printf("\n%s\n\n", TXT_INITIALIZING_GRAPHICS);
-	if ((t = gr_init(SM_ORIGINAL)) != 0)
+	if ((t = gr_init()) != 0)
 		Error(TXT_CANT_INIT_GFX, t);
 	// Load the palette stuff. Returns non-zero if error.
 	mprintf((0, "Going into graphics mode..."));
-	gr_set_mode(SM_320x200C);
 	mprintf((0, "\nInitializing palette system..."));
 	gr_use_palette_table("PALETTE.256");
 	mprintf((0, "\nInitializing font system..."));
@@ -715,7 +658,8 @@ void show_order_form()
 	uint8_t title_pal[768];
 	char	exit_screen[16];
 
-	gr_set_current_canvas(NULL);
+	grs_canvas* exit_canvas = gr_create_canvas(320, 200);
+	gr_set_current_canvas(exit_canvas);
 	gr_palette_clear();
 
 	key_flush();
@@ -729,7 +673,7 @@ void show_order_form()
 	strcpy(exit_screen, "warning.pcx");
 #endif
 #endif
-	if ((pcx_error = pcx_read_bitmap(exit_screen, &grd_curcanv->cv_bitmap, grd_curcanv->cv_bitmap.bm_type, title_pal)) == PCX_ERROR_NONE) 
+	if ((pcx_error = pcx_read_bitmap(exit_screen, &exit_canvas->cv_bitmap, BM_LINEAR, title_pal)) == PCX_ERROR_NONE) 
 	{
 		gr_palette_fade_in(title_pal, 32, 0);
 		{
@@ -741,11 +685,13 @@ void show_order_form()
 				plat_do_events();
 				if (timer_get_approx_seconds() > time_out_value) done = 1;
 				if (key_inkey()) done = 1;
-				plat_present_canvas(0);
+				plat_present_canvas(*exit_canvas, ASPECT_4_3);
 				I_MarkEnd(US_70FPS);
 			}
 		}
 		gr_palette_fade_out(title_pal, 32, 0);
 	}
+
+	gr_free_canvas(exit_canvas);
 	key_flush();
 }

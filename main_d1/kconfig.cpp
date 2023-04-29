@@ -46,9 +46,10 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 //#define TABLE_CREATION 1
 
+grs_canvas* kconfig_canvas;
+
 int     sense_function1 = 0;
 int	  vfx1_installed = 0;
-int     SenseStatus1(void);
 
 // Array used to 'blink' the cursor while waiting for a keypress.
 int8_t fades[64] = { 1,1,1,2,2,3,4,4,5,6,8,9,10,12,13,15,16,17,19,20,22,23,24,26,27,28,28,29,30,30,31,31,31,31,31,30,30,29,28,28,27,26,24,23,22,20,19,17,16,15,13,12,10,9,8,6,5,4,4,3,2,2,1,1 };
@@ -116,8 +117,6 @@ const char* key_text[256] = { \
 "","","","","","","" };
 
 uint8_t system_keys[] = { KEY_ESC, KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9, KEY_F10, KEY_F11, KEY_F12, KEY_0, KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0, KEY_MINUS, KEY_EQUAL, KEY_PRINT_SCREEN };
-
-//extern void GameLoop(int, int );
 
 control_info Controls;
 
@@ -404,7 +403,7 @@ void kconfig_sub(kc_item* items, int nitems, char* title)
 	}
 
 	save_canvas = grd_curcanv;
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(kconfig_canvas);
 	save_font = grd_curcanv->cv_font;
 	game_flush_inputs();
 	old_keyd_repeat = keyd_repeat;
@@ -668,7 +667,7 @@ void kconfig_sub(kc_item* items, int nitems, char* title)
 			kc_drawitem(&items[ocitem], 0);
 			kc_drawitem(&items[citem], 1);
 		}
-		plat_present_canvas(0);
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		I_MarkEnd(US_70FPS);
 	}
 }
@@ -772,7 +771,7 @@ void kc_change_key(kc_item* item)
 	k = 255;
 	while ((k != KEY_ESC) && (keycode == 255)) 
 	{
-		plat_present_canvas(0);
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
@@ -834,7 +833,7 @@ void kc_change_joybutton(kc_item* item)
 	k = 255;
 	while ((k != KEY_ESC) && (code == 255)) 
 	{
-		plat_present_canvas(0);
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
@@ -917,7 +916,7 @@ void kc_change_mousebutton(kc_item* item)
 	k = 255;
 	while ((k != KEY_ESC) && (code == 255)) 
 	{
-		plat_present_canvas(0);
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
@@ -978,7 +977,7 @@ void kc_change_joyaxis(kc_item* item)
 
 	while ((k != KEY_ESC) && (code == 255)) 
 	{
-		plat_present_canvas(0);
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
@@ -1040,7 +1039,7 @@ void kc_change_mouseaxis(kc_item* item)
 
 	while ((k != KEY_ESC) && (code == 255)) 
 	{
-		plat_present_canvas(0);
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
@@ -1097,6 +1096,7 @@ void kconfig(int n, char* title)
 {
 	int i;
 	set_screen_mode(SCREEN_MENU);
+	kconfig_canvas = gr_create_canvas(320, 200);
 
 	kc_set_controls();
 
@@ -1107,6 +1107,7 @@ void kconfig(int n, char* title)
 	case 2:kconfig_sub(kc_mouse, NUM_OTHER_CONTROLS, title); break;
 	default:
 		Int3();
+		gr_free_canvas(kconfig_canvas); //TODO: I really need RAII
 		return;
 	}
 
@@ -1128,6 +1129,7 @@ void kconfig(int n, char* title)
 			kconfig_settings[Config_control_type][i] = kc_mouse[i].value;
 	}
 
+	gr_free_canvas(kconfig_canvas);
 }
 
 fix Last_angles_p = 0;
@@ -1146,23 +1148,6 @@ void read_head_tracker()
 fix	LastReadTime = 0;
 
 fix	joy_axis[4];
-
-uint8_t 			kc_use_external_control = 0;
-uint8_t				kc_enable_external_control = 1;
-uint8_t 			kc_external_intno = 0;
-control_info* kc_external_control = NULL;
-uint8_t* kc_external_name = NULL;
-uint8_t				kc_external_version = 0;
-
-void kconfig_init_external_controls(int intno, int address)
-{
-	Warning("kconfig_init_external_controls: STUB\n");
-}
-
-void kconfig_read_external_controls()
-{
-	//Warning("kconfig_read_external_controls: STUB\n");
-}
 
 void controls_read_all()
 {
@@ -1381,7 +1366,8 @@ void controls_read_all()
 	if (kc_keyboard[17].value < 255) Controls.vertical_thrust_time -= speed_factor * key_down_time(kc_keyboard[17].value);
 
 	// From joystick...
-	if ((use_joystick) && (kc_joystick[19].value < 255)) {
+	if ((use_joystick) && (kc_joystick[19].value < 255)) 
+	{
 		if (!kc_joystick[20].value)		// If not inverted...
 			Controls.vertical_thrust_time += joy_axis[kc_joystick[19].value];
 		else
@@ -1397,7 +1383,8 @@ void controls_read_all()
 	if ((use_mouse) && (kc_mouse[9].value < 255)) Controls.vertical_thrust_time -= mouse_button_down_time(kc_mouse[9].value);
 
 	// From mouse...
-	if ((use_mouse) && (kc_mouse[19].value < 255)) {
+	if ((use_mouse) && (kc_mouse[19].value < 255)) 
+	{
 		if (!kc_mouse[20].value)		// If not inverted...
 			Controls.vertical_thrust_time += mouse_axis[kc_mouse[19].value];
 		else
@@ -1523,7 +1510,8 @@ void controls_read_all()
 
 	//----------- Read bank_time -----------------
 
-	if (bank_on) {
+	if (bank_on) 
+	{
 		k0 = speed_factor * key_down_time(kc_keyboard[4].value);
 		k1 = speed_factor * key_down_time(kc_keyboard[5].value);
 		k2 = speed_factor * key_down_time(kc_keyboard[6].value);
@@ -1536,7 +1524,8 @@ void controls_read_all()
 		if (kc_keyboard[7].value < 255) Controls.bank_time -= k3;
 
 		// From joystick...
-		if ((use_joystick) && (kc_joystick[15].value < 255)) {
+		if ((use_joystick) && (kc_joystick[15].value < 255)) 
+		{
 			if (!kc_joystick[16].value)		// If not inverted...
 				Controls.bank_time -= (joy_axis[kc_joystick[15].value] * Config_joystick_sensitivity) / 8;
 			else
@@ -1544,7 +1533,8 @@ void controls_read_all()
 		}
 
 		// From mouse...
-		if ((use_mouse) && (kc_mouse[15].value < 255)) {
+		if ((use_mouse) && (kc_mouse[15].value < 255)) 
+		{
 			if (!kc_mouse[16].value)		// If not inverted...
 				Controls.bank_time += (mouse_axis[kc_mouse[15].value] * Config_joystick_sensitivity) / 8;
 			else
@@ -1693,10 +1683,6 @@ void controls_read_all()
 
 	read_head_tracker();
 
-	// Read external controls
-	if (kc_use_external_control)
-		kconfig_read_external_controls();
-
 	//----------- Clamp values between -FrameTime and FrameTime
 	if (FrameTime > F1_0)
 		mprintf((1, "Bogus frame time of %.2f seconds\n", f2fl(FrameTime)));
@@ -1744,54 +1730,30 @@ void kc_set_controls()
 	for (i = 0; i < NUM_KEY_CONTROLS; i++)
 		kc_keyboard[i].value = kconfig_settings[0][i];
 
-	if ((Config_control_type > 0) && (Config_control_type < 5)) {
-		for (i = 0; i < NUM_OTHER_CONTROLS; i++) {
+	if ((Config_control_type > 0) && (Config_control_type < 5)) 
+	{
+		for (i = 0; i < NUM_OTHER_CONTROLS; i++) 
+		{
 			kc_joystick[i].value = kconfig_settings[Config_control_type][i];
-			if (kc_joystick[i].type == BT_INVERT) {
+			if (kc_joystick[i].type == BT_INVERT) 
+			{
 				if (kc_joystick[i].value != 1)
 					kc_joystick[i].value = 0;
 				kconfig_settings[Config_control_type][i] = kc_joystick[i].value;
 			}
 		}
 	}
-	else if (Config_control_type > 4) {
-		for (i = 0; i < NUM_OTHER_CONTROLS; i++) {
+	else if (Config_control_type > 4) 
+	{
+		for (i = 0; i < NUM_OTHER_CONTROLS; i++) 
+		{
 			kc_mouse[i].value = kconfig_settings[Config_control_type][i];
-			if (kc_mouse[i].type == BT_INVERT) {
+			if (kc_mouse[i].type == BT_INVERT) 
+			{
 				if (kc_mouse[i].value != 1)
 					kc_mouse[i].value = 0;
 				kconfig_settings[Config_control_type][i] = kc_mouse[i].value;
 			}
 		}
 	}
-}
-
-
-int SenseStatus1(void)
-{
-	Warning("SenseStatus1: STUB\n");
-
-	return(0);
-}
-
-int SenseGetData(int function, int cls, fix* yaw, fix* pitch, fix* roll, int* buttons)
-{
-	Warning("SenseGetData: STUB\n");
-	return 0;
-}
-
-void kconfig_center_headset()
-{
-	Warning("kconfig_center_headset: STUB\n");
-}
-
-int SenseSetZero(int function, int cls)
-{
-	Warning("SenseSetZero: STUB\n");
-	return 0;
-}
-
-void kconfig_sense_init()
-{
-	Warning("kconfig_sense_init: STUB\n");
 }

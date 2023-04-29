@@ -648,7 +648,7 @@ void controlcen_proc(FuelCenter * controlcen)
 		//gauge_message( "YOU'RE TOO SLOW! THE MINE BLEW UP!" );
 		if (PaletteBlueAdd > 64)
 		{
-			gr_set_current_canvas(NULL);
+			gr_set_current_canvas(VR_screen_buffer);
 			gr_clear_canvas(BM_XRGB(31, 31, 31));		//make screen all white to match palette effect
 			reset_cockpit();								//force cockpit redraw next time
 			reset_palette_add();							//restore palette for death message

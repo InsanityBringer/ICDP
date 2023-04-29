@@ -28,16 +28,17 @@ void ui_barbox_open(char* text, int length)
 	int text_width, text_height, avg; //[ISB] can we at least make the tiniest attempt to be wide enough when being passed as a pointer?
 	int w, h, width, height, xc, yc, x, y;
 
-	w = grd_curscreen->sc_w;
-	h = grd_curscreen->sc_h;
+	w = ui_canvas->cv_w;
+	h = ui_canvas->cv_h;
 
 	width = w / 3;
 
 	bar_maxlength = length;
 
-	if (w < 640) {
-		temp_font = grd_curscreen->sc_canvas.cv_font;
-		grd_curscreen->sc_canvas.cv_font = ui_small_font;
+	if (w < 640) 
+	{
+		temp_font = ui_canvas->cv_font;
+		ui_canvas->cv_font = ui_small_font;
 	}
 
 	gr_get_string_size(text, &text_width, &text_height, &avg);
@@ -78,7 +79,7 @@ void ui_barbox_open(char* text, int length)
 	ui_draw_line_in(bar_x - 2, bar_y - 2, bar_x + bar_width + 1, bar_y + bar_height + 1);
 
 	if (temp_font)
-		grd_curscreen->sc_canvas.cv_font = temp_font;
+		ui_canvas->cv_font = temp_font;
 
 }
 

@@ -28,17 +28,20 @@ static int Initialized = 0;
 
 unsigned char CBLACK, CGREY, CWHITE, CBRIGHT, CRED;
 
+grs_canvas* ui_canvas;
 grs_font* ui_small_font = NULL;
 
 void ui_init()
 {
-	grs_font* org_font;
-
 	if (Initialized) return;
+
+	//[ISB] Create a default canvas for the UI, defaulting to 800x600 (since that's what the editor uses).
+	//This canvas replaces the usage of grd_curscreen everywhere here.
+	ui_init_canvas(800, 600);
 
 	Initialized = 1;
 
-	org_font = grd_curcanv->cv_font;
+	grs_font* org_font = grd_curcanv->cv_font;
 	ui_small_font = gr_init_font("pc6x8.fnt");
 	grd_curcanv->cv_font = org_font;
 
@@ -48,15 +51,11 @@ void ui_init()
 	CBRIGHT = gr_find_closest_color(58, 58, 58);
 	CRED = gr_find_closest_color(63, 0, 0);
 
-	//key_init();
-
 	ui_mouse_init();
 
 	gr_set_fontcolor(CBLACK, CWHITE);
 
 	CurWindow = NULL;
-	//[ISB] ugh
-	//InstallErrorHandler();
 
 	ui_pad_init();
 
@@ -84,4 +83,12 @@ void ui_close()
 	}
 
 	return;
+}
+
+void ui_init_canvas(int width, int height)
+{
+	if (ui_canvas)
+		gr_free_canvas(ui_canvas);
+
+	ui_canvas = gr_create_canvas(width, height);
 }

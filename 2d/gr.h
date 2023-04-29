@@ -108,80 +108,16 @@ typedef struct _grs_screen // This is a video screen
 	fix			sc_aspect;		//aspect ratio (w/h) for this screen
 } grs_screen;
 
-// Num Cols Rows Bpp Mode Pages Aspect
-// --- ---- ---- --- ---- ----- ------
-// 0   320  200  8   C    1.0   1.2:1
-// 1   320  200  8   U    4.0   1.2
-// 2   320  240  8   U    3.4   1.0
-// 3   360  200  8   U    3.6   1.4
-// 4   360  240  8   U    3.0   1.1
-// 5   376  282  8   U    2.5   1.0
-// 6   320  400  8   U    2.0   0.6
-// 7   320  480  8   U    1.7   0.5
-// 8   360  400  8   U    1.8   0.7
-// 9   360  480  8   U    1.5   0.6
-// 10  360  360  8   U    2.0   0.8
-// 11  376  308  8   U    2.3   0.9
-// 12  376  564  8   U    1.2   0.5
-// 13  640  400  8   V    4.1   1.2     (Assuming 1 Meg video RAM)
-// 14  640  480  8   V    3.4   1.0
-// 15  800  600  8   V    2.2   1.0
-// 16  1024 768  8   V    1.0   1.0
-// 17  640  480  15  V    1.0   1.0
-// 18  800  600  15  V    1.0   1.0
-
-#define SM_ORIGINAL		-1
-#define SM_320x200C     0
-#define SM_320x200U     1
-#define SM_320x240U     2
-#define SM_360x200U     3
-#define SM_360x240U     4
-#define SM_376x282U     5
-#define SM_320x400U     6
-#define SM_320x480U     7
-#define SM_360x400U     8
-#define SM_360x480U     9
-#define SM_360x360U     10
-#define SM_376x308U     11
-#define SM_376x564U     12
-#define SM_640x400V     13
-#define SM_640x480V     14
-#define SM_800x600V     15
-#define SM_1024x768V    16
-#define SM_640x480V15   17
-#define SM_800x600V15   18
-#define SM_1280x1024V   23 //[ISB] h a c k since d1 makes 320x100 mode 19. ugh
-
-#define SM_320x200x8	1
-#define SM_320x200x8UL	2
-#define SM_320x200x16	3
-
 ////=========================================================================
 // System functions:
 // setup and set mode. this creates a grs_screen structure and sets
 // grd_curscreen to point to it.  grs_curcanv points to this screen's
 // canvas.  Saves the current VGA state and screen mode.
 
-int gr_init(int mode);
+int gr_init();
 
 //shut down the 2d.  Restore the screen mode.
 void gr_close();
-
-//  0=Mode set OK
-//  1=No VGA adapter installed
-//  2=Program doesn't support this VESA granularity
-//  3=Monitor doesn't support that VESA mode.:
-//  4=Video card doesn't support that VESA mode.
-//  5=No VESA driver found.
-//  6=Bad Status after VESA call/
-//  7=Not enough DOS memory to call VESA functions.
-//  8=Error using DPMI.
-//  9=Error setting logical line width.
-// 10=Error allocating selector for A0000h
-// 11=Not a valid mode support by gr.lib
-// Returns one of the above without setting mode
-int gr_check_mode(int mode);
-
 
 //=========================================================================
 // Canvas functions:
@@ -410,7 +346,6 @@ extern void gr_merge_textures_2(uint8_t* lower, uint8_t* upper, uint8_t* dest);
 extern void gr_merge_textures_3(uint8_t* lower, uint8_t* upper, uint8_t* dest);
 
 void gr_sync_display();
-int gr_set_mode(int mode);
 
 //[ISB] I MADE BAD DECISIONS AGAIN
 #define VGA_current_mode grd_curscreen->sc_mode

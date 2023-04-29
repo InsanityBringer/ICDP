@@ -205,9 +205,7 @@ void ui_pad_activate(UI_WINDOW* wnd, int x, int y)
 	HotKey1[16] = KEY_SHIFTED + KEY_CTRLED + KEY_PADPERIOD;
 
 	active_pad = -1;
-
 }
-
 
 void ui_pad_deactivate()
 {
@@ -225,9 +223,7 @@ static void ui_pad_set_active(int n)
 	char* name;
 	int i, j;
 
-
-
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(ui_canvas);
 	gr_setcolor(CWHITE);
 	gr_urect(desc_x, desc_y, desc_x + 56 * 4 - 1, desc_y + 15);
 	gr_set_fontcolor(CBLACK, CWHITE);

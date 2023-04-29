@@ -22,6 +22,7 @@ Instead, it is released under the terms of the MIT License.
 #endif
 
 #include <SDL.h>
+#include "2d/gr.h"
 
 //Local funcs
 bool I_InitGLContext(SDL_Window* win);
@@ -31,6 +32,9 @@ void GL_SetPalette(uint32_t* pal);
 void GL_DrawPhase1();
 
 void I_ShutdownGL();
+
+void GL_Clear();
+void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds);
 
 //GL API
 //Literally done just to avoid pulling in a lightweight library. This was a dumb idea but for a good reason.

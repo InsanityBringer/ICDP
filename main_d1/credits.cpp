@@ -108,7 +108,8 @@ void credits_show()
 
 	gr_remap_bitmap_good(&backdrop, backdrop_palette, -1, -1);
 
-	gr_set_current_canvas(NULL);
+	grs_canvas* credits_canvas = gr_create_canvas(320, 200);
+	gr_set_current_canvas(credits_canvas);
 	gr_bitmap(0, 0, &backdrop);
 	gr_palette_fade_in(gr_palette, 32, 0);
 	//vfx_set_palette_sub(gr_palette); //[ISB] frankly why do I bother
@@ -157,7 +158,7 @@ void credits_show()
 
 			y = first_line_offset - i;
 
-			gr_set_current_canvas(VR_offscreen_buffer);
+			gr_set_current_canvas(credits_canvas);
 			gr_bitmap(0, 0, &backdrop);
 			for (j = 0; j < NUM_LINES; j++)
 			{
@@ -206,7 +207,6 @@ void credits_show()
 				else
 					y += ROW_SPACING;
 			}
-			gr_bm_ubitblt(320, 200, 0, 0, 0, 0, &(VR_offscreen_buffer->cv_bitmap), &(grd_curscreen->sc_canvas.cv_bitmap));
 
 			while (timer_get_fixed_seconds() < last_time + time_delay);
 			last_time = timer_get_fixed_seconds();
@@ -237,9 +237,10 @@ void credits_show()
 				free(backdrop.bm_data);
 				cfclose(file);
 				songs_play_song(SONG_TITLE, 1);
+				gr_free_canvas(credits_canvas);
 				return;
 			}
-			plat_present_canvas(0);
+			plat_present_canvas(*credits_canvas, 3.f/4.f);
 			I_DelayUS(US_70FPS);
 		}
 

@@ -57,7 +57,7 @@ int PopupMenu(int NumButtons, char* text[])
 
 	button_width = button_height = 0;
 
-	gr_set_current_canvas(&grd_curscreen->sc_canvas);
+	gr_set_current_canvas(ui_canvas);
 
 	for (i = 0; i < NumButtons; i++)
 	{
@@ -77,8 +77,8 @@ int PopupMenu(int NumButtons, char* text[])
 	x = Mouse.x - width / 2;
 	y = Mouse.y - (MENU_BORDER + 3) - button_height / 2;
 
-	w = grd_curscreen->sc_w;
-	h = grd_curscreen->sc_h;
+	w = ui_canvas->cv_w;
+	h = ui_canvas->cv_h;
 
 	if (x < 0) {
 		x = 0;
