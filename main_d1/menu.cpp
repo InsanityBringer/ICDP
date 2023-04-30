@@ -761,28 +761,53 @@ void do_save_game_menu()
 
 extern void GameLoop(int, int);
 
-void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
+void sound_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 {
 	nitems = nitems;
 	*last_key = *last_key;
 
-	if (citem == 4) 
-	{
-		gr_palette_set_gamma(items[4].value);
-	}
-
-	if (Config_digi_volume != items[0].value) 
+	if (Config_digi_volume != items[0].value)
 	{
 		Config_digi_volume = items[0].value;
 		digi_set_digi_volume((Config_digi_volume * 32768) / 8);
 		digi_play_sample_once(SOUND_DROP_BOMB, F1_0);
 	}
 
-	if (Config_midi_volume != items[1].value) 
+	if (Config_midi_volume != items[1].value)
 	{
 		Config_midi_volume = items[1].value;
 		digi_set_midi_volume((Config_midi_volume * 128) / 8);
 	}
+}
+
+const char* sound_menu_title = "SOUND OPTIONS";
+
+void do_sound_menu()
+{
+	newmenu_item m[3];
+	int i = 0;
+
+	do
+	{
+		m[0].type = NM_TYPE_SLIDER; m[0].text = TXT_FX_VOLUME; m[0].value = Config_digi_volume; m[0].min_value = 0; m[0].max_value = 8;
+		m[1].type = NM_TYPE_SLIDER; m[1].text = TXT_MUSIC_VOLUME; m[1].value = Config_midi_volume; m[1].min_value = 0; m[1].max_value = 8;
+		m[2].type = NM_TYPE_CHECK; m[2].text = TXT_REVERSE_STEREO; m[2].value = Config_channels_reversed;
+
+		i = newmenu_do1(NULL, sound_menu_title, 3, m, sound_menuset, i);
+
+		Config_channels_reversed = m[2].value;
+	} while (i > 1);
+
+	if (Config_midi_volume < 1)
+	{
+		digi_play_midi_song(NULL, NULL, NULL, 0);
+	}
+}
+
+void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
+{
+	nitems = nitems;
+	*last_key = *last_key;
 }
 
 //this change was made in DESCENT.TEX, but since we're not including that
@@ -792,45 +817,50 @@ void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 #define	TXT_JOYS_SENSITIVITY "Joystick/Mouse\nSensitivity"
 #endif
 
+void do_video_menu();
+
 void do_options_menu()
 {
-	newmenu_item m[13];
+	newmenu_item m[10];
 	int i = 0;
 
 	do 
 	{
-		m[0].type = NM_TYPE_SLIDER; m[0].text = TXT_FX_VOLUME; m[0].value = Config_digi_volume; m[0].min_value = 0; m[0].max_value = 8;
-		m[1].type = NM_TYPE_SLIDER; m[1].text = TXT_MUSIC_VOLUME; m[1].value = Config_midi_volume; m[1].min_value = 0; m[1].max_value = 8;
-		m[2].type = NM_TYPE_CHECK; m[2].text = TXT_REVERSE_STEREO; m[2].value = Config_channels_reversed;
-		m[3].type = NM_TYPE_TEXT; m[3].text = (char*)"";
-		m[4].type = NM_TYPE_SLIDER; m[4].text = TXT_BRIGHTNESS; m[4].value = gr_palette_get_gamma(); m[4].min_value = 0; m[4].max_value = 8;
-		m[5].type = NM_TYPE_TEXT; m[5].text = (char*)"";
-		m[6].type = NM_TYPE_MENU; m[6].text = TXT_CONTROLS_;
-		m[7].type = NM_TYPE_MENU; m[7].text = TXT_DETAIL_LEVELS;
-		m[8].type = NM_TYPE_MENU; m[8].text = TXT_CAL_JOYSTICK;
-		m[9].type = NM_TYPE_TEXT; m[9].text = (char*)"";
-		m[10].type = NM_TYPE_SLIDER; m[10].text = TXT_JOYS_SENSITIVITY; m[10].value = Config_joystick_sensitivity; m[10].min_value = 0; m[10].max_value = 8;
-		m[11].type = NM_TYPE_TEXT; m[11].text = (char*)"";
-		m[12].type = NM_TYPE_CHECK; m[12].text = (char*)"Ship auto-leveling"; m[12].value = Auto_leveling_on;
+		m[0].type = NM_TYPE_MENU; m[0].text = (char*)"SOUND OPTIONS...";
+		m[1].type = NM_TYPE_MENU; m[1].text = (char*)"VIDEO OPTIONS...";
+		m[2].type = NM_TYPE_TEXT; m[2].text = (char*)"";
+		m[3].type = NM_TYPE_MENU; m[3].text = TXT_CONTROLS_;
+		m[4].type = NM_TYPE_MENU; m[4].text = TXT_DETAIL_LEVELS;
+		m[5].type = NM_TYPE_MENU; m[5].text = TXT_CAL_JOYSTICK;
+		m[6].type = NM_TYPE_TEXT; m[6].text = (char*)"";
+		m[7].type = NM_TYPE_SLIDER; m[7].text = TXT_JOYS_SENSITIVITY; m[7].value = Config_joystick_sensitivity; m[7].min_value = 0; m[7].max_value = 8;
+		m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
+		m[9].type = NM_TYPE_CHECK; m[9].text = (char*)"Ship auto-leveling"; m[9].value = Auto_leveling_on;
 
-		i = newmenu_do1(NULL, TXT_OPTIONS, 13, m, joydef_menuset, i);
+		i = newmenu_do1(NULL, TXT_OPTIONS, 10, m, joydef_menuset, i);
 
 		switch (i) 
 		{
-		case 6: joydefs_config(); 			break;
-		case 7: do_detail_level_menu();	break;
-		case 8: joydefs_calibrate();		break;
+		case 0: 
+			do_sound_menu();
+			break;
+		case 1:
+			do_video_menu();
+			break;
+		case 3: 
+			joydefs_config();
+			break;
+		case 4: 
+			do_detail_level_menu();	
+			break;
+		case 5: 
+			joydefs_calibrate();
+			break;
 		}
 
-		Config_channels_reversed = m[2].value;
-		Config_joystick_sensitivity = m[10].value;
-		Auto_leveling_on = m[12].value;
+		Config_joystick_sensitivity = m[7].value;
+		Auto_leveling_on = m[9].value;
 	} while (i > -1);
-
-	if (Config_midi_volume < 1)
-	{
-		digi_play_midi_song(NULL, NULL, NULL, 0);
-	}
 
 	write_player_file();
 }
@@ -938,3 +968,60 @@ void do_ip_address_menu()
 	return;
 }
 #endif
+
+#include "platform/platform.h"
+
+const char* select_window_res_text = "SELECT WINDOW SIZE...";
+const char* select_render_res_text = "SELECT RENDER RESOLUTION...";
+const char* fullscreen_text = "FULLSCREEN";
+const char* vsync_text = "VSYNC";
+const char* aspect_text = "ASPECT RATIO";
+
+const char* vsync_status[] = { "ON", "OFF", "ADAPTIVE" };
+const char* aspect_status[] = { "AUTO", "4:3", "5:4", "16:9", "16:10" };
+
+int temp_aspect_ratio = 1;
+
+void video_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
+{
+	if (citem == 9)
+	{
+		gr_palette_set_gamma(items[9].value);
+	}
+}
+
+void do_video_menu()
+{
+	newmenu_item m[10];
+	char window_res_string[64];
+	char render_res_string[64];
+	char vsync_buffer[64];
+	char aspect_buffer[64];
+	int i = 0;
+
+	snprintf(window_res_string, 64, "%dx%d", WindowWidth, WindowHeight);
+	window_res_string[63] = '\0';
+
+	snprintf(render_res_string, 64, "%dx%d", VR_render_width, VR_render_height);
+	render_res_string[63] = '\0';
+	
+	do
+	{
+		snprintf(vsync_buffer, 64, "%s: %s", vsync_text, vsync_status[SwapInterval]);
+		snprintf(aspect_buffer, 64, "%s: %s", aspect_text, aspect_status[temp_aspect_ratio]);
+		m[0].type = NM_TYPE_MENU; m[0].text = (char*)select_window_res_text;
+		m[1].type = NM_TYPE_INPUT; m[1].text = window_res_string; m[1].text_len = 63;
+		m[2].type = NM_TYPE_CHECK; m[2].text = (char*)fullscreen_text; m[2].value = Fullscreen;
+		m[3].type = NM_TYPE_MENU; m[3].text = (char*)vsync_buffer;
+		m[4].type = NM_TYPE_TEXT; m[4].text = (char*)"";
+		m[5].type = NM_TYPE_MENU; m[5].text = (char*)select_render_res_text;
+		m[6].type = NM_TYPE_INPUT; m[6].text = render_res_string; m[6].text_len = 63;
+		m[7].type = NM_TYPE_MENU; m[7].text = (char*)aspect_buffer;
+		m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
+		m[9].type = NM_TYPE_SLIDER; m[9].text = TXT_BRIGHTNESS; m[9].value = gr_palette_get_gamma(); m[9].min_value = 0; m[9].max_value = 8;
+
+		i = newmenu_do1(NULL, "VIDEO OPTIONS", 10, m, video_menuset, i);
+
+
+	} while (i > -1);
+}
