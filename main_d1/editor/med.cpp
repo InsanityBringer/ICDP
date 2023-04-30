@@ -80,9 +80,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/platform.h"
 #include "platform/timer.h"
 
-//#define _MARK_ON 1
-//#include <wsample.h>		//should come after inferno.h to get mark setting //Not included here.
-
 #define COMPRESS_INTERVAL	5			// seconds
 
 //char *undo_status[128];
@@ -97,6 +94,7 @@ grs_canvas *Canv_editor;			//the editor screen
 grs_canvas *Canv_editor_game=&_canv_editor_game; //the game on the editor screen
 
 grs_canvas *canv_offscreen;		//for off-screen rendering
+grs_canvas* game_canvas;		//[ISB] 3D view canvas so it's not dependent on your resolution. 
 grs_canvas *Pad_text_canvas;		// Keypad text
 
 grs_font *editor_font=NULL;
