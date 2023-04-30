@@ -18,6 +18,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <semaphore>
 
 #include "misc/error.h"
 
@@ -33,16 +34,13 @@ bool Use_multithread = false;
 int Thread_count = 0;
 
 std::condition_variable Render_start_signal;
-std::condition_variable Render_complete_signal;
 std::condition_variable Render_thread_obtain_signal;
+std::counting_semaphore Render_complete_semaphore(0);
 std::mutex Render_start_mutex;
 std::mutex Render_thread_obtain_mutex;
-std::mutex Render_complete_mutex;
 //Protected by the start CV, A thread will read this and start working with Render_thread_data[Render_thread_start_num]
 std::atomic_int Render_thread_start_num;
 //Protected by the completion CV, waiting is done when this equals Thread_count
-int Num_render_thread_completed;
-//Number of threads that were dispatched when calling start_frame. end_frame will wait until Num_threads_dispatched == Num_render_thread_completed
 int Num_threads_dispatched;
 
 int Num_cells_x, Num_cells_y;
@@ -74,17 +72,7 @@ void g3_init(void)
 
 		for (int i = 0; i < Thread_count; i++)
 		{
-			/*int cell_x = i % Num_cells_x;
-			int cell_y = i / Num_cells_x;
-
-			fix x_frac_left = fixdiv(i2f(cell_x), i2f(Num_cells_x)) * 2 - F1_0;
-			fix x_frac_right = fixdiv(i2f(cell_x + 1), i2f(Num_cells_x)) * 2 - F1_0;
-
-			fix y_frac_top = fixdiv(i2f(cell_y), i2f(Num_cells_y)) * 2 - F1_0;
-			fix y_frac_bottom = fixdiv(i2f(cell_y + 1), i2f(Num_cells_y)) * 2 - F1_0;
-			mprintf((0, "ICDP: Thread %d, planes left: %f top: %f right: %f bottom: %f\n", i, f2fl(x_frac_left), f2fl(y_frac_top), f2fl(x_frac_right), f2fl(y_frac_bottom)));*/
 			Render_thread_data.emplace_back();
-			//Render_thread_data[i].set_clipping_planes(x_frac_left, y_frac_top, x_frac_right, y_frac_bottom);
 			Render_threads.push_back(std::thread(g3_worker_thread, i));
 		}
 	}
@@ -154,7 +142,6 @@ void G3Instance::dispatch_render_threads()
 	//TODO: The tiles need some adjustment. At 640x480 the overhead is slightly higher than rendering without threads. 
 
 	Render_thread_start_num = 0;
-	Num_render_thread_completed = 0;
 	int num_threads_x = std::min(Canvas_width / 256 + 1, Num_cells_x);
 	int num_threads_y = std::min(Canvas_height / 256 + 1, Num_cells_y);
 
@@ -281,13 +268,9 @@ void G3Instance::end_frame()
 
 	if (Num_threads_dispatched > 0)
 	{
+		for (int i = 0; i < Thread_count; i++)
 		{
-			std::unique_lock<std::mutex> lock(Render_complete_mutex);
-			bool succeeded = Render_complete_signal.wait_for(lock, std::chrono::milliseconds(5000), [] {return Num_render_thread_completed == Thread_count; });
-			if (!succeeded) //debugging main thread stall
-			{
-				Int3();
-			}
+			Render_complete_semaphore.acquire();
 		}
 	}
 
@@ -352,12 +335,6 @@ void g3_worker_thread(int thread_num)
 #endif
 		}
 
-		{
-			std::unique_lock<std::mutex> lock(Render_complete_mutex);
-			Num_render_thread_completed++;
-			lock.unlock();
-
-			Render_complete_signal.notify_one();
-		}
+		Render_complete_semaphore.release(1);
 	}
 }

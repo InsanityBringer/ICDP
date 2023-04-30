@@ -1008,7 +1008,9 @@ void do_video_menu()
 	do
 	{
 		snprintf(vsync_buffer, 64, "%s: %s", vsync_text, vsync_status[SwapInterval]);
+		vsync_buffer[63] = '\0';
 		snprintf(aspect_buffer, 64, "%s: %s", aspect_text, aspect_status[temp_aspect_ratio]);
+		aspect_buffer[63] = '\0';
 		m[0].type = NM_TYPE_MENU; m[0].text = (char*)select_window_res_text;
 		m[1].type = NM_TYPE_INPUT; m[1].text = window_res_string; m[1].text_len = 63;
 		m[2].type = NM_TYPE_CHECK; m[2].text = (char*)fullscreen_text; m[2].value = Fullscreen;
