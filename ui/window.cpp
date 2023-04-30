@@ -592,7 +592,7 @@ void ui_mega_process()
 	}
 
 	ui_mouse_process();
-	plat_present_canvas(0);
+	plat_present_canvas(*ui_canvas, ASPECT_4_3);
 	I_MarkEnd(US_60FPS);
 }
 

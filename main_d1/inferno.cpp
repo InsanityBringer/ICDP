@@ -612,8 +612,8 @@ int D_DescentMain(int argc, const char** argv)
 		case FMODE_EDITOR:
 			keyd_editor_mode = 1;
 			editor();
-			//_harderr((void*)descent_critical_error_handler);		// Reinstall game error handler
-			if (Function_mode == FMODE_GAME) {
+			if (Function_mode == FMODE_GAME) 
+			{
 				Game_mode = GM_EDITOR;
 				editor_reset_stuff_on_level();
 				N_players = 1;
