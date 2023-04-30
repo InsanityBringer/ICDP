@@ -41,15 +41,8 @@ void plat_display_error(const char* msg);
 //Gets the amount of logical CPUs for this machine. 
 int plat_get_num_cpus();
 
-//-----------------------------------------------------------------------------
-//	Setting graphics modes
-//-----------------------------------------------------------------------------
-
-//Check if a mode is okay to use
-int plat_check_gr_mode(int mode);
-
-//Set a graphics mode
-int plat_set_gr_mode(int mode);
+//Updates the window, if settings changed in game
+void plat_update_window();
 
 //-----------------------------------------------------------------------------
 //	Screen palettes

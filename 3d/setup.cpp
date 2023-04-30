@@ -177,13 +177,6 @@ void G3Instance::dispatch_render_threads()
 #ifdef G3_DEBUG_EMPTY_CELLS
 		g3_generate_random_pixels(data);
 #endif
-
-		/*{
-			std::unique_lock<std::mutex> lock(Render_start_mutex);
-			lock.unlock();
-
-			Render_start_signal.notify_one();
-		}*/
 	}
 
 	{

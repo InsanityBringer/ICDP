@@ -977,7 +977,7 @@ const char* fullscreen_text = "FULLSCREEN";
 const char* vsync_text = "VSYNC";
 const char* aspect_text = "ASPECT RATIO";
 
-const char* vsync_status[] = { "ON", "OFF", "ADAPTIVE" };
+const char* vsync_status[] = { "OFF", "ON", "ADAPTIVE" };
 const char* aspect_status[] = { "AUTO", "4:3", "5:4", "16:9", "16:10" };
 
 int temp_aspect_ratio = 1;
@@ -1024,6 +1024,44 @@ void do_video_menu()
 
 		i = newmenu_do1(NULL, "VIDEO OPTIONS", 10, m, video_menuset, i);
 
+		if (i == 3)
+		{
+			SwapInterval = (SwapInterval + 1) % 3;
+		}
+
+		else if (i == 7)
+		{
+			temp_aspect_ratio = (temp_aspect_ratio + 1) % 5;
+		}
+
 
 	} while (i > -1);
+
+	Fullscreen = m[2].value;
+
+	char* x_ptr = strchr(window_res_string, 'x');
+	if (!x_ptr)
+		x_ptr = strchr(window_res_string, 'X');
+	if (!x_ptr)
+		x_ptr = strchr(window_res_string, '*');
+
+	if (!x_ptr)
+		nm_messagebox(NULL, 1, TXT_OK, "Can't read window size");
+	else
+	{
+		*x_ptr = '\0';
+		int new_width = atoi(window_res_string);
+		int new_height = atoi(x_ptr + 1);
+		if (new_width < 320 || new_height < 240)
+			nm_messagebox(NULL, 1, TXT_OK, "Window size is invalid");
+		else
+		{
+			WindowWidth = new_width;
+			WindowHeight = new_height;
+		}
+
+		*x_ptr = 'x';
+	}
+
+	plat_update_window();
 }

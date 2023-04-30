@@ -129,9 +129,28 @@ void plat_close_window()
 	}
 }
 
-int plat_check_gr_mode(int mode)
+void plat_toggle_fullscreen()
 {
-	return 0;
+	if (Fullscreen)
+	{
+		SDL_SetWindowFullscreen(gameWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		SDL_GetWindowSize(gameWindow, &CurWindowWidth, &CurWindowHeight);
+	}
+	else
+	{
+		SDL_SetWindowFullscreen(gameWindow, 0);
+		SDL_SetWindowSize(gameWindow, WindowWidth, WindowHeight);
+		CurWindowWidth = WindowWidth; CurWindowHeight = WindowHeight;
+		SDL_SetWindowPosition(gameWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+	}
+}
+
+void plat_update_window()
+{
+	SDL_SetWindowSize(gameWindow, WindowWidth, WindowHeight);
+	SDL_SetWindowPosition(gameWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+
+	plat_toggle_fullscreen();
 }
 
 void I_SetScreenRect(int w, int h, float aspect)
@@ -171,14 +190,6 @@ void I_SetScreenRect(int w, int h, float aspect)
 	//GL_SetVideoMode(w, h, &screenRectangle);
 }
 
-int plat_set_gr_mode(int mode)
-{
-	//[ISB] this should hopefully fix all instances of the screen flashing white when changing modes
-	plat_write_palette(0, 255, gr_palette);
-
-	return 0;
-}
-
 void I_ScaleMouseToWindow(int* x, int* y)
 {
 	//printf("in: (%d, %d) ", *x, *y);
@@ -215,20 +226,8 @@ void plat_do_events()
 		case SDL_KEYUP:
 			if (ev.key.keysym.scancode == SDL_SCANCODE_RETURN && ev.key.state == SDL_PRESSED && ev.key.keysym.mod & KMOD_ALT)
 			{
-				if (!Fullscreen)
-				{
-					SDL_SetWindowFullscreen(gameWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
-					SDL_GetWindowSize(gameWindow, &CurWindowWidth, &CurWindowHeight);
-					Fullscreen = 1;
-				}
-				else
-				{
-					SDL_SetWindowFullscreen(gameWindow, 0);
-					SDL_SetWindowSize(gameWindow, WindowWidth, WindowHeight);
-					CurWindowWidth = WindowWidth; CurWindowHeight = WindowHeight;
-					SDL_SetWindowPosition(gameWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-					Fullscreen = 0;
-				}
+				Fullscreen ^= 1;
+				plat_toggle_fullscreen();
 			}
 			else
 				I_KeyHandler(ev.key.keysym.scancode, ev.key.state);
