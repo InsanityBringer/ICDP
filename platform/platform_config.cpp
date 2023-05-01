@@ -102,8 +102,8 @@ int plat_read_chocolate_cfg()
 				memset(&SoundFontFilename[0], 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
 				get_full_file_path(&SoundFontFilename[0], value, CHOCOLATE_SOUNDFONTS_DIR);
 #else
-				memset(&SoundFontFilename[0], 0, 256);
-				strncpy(&SoundFontFilename[0], value, 255);
+				strncpy(&SoundFontFilename[0], value, CHOCOLATE_MAX_FILE_PATH_SIZE - 1);
+				SoundFontFilename[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
 #endif
 				//[ISB] godawful hack from Descent's config parser, should fix parsing the soundfont path
 				p = strchr(SoundFontFilename, '\n');
