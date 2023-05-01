@@ -420,6 +420,8 @@ int get_highest_level(void)
 //write out player's saved games.  returns errno (0 == no error)
 int write_player_file()
 {
+	return 0;
+#if 0
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 #endif
@@ -519,7 +521,7 @@ int write_player_file()
 
 
 	return errno_ret;
-
+#endif
 }
 
 //returns errno (0 == no error)
