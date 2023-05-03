@@ -60,13 +60,13 @@ int8_t fades[64] = { 1,1,1,2,2,3,4,4,5,6,8,9,10,12,13,15,16,17,19,20,22,23,24,26
 //char * mouseaxis_text[2] = { "L/R", "F/B" };
 //char * mousebutton_text[3] = { "Left", "Right", "Mid" };
 
-std::vector<kc_button_binding> default_keyboard_controls;
-std::vector<kc_button_binding> default_mouse_buttons;
-std::vector<kc_axis_binding> default_mouse_axises;
-std::vector<kc_button_binding> default_joystick_buttons;
-std::vector<kc_axis_binding> default_joystick_axises;
-std::vector<kc_button_binding> default_gamepad_buttons;
-std::vector<kc_axis_binding> default_gamepad_axises;
+kc_button_binding default_keyboard_controls[KC_NUM_CONTROLS];
+kc_button_binding default_mouse_buttons[KC_NUM_CONTROLS];
+kc_axis_binding default_mouse_axises[KC_NUM_AXISES];
+kc_button_binding default_joystick_buttons[KC_NUM_CONTROLS];
+kc_axis_binding default_joystick_axises[KC_NUM_AXISES];
+kc_button_binding default_gamepad_buttons[KC_NUM_CONTROLS];
+kc_axis_binding default_gamepad_axises[KC_NUM_AXISES];
 
 std::vector<kc_button_binding> current_keyboard_bindings;
 
@@ -1150,20 +1150,20 @@ int check_joy_binding_down_count(kc_joyinfo& info, std::span<JoystickButton>& bu
 		{
 			//Check if it's an axis. thank you xinput for making the triggers axises. 
 			if (binding.flags & flag)
-				down |= axises[button] > (127 / 3) ? 1 : 0;
+				down = std::max(down, axises[button] > (127 / 3) ? 1 : 0);
 
 			//Check if it's a hat
 			else if (binding.flags & hatflag)
 			{
 				int hat_num = button / 4;
 				int bit = button % 4;
-				down = (hats[hat_num] & (1 << bit)) != 0 ? 1 : 0;
+				down = std::max(down, (hats[hat_num] & (1 << bit)) != 0 ? 1 : 0);
 			}
 
 			//okay it's a button
 			else
 			{
-				down = buttons[button].down_count;
+				down = std::max(down, buttons[button].down_count);
 				buttons[button].down_count = 0;
 			}
 		}
@@ -1230,11 +1230,9 @@ void controls_read_joystick(kc_joyinfo& info, control_info& controls, bool slide
 
 	if (joy_get_state(info.handle, axises, buttons, hats))
 	{
-		fix temp;
-
 		//Read axis inputs
 		//Read pitch
-		temp = -check_axis(info, axises, AxisType::Pitch, 10, !slide_on)
+		fix temp = -check_axis(info, axises, AxisType::Pitch, 10, !slide_on)
 			+ check_joy_binding_time(info, buttons, hats, CtrlType::PitchForward)
 			- check_joy_binding_time(info, buttons, hats, CtrlType::PitchBackward);
 
@@ -1805,10 +1803,6 @@ void kconfig_init_defaults()
 	joy_set_device_callbacks(kconfig_register_device, kconfig_unregister_device);
 
 	//This is hardcoded at the moment, but it might support loading defaults from elsewhere later. 
-	default_keyboard_controls.resize((int)CtrlType::NumCtrls);
-	default_joystick_buttons.resize((int)CtrlType::NumCtrls);
-	default_joystick_axises.resize((int)AxisType::NumAxises);
-
 	default_keyboard_controls[(int)CtrlType::PitchForward].button1 = KEY_UP;
 	default_keyboard_controls[(int)CtrlType::PitchForward].button2 = KEY_PAD8;
 	default_keyboard_controls[(int)CtrlType::PitchBackward].button1 = KEY_DOWN;

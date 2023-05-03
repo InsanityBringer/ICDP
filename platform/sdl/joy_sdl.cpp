@@ -70,17 +70,26 @@ JoystickInfo::JoystickInfo(SDL_Joystick* joystick)
 	m_AxisCount = SDL_JoystickNumAxes(joystick);
 	m_Axises = nullptr;
 	if (m_AxisCount > 0) //I wonder what happens if you plug in a DDR pad... (update my pad has 5 axises)
+	{
 		m_Axises = new int[m_AxisCount];
+		memset(m_Axises, 0, sizeof(*m_Axises) * m_AxisCount);
+	}
 
 	m_HatCount = SDL_JoystickNumHats(joystick);
 	m_HatStates = nullptr;
 	if (m_HatCount > 0)
+	{
 		m_HatStates = new int[m_HatCount];
+		memset(m_HatStates, 0, sizeof(*m_HatStates) * m_HatCount);
+	}
 
 	m_ButtonCount = SDL_JoystickNumButtons(joystick);
 	m_ButtonStates = nullptr;
 	if (m_ButtonCount > 0)
+	{
 		m_ButtonStates = new JoystickButton[m_ButtonCount];
+		memset(m_ButtonStates, 0, sizeof(*m_ButtonStates) * m_ButtonCount);
+	}
 
 	m_InstanceID = SDL_JoystickInstanceID(joystick);
 }

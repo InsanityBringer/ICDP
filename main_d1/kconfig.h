@@ -46,6 +46,8 @@ enum class CtrlType
 	NumCtrls
 };
 
+constexpr int KC_NUM_CONTROLS = (int)CtrlType::NumCtrls;
+
 enum class AxisType
 {
 	Pitch,
@@ -56,6 +58,8 @@ enum class AxisType
 	SlideUD,
 	NumAxises
 };
+
+constexpr int KC_NUM_AXISES = (int)AxisType::NumAxises;
 
 struct control_info
 {
