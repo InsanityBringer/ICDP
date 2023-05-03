@@ -13,10 +13,51 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
+#include <vector>
+
 #include "misc/types.h"
 #include "fix/fix.h"
 
-typedef struct control_info 
+enum class CtrlType
+{
+	PitchForward,
+	PitchBackward,
+	TurnLeft,
+	TurnRight,
+	SlideOn,
+	SlideLeft,
+	SlideRight,
+	SlideUp,
+	SlideDown,
+	BankOn,
+	BankLeft,
+	BankRight,
+	FirePrimary,
+	FireSecondary,
+	FireFlare,
+	Accelerate,
+	Reverse,
+	DropBomb,
+	RearView,
+	CruiseFaster,
+	CruiseSlower,
+	CruiseOff,
+	Automap,
+	NumCtrls
+};
+
+enum class AxisType
+{
+	Pitch,
+	Yaw,
+	Roll,
+	Throttle,
+	SlideLR,
+	SlideUD,
+	NumAxises
+};
+
+struct control_info
 {
 	fix	pitch_time;
 	fix	vertical_thrust_time;
@@ -42,9 +83,65 @@ typedef struct control_info
 	uint8_t	automap_down_count;
 	uint8_t	automap_state;
 
-} control_info;
+};
 
-typedef struct kc_item
+//Set to true if the first button in a kc_button_binding is a hat. button1 is the bit that must be set
+constexpr int KC_BUTTON_B1_HAT = 1;
+//Set to true if the second button in a kc_button_binding is a hat. button2 is the bit that must be set
+constexpr int KC_BUTTON_B2_HAT = 2;
+
+constexpr int KC_BUTTON_B1_AXIS = 4;
+constexpr int KC_BUTTON_B2_AXIS = 8;
+
+struct kc_button_binding
+{
+	//The interpretation of button1 and button2 is slightly strange. -32768 is no binding.
+	//<0 is bound to the axis (-button - 1). This is needed for xinput controllers.
+	//>0 is bound straight to a button. 
+	//For keyboard keys, this is a scancode, for all others this is an index. 
+	int16_t button1, button2;
+	uint8_t flags;
+
+	kc_button_binding()
+	{
+		button1 = button2 = -32768;
+		flags = 0;
+	}
+};
+
+struct kc_axis_binding
+{
+	int8_t axis;
+	bool invert;
+
+	kc_axis_binding()
+	{
+		axis = -1;
+		invert = false;
+	}
+};
+
+//The amount of joystick bindings varies based on how many sticks are attached.
+struct kc_joyinfo
+{
+	//Guids are used to identify a specific type of device, but sadly won't identify specific instances of a device
+	uint8_t guid[16];
+	//Due to guids not being unique per instance of a device, store a handle for usage with the joystick libs.
+	int handle;
+
+	//These are variable length because the same bindings are shared across Descent 1 and 2, with 2 having more bindings.
+	//If it is less than the amount of controls a game has, it gets expanded with defaults. If it is greater, the extras are preserved as-is.
+	std::vector<kc_button_binding> buttons;
+	std::vector<kc_axis_binding> axises;
+	
+	kc_joyinfo()
+	{
+		memset(guid, 0, sizeof(guid));
+		handle = -1;
+	}
+};
+
+struct kc_item
 {
 	short id;				// The id of this item
 	short x, y;
@@ -54,7 +151,7 @@ typedef struct kc_item
 	short text_num1;
 	uint8_t type;
 	uint8_t value;		// what key,button,etc
-} kc_item;
+};
 
 extern control_info Controls;
 extern void controls_read_all();
@@ -86,6 +183,8 @@ extern const char* control_text[CONTROL_MAX_TYPES];
 
 extern void kc_set_controls();
 
+void kconfig_init_defaults();
+
 // Tries to use vfx1 head tracking.
 void kconfig_sense_init();
 
@@ -95,7 +194,6 @@ extern void reset_cruise(void);
 extern int kconfig_is_axes_used(int axis);
 
 extern void kconfig_init_external_controls(int intno, int address);
-
 void kc_drawitem(kc_item* item, int is_current);
 void kc_change_key(kc_item* item);
 void kc_change_joybutton(kc_item* item);

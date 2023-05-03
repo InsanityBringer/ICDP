@@ -219,6 +219,7 @@ void plat_do_events()
 				break;
 			}
 		}
+		break;
 		case SDL_MOUSEBUTTONDOWN:
 		case SDL_MOUSEBUTTONUP:
 			I_MouseHandler(ev.button.button, ev.button.state);
@@ -233,19 +234,13 @@ void plat_do_events()
 			else
 				I_KeyHandler(ev.key.keysym.scancode, ev.key.state);
 			break;
-			//[ISB] kill this. Descent's joystick code expects buttons to report that they're constantly being held down, and these button events only fire when the state changes
-/*
-		case SDL_CONTROLLERAXISMOTION:
-		case SDL_CONTROLLERBUTTONDOWN:
-		case SDL_CONTROLLERBUTTONUP:
-			I_ControllerHandler();
+
+		case SDL_JOYDEVICEADDED:
+			plat_joystick_attached(ev.jdevice.which);
 			break;
-		case SDL_JOYAXISMOTION:
-		case SDL_JOYBUTTONDOWN:
-		case SDL_JOYBUTTONUP:
-		case SDL_JOYHATMOTION:
-			I_JoystickHandler();
-			break;*/
+		case SDL_JOYDEVICEREMOVED:
+			plat_joystick_detached(ev.jdevice.which);
+			break;
 		}
 	}
 

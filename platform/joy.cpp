@@ -43,41 +43,6 @@ void joy_set_timer_rate(int max_value)
 {
 }
 
-void joy_set_cen()
-{
-}
-
-void joy_flush()
-{
-	for (int btn = 0; btn < MAX_BUTTONS; btn++)
-	{
-		joystick.buttons[btn].down = false;
-		joystick.buttons[btn].upcount = 0;
-		joystick.buttons[btn].downcount = 0;
-		joystick.buttons[btn].downtime = 0;
-	}
-}
-
-void joy_get_cal_vals(int* axis_min, int* axis_center, int* axis_max)
-{
-	for (int i = 0; i < 4; i++)
-	{
-		axis_min[i] = joystick.axis_min[i];
-		axis_center[i] = joystick.axis_center[i];
-		axis_max[i] = joystick.axis_max[i];
-	}
-}
-
-void joy_set_cal_vals(int* axis_min, int* axis_center, int* axis_max)
-{
-	for (int i = 0; i < 4; i++)
-	{
-		//joystick.axis_min[i] = axis_min[i];
-		//joystick.axis_center[i] = axis_center[i];
-		//joystick.axis_max[i] = axis_max[i];
-	}
-}
-
 void joy_get_pos(int* x, int* y)
 {
 	*x = joystick.axis_value[0];

@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <algorithm>
+#include <vector>
+#include <span>
 #include "platform/joy.h"
 #include "platform/timer.h"
 #include "misc/error.h"
+#include "platform/mono.h"
 
 #ifdef USE_SDL
 
@@ -12,19 +15,154 @@
 
 bool usingGamepad = false; //Gamepads need special handling to contort into the Descent Joystick API
 
+fix last_read_time;
+
+class JoystickInfo
+{
+	SDL_Joystick* m_Joystick;
+
+	int m_AxisCount;
+	//Buffer for reading all the axises into. 
+	int* m_Axises;
+
+	int m_HatCount;
+	//Buffer for reading all the hat states into.
+	int* m_HatStates;
+
+	int m_ButtonCount;
+	JoystickButton* m_ButtonStates;
+
+	//GUID for identifying specific joysticks
+	SDL_JoystickGUID m_guid;
+
+	SDL_JoystickID m_InstanceID;
+
+public:
+	JoystickInfo(SDL_Joystick* joystick);
+	~JoystickInfo();
+
+	void Read(fix delta);
+	void Flush();
+
+	SDL_JoystickID InstanceID() const
+	{
+		return m_InstanceID;
+	}
+
+	SDL_Joystick* Joystick() const
+	{
+		return m_Joystick;
+	}
+
+	void GetData(std::span<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
+	{
+		axises = std::span<int>(m_Axises, m_AxisCount);
+		buttons = std::span<JoystickButton>(m_ButtonStates, m_ButtonCount);
+		hats = std::span<int>(m_HatStates, m_HatCount);
+	}
+};
+
+JoystickInfo::JoystickInfo(SDL_Joystick* joystick)
+{
+	m_Joystick = joystick;
+
+	m_guid = SDL_JoystickGetGUID(joystick);
+	m_AxisCount = SDL_JoystickNumAxes(joystick);
+	m_Axises = nullptr;
+	if (m_AxisCount > 0) //I wonder what happens if you plug in a DDR pad... (update my pad has 5 axises)
+		m_Axises = new int[m_AxisCount];
+
+	m_HatCount = SDL_JoystickNumHats(joystick);
+	m_HatStates = nullptr;
+	if (m_HatCount > 0)
+		m_HatStates = new int[m_HatCount];
+
+	m_ButtonCount = SDL_JoystickNumButtons(joystick);
+	m_ButtonStates = nullptr;
+	if (m_ButtonCount > 0)
+		m_ButtonStates = new JoystickButton[m_ButtonCount];
+
+	m_InstanceID = SDL_JoystickInstanceID(joystick);
+}
+
+JoystickInfo::~JoystickInfo()
+{
+	if (m_Axises)
+		delete[] m_Axises;
+
+	if (m_HatStates)
+		delete[] m_HatStates;
+
+	if (m_ButtonStates)
+		delete[] m_ButtonStates;
+
+	if (m_Joystick)
+		SDL_JoystickClose(m_Joystick);
+}
+
+void JoystickInfo::Read(fix delta)
+{
+	//Read axises
+	for (int i = 0; i < m_AxisCount; i++)
+		m_Axises[i] = SDL_JoystickGetAxis(m_Joystick, i) * 127 / 32727;
+
+	//Read hats
+	for (int i = 0; i < m_HatCount; i++)
+		m_HatStates[i] = SDL_JoystickGetHat(m_Joystick, i);
+
+	//Read buttons
+	for (int i = 0; i < m_ButtonCount; i++)
+	{
+		bool down = SDL_JoystickGetButton(m_Joystick, i);
+
+		if (down)
+		{
+			if (m_ButtonStates[i].down)
+			{
+				m_ButtonStates[i].down_time += delta;
+			}
+			else
+			{
+				m_ButtonStates[i].down = true;
+				m_ButtonStates[i].down_count++;
+			}
+		}
+		else
+		{
+			if (m_ButtonStates[i].down)
+			{
+				m_ButtonStates[i].down = false;
+				m_ButtonStates[i].up_count++;
+				m_ButtonStates[i].down_time = 0;
+			}
+		}
+	}
+}
+
+void JoystickInfo::Flush()
+{
+	for (int i = 0; i < m_ButtonCount; i++)
+	{
+		m_ButtonStates[i].down = false;
+		m_ButtonStates[i].down_count = m_ButtonStates[i].up_count = m_ButtonStates[i].down_time = 0;
+	}
+}
+
 int numJoysticks;
-SDL_Joystick *joysticks[2];
+std::vector<JoystickInfo> sticks;
+std::vector<SDL_GameController*> controllers;
 SDL_GameController *controller;
 
 void I_InitSDLJoysticks()
 {
-	int i;
+	//Currently connected controllers get a joystick attached event later down the line,
+	//so this isn't needed anymore. 
+	/*int i;
 	numJoysticks = SDL_NumJoysticks();
 	if (numJoysticks == 0) return; 
-	if (numJoysticks > 2) numJoysticks = 2;
 
 	//Special gamepad handling
-	if (SDL_IsGameController(0))
+	/*if (SDL_IsGameController(0))
 	{
 		usingGamepad = true;
 		controller = SDL_GameControllerOpen(0);
@@ -37,13 +175,15 @@ void I_InitSDLJoysticks()
 	{
 		for (i = 0; i < numJoysticks; i++)
 		{
-			joysticks[i] = SDL_JoystickOpen(i);
-			if (!joysticks[i])
+			SDL_Joystick* joystick = SDL_JoystickOpen(i);
+			if (!joystick)
 			{
 				Warning("I_InitSDLJoysticks: Failed to open joystick %d: %s\n", i, SDL_GetError());
 			}
+
+			sticks.emplace_back(joystick);
 		}
-	}
+	}*/
 }
 
 #define joybtn(x) (1 << x)
@@ -52,88 +192,16 @@ int rawToDescentMapping[] = { joybtn(1) | joybtn(6), joybtn(2) | joybtn(5), joyb
 
 void I_JoystickHandler()
 {
-	if (usingGamepad) return;
-	int axisState[4];
-	int buttons = 0;
-	//Simulate dpJudas's device simulation from the Windows code
-	if (numJoysticks >= 1 && SDL_JoystickNumHats(joysticks[0]) > 0) //Simulate ThrustMaster FCS and CH Flightstick
+	fix read_time = timer_get_fixed_seconds();
+	fix delta = read_time - last_read_time;
+	last_read_time = read_time;
+
+	for (JoystickInfo& info : sticks)
 	{
-		axisState[0] = SDL_JoystickGetAxis(joysticks[0], 0) * 127 / 32767;
-		axisState[1] = SDL_JoystickGetAxis(joysticks[0], 1) * 127 / 32767;
-		axisState[2] = SDL_JoystickGetAxis(joysticks[0], 2) * 127 / 32767;
-
-		int hatdir = SDL_JoystickGetHat(joysticks[0], 0);
-		//this is dumb
-		if (hatdir & SDL_HAT_DOWN)
-		{
-			axisState[3] = 60;
-			buttons |= joybtn(12);
-		}
-		if (hatdir & SDL_HAT_UP)
-		{
-			axisState[3] = 20;
-			buttons |= joybtn(20);
-		}
-		if (hatdir & SDL_HAT_RIGHT)
-		{
-			axisState[3] = 30;
-			buttons |= joybtn(16);
-		}
-		if (hatdir & SDL_HAT_LEFT)
-		{
-			axisState[3] = 90;
-			buttons |= joybtn(8);
-		}
-		if (hatdir == 0)
-		{
-			axisState[3] = 127;
-		}
-
-		int numButtons = std::min(12, SDL_JoystickNumButtons(joysticks[0]));
-		for (int i = 0; i < numButtons; i++)
-		{
-			if (SDL_JoystickGetButton(joysticks[0], i))
-				buttons |= rawToDescentMapping[i];
-		}
-		//printf("buttons %d\n", buttons);
-		JoystickInput(buttons, axisState, JOY_ALL_AXIS);
-	}
-	else if (numJoysticks > 1) //2 joysticks
-	{
-		axisState[0] = SDL_JoystickGetAxis(joysticks[0], 0) * 127 / 32767;
-		axisState[1] = SDL_JoystickGetAxis(joysticks[0], 1) * 127 / 32767;
-		axisState[2] = SDL_JoystickGetAxis(joysticks[1], 0) * 127 / 32767;
-		axisState[3] = SDL_JoystickGetAxis(joysticks[1], 1) * 127 / 32767;
-
-		if (SDL_JoystickGetButton(joysticks[0], 0))
-			buttons |= joybtn(1) | joybtn(6);
-		if (SDL_JoystickGetButton(joysticks[0], 1))
-			buttons |= joybtn(2);
-		if (SDL_JoystickGetButton(joysticks[1], 0))
-			buttons |= joybtn(3);
-		if (SDL_JoystickGetButton(joysticks[1], 1))
-			buttons |= joybtn(4);
-		JoystickInput(buttons, axisState, JOY_ALL_AXIS);
-	}
-	else if (numJoysticks == 1) //just one
-	{
-		axisState[0] = SDL_JoystickGetAxis(joysticks[0], 0) * 127 / 32767;
-		axisState[1] = SDL_JoystickGetAxis(joysticks[0], 1) * 127 / 32767;
-		axisState[2] = SDL_JoystickGetAxis(joysticks[1], 0) * 127 / 32767;
-		axisState[3] = SDL_JoystickGetAxis(joysticks[1], 1) * 127 / 32767;
-
-		int numButtons = std::min(4, SDL_JoystickNumButtons(joysticks[0]));
-		for (int i = 0; i < numButtons; i++)
-		{
-			if (SDL_JoystickGetButton(joysticks[0], i))
-				buttons |= rawToDescentMapping[i];
-		}
-		JoystickInput(buttons, axisState, JOY_ALL_AXIS);
+		info.Read(read_time);
 	}
 }
 
-//[ISB] This should probably handle events, but at the same time I could just read everything and do it in one go...
-//Probably slower and shittier but...
 void I_ControllerHandler()
 {
 	if (!controller || !usingGamepad) return;
@@ -173,6 +241,75 @@ void I_ControllerHandler()
 
 	//printf("btns: %d axises: %d %d %d %d\n", buttons, axisState[0], axisState[1], axisState[2], axisState[3]);
 	JoystickInput(buttons, axisState, JOY_ALL_AXIS);
+}
+
+joy_device_callback attached_callback, removed_callback;
+
+void joy_set_device_callbacks(joy_device_callback attached, joy_device_callback removed)
+{
+	attached_callback = attached;
+	removed_callback = removed;
+}
+
+void plat_joystick_attached(int device_num)
+{
+	mprintf((0, "plat_joystick_attached: device num %d attached\n", device_num));
+
+	SDL_Joystick* newJoystick = SDL_JoystickOpen(device_num);
+	if (!newJoystick)
+		Warning("plat_joystick_attached: Failed to open joystick %d: %s\n", device_num, SDL_GetError());
+	else
+	{
+		sticks.emplace_back(newJoystick);
+		if (attached_callback)
+		{
+			SDL_JoystickGUID guid = SDL_JoystickGetGUID(newJoystick);
+
+			attached_callback(SDL_JoystickInstanceID(newJoystick), *(joy_guid*)&guid);
+		}
+	}
+}
+
+void plat_joystick_detached(int device_num)
+{
+	mprintf((0, "plat_joystick_detached: device instance %d detached\n", device_num));
+
+	auto it = sticks.begin();
+
+	while (it < sticks.end())
+	{
+		if (it->InstanceID() == device_num)
+		{
+			if (removed_callback)
+			{
+				SDL_JoystickGUID guid = SDL_JoystickGetGUID(it->Joystick());
+				removed_callback(it->InstanceID(), *(joy_guid*)&guid);
+			}
+			sticks.erase(it);
+			return;
+		}
+	}
+}
+
+void joy_flush()
+{
+	for (JoystickInfo& info : sticks)
+	{
+		info.Flush();
+	}
+}
+
+bool joy_get_state(int handle, std::span<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
+{
+	for (JoystickInfo& info : sticks)
+	{
+		if (info.InstanceID() == handle)
+		{
+			info.GetData(axises, buttons, hats);
+			return true;
+		}
+	}
+	return false;
 }
 
 #endif

@@ -75,7 +75,6 @@ int ReadConfigFile()
 	joy_axis_min[0] = joy_axis_min[1] = joy_axis_min[2] = joy_axis_min[3] = 0;
 	joy_axis_max[0] = joy_axis_max[1] = joy_axis_max[2] = joy_axis_max[3] = 0;
 	joy_axis_center[0] = joy_axis_center[1] = joy_axis_center[2] = joy_axis_center[3] = 0;
-	joy_set_cal_vals(joy_axis_min, joy_axis_center, joy_axis_max);
 
 	digi_driver_board = 0;
 	digi_driver_port = 0;
@@ -208,7 +207,6 @@ int ReadConfigFile()
 
 	if (Config_midi_volume > 8) Config_midi_volume = 8;
 
-	joy_set_cal_vals(joy_axis_min, joy_axis_center, joy_axis_max);
 	digi_set_volume((Config_digi_volume * 32768) / 8, (Config_midi_volume * 128) / 8);
 	/*
 		printf( "DigiDeviceID: 0x%x\n", digi_driver_board );
@@ -237,8 +235,6 @@ int WriteConfigFile()
 	int joy_axis_center[4];
 	int joy_axis_max[4];
 	uint8_t gamma = gr_palette_get_gamma();
-
-	joy_get_cal_vals(joy_axis_min, joy_axis_center, joy_axis_max);
 
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	get_full_file_path(filename, "descent.cfg", CHOCOLATE_CONFIG_DIR);

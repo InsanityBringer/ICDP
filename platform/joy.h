@@ -13,6 +13,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
+#include <span>
 #include "misc/types.h"
 #include "fix/fix.h"
 
@@ -28,11 +29,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define JOY_2_Y_AXIS		8
 #define JOY_ALL_AXIS		(1+2+4+8)
 
-#define JOY_SLOW_READINGS 			1
-#define JOY_POLLED_READINGS 		2
-#define JOY_BIOS_READINGS 			4
-#define JOY_FRIENDLY_READINGS 	8
-
  //==========================================================================
  // This initializes the joy and does a "quick" calibration which
  // assumes the stick is centered and sets the minimum value to 0 and
@@ -43,24 +39,32 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 extern int joy_init();
 extern void joy_close();
 
+//A guid is used to identify a type of joystick, but cannot identify specific
+//instances of that device type. 
+struct joy_guid
+{
+	uint8_t guid[16];
+};
+
+typedef void(*joy_device_callback)(int handle, joy_guid guid);
+
+//==========================================================================
+//Event callbacks. 
+//These are fired by the platform code when new devices are attached and
+//removed. This must be called before the first call to plat_do_events, or else
+//initially connected devices won't be identified.
+void joy_set_device_callbacks(joy_device_callback attached, joy_device_callback removed);
+
 extern char joy_installed;
 extern char joy_present;
 
-//==========================================================================
-// The following 3 routines can be used to zero in on better joy
-// calibration factors. To use them, ask the user to hold the stick
-// in either the upper left, lower right, or center and then have them
-// press a key or button and then call the appropriate one of these
-// routines, and it will read the stick and update the calibration factors.
-// Usually, assuming that the stick was centered when joy_init was
-// called, you really only need to call joy_set_lr, since the upper
-// left position is usually always 0,0 on most joys.  But, the safest
-// bet is to do all three, or let the user choose which ones to set.
-
-extern void joy_set_ul();
-extern void joy_set_lr();
-extern void joy_set_cen();
-
+struct JoystickButton
+{
+	bool down;
+	int up_count;
+	int down_count;
+	fix down_time;
+};
 
 //==========================================================================
 // This reads the joystick. X and Y will be between -128 and 127.
@@ -88,24 +92,27 @@ extern int joy_get_button_down_cnt(int btn);
 // it, and held it down for 6 more ticks. The time returned would be 9.
 extern fix joy_get_button_down_time(int btn);
 
-extern uint8_t joy_read_raw_buttons();
 extern uint8_t joystick_read_raw_axis(uint8_t mask, int* axis);
 extern void joy_flush();
 extern uint8_t joy_get_present_mask();
-extern void joy_set_timer_rate(int max_value);
-extern int joy_get_timer_rate();
 
 extern int joy_get_button_state(int btn);
-extern void joy_set_cen_fake(int channel);
-extern uint8_t joy_read_stick(uint8_t masks, int* axis);
-extern void joy_get_cal_vals(int* axis_min, int* axis_center, int* axis_max);
-extern void joy_set_cal_vals(int* axis_min, int* axis_center, int* axis_max);
 extern void joy_set_btn_values(int btn, int state, fix timedown, int downcount, int upcount);
 extern int joy_get_scaled_reading(int raw, int axn);
-extern void joy_set_slow_reading(int flag);
 
 void JoystickInput(int buttons, int axes[4], int presentmask);
 
 void I_InitSDLJoysticks();
 void I_ControllerHandler();
 void I_JoystickHandler();
+
+//==========================================================================
+//Platform specific functions
+
+//Callback when a new joystick is attached to the system.
+void plat_joystick_attached(int device_num);
+//Callback when a new joystick is detached from the system. 
+void plat_joystick_detached(int device_num);
+//Returns true if handle is a valid joystick handle, and will stick the current
+//state of the joystick into axises, buttons, and hats
+bool joy_get_state(int handle, std::span<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats);

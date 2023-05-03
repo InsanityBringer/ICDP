@@ -330,7 +330,6 @@ int D_DescentMain(int argc, const char** argv)
 	if (Inferno_verbose) printf("\n%s", TXT_VERBOSE_2);
 
 	timer_init();
-	joy_set_timer_rate(digi_timer_rate);	 	// Tell joystick how fast timer is going
 
 	if (Inferno_verbose) printf("\n%s", TXT_VERBOSE_3);
 	key_init();
@@ -352,6 +351,8 @@ int D_DescentMain(int argc, const char** argv)
 		if (Inferno_verbose) printf("\n%s", TXT_VERBOSE_10);
 	}
 	if (Inferno_verbose) printf("\n%s", TXT_VERBOSE_11);
+
+	kconfig_init_defaults();
 
 	//------------ Init sound ---------------
 	if (!FindArg("-nosound"))
