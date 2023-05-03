@@ -39,7 +39,15 @@ class JoystickInfo
 
 public:
 	JoystickInfo(SDL_Joystick* joystick);
+	JoystickInfo(const JoystickInfo& other);
 	~JoystickInfo();
+
+	//TODO: This should be automatic with RAII, but will require a different approach
+	void Free()
+	{
+		if (m_Joystick)
+			SDL_JoystickClose(m_Joystick);
+	}
 
 	void Read(fix delta);
 	void Flush();
@@ -94,6 +102,37 @@ JoystickInfo::JoystickInfo(SDL_Joystick* joystick)
 	m_InstanceID = SDL_JoystickInstanceID(joystick);
 }
 
+JoystickInfo::JoystickInfo(const JoystickInfo& other)
+{
+	m_Joystick = other.m_Joystick;
+	m_guid = other.m_guid;
+	m_AxisCount = other.m_AxisCount;
+	m_Axises = nullptr;
+	if (m_AxisCount > 0) //I wonder what happens if you plug in a DDR pad... (update my pad has 5 axises)
+	{
+		m_Axises = new int[m_AxisCount];
+		memset(m_Axises, 0, sizeof(*m_Axises) * m_AxisCount);
+	}
+
+	m_HatCount = other.m_HatCount;
+	m_HatStates = nullptr;
+	if (m_HatCount > 0)
+	{
+		m_HatStates = new int[m_HatCount];
+		memset(m_HatStates, 0, sizeof(*m_HatStates) * m_HatCount);
+	}
+
+	m_ButtonCount = other.m_ButtonCount;
+	m_ButtonStates = nullptr;
+	if (m_ButtonCount > 0)
+	{
+		m_ButtonStates = new JoystickButton[m_ButtonCount];
+		memset(m_ButtonStates, 0, sizeof(*m_ButtonStates) * m_ButtonCount);
+	}
+
+	m_InstanceID = other.m_InstanceID;
+}
+
 JoystickInfo::~JoystickInfo()
 {
 	if (m_Axises)
@@ -105,8 +144,9 @@ JoystickInfo::~JoystickInfo()
 	if (m_ButtonStates)
 		delete[] m_ButtonStates;
 
-	if (m_Joystick)
-		SDL_JoystickClose(m_Joystick);
+	//TODO: I can't free this like this with RAII due to the potential of JoystickInfo being copied. 
+	//if (m_Joystick)
+	//	SDL_JoystickClose(m_Joystick);
 }
 
 void JoystickInfo::Read(fix delta)
@@ -294,9 +334,12 @@ void plat_joystick_detached(int device_num)
 				SDL_JoystickGUID guid = SDL_JoystickGetGUID(it->Joystick());
 				removed_callback(it->InstanceID(), *(joy_guid*)&guid);
 			}
+			it->Free();
 			sticks.erase(it);
 			return;
 		}
+
+		it++;
 	}
 }
 

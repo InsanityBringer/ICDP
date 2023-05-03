@@ -1849,14 +1849,14 @@ void kconfig_init_defaults()
 	default_joystick_buttons[(int)CtrlType::SlideLeft].button1 = 3; 
 	default_joystick_buttons[(int)CtrlType::SlideLeft].flags |= KC_BUTTON_B1_HAT;
 
-	default_joystick_axises[(int)AxisType::Pitch].axis = 4;
-	default_joystick_axises[(int)AxisType::Yaw].axis = 3;
+	//default_joystick_axises[(int)AxisType::Pitch].axis = 4;
+	//default_joystick_axises[(int)AxisType::Yaw].axis = 3;
 
 	//temp
 	default_joystick_axises[(int)AxisType::Throttle].axis = 1;
 	default_joystick_axises[(int)AxisType::SlideLR].axis = 0;
-	default_joystick_buttons[(int)CtrlType::FirePrimary].button2 = 5;
-	default_joystick_buttons[(int)CtrlType::FirePrimary].flags |= KC_BUTTON_B2_AXIS;
+	//default_joystick_buttons[(int)CtrlType::FirePrimary].button2 = 5;
+	//default_joystick_buttons[(int)CtrlType::FirePrimary].flags |= KC_BUTTON_B2_AXIS;
 
 	kconfig_reset_keybinds();
 }
