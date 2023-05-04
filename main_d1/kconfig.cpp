@@ -70,6 +70,8 @@ kc_button_binding default_gamepad_buttons[KC_NUM_CONTROLS];
 kc_axis_binding default_gamepad_axises[KC_NUM_AXISES];
 
 std::vector<kc_button_binding> current_keyboard_bindings;
+std::vector<kc_button_binding> current_mouse_bindings;
+std::vector<kc_axis_binding> current_mouse_axises;
 
 std::vector<kc_joyinfo> current_registered_joysticks;
 
@@ -1098,7 +1100,7 @@ bool kc_check_joystick_event(plat_event& ev, CtrlType& control)
 				if (ev.flags & EV_FLAG_AXIS)
 				{
 					if ((info.buttons[i].type1 == KC_BUTTON_TYPE_AXIS && info.buttons[i].button1 == ev.inputnum)
-						|| (info.buttons[i].type1 == KC_BUTTON_TYPE_AXIS && info.buttons[i].button2 == ev.inputnum))
+						|| (info.buttons[i].type2 == KC_BUTTON_TYPE_AXIS && info.buttons[i].button2 == ev.inputnum))
 					{
 						control = (CtrlType)i;
 						return true;
@@ -1107,7 +1109,7 @@ bool kc_check_joystick_event(plat_event& ev, CtrlType& control)
 				else if (ev.flags & EV_FLAG_HAT)
 				{
 					if ((info.buttons[i].type1 == KC_BUTTON_TYPE_HAT && info.buttons[i].button1 == ev.inputnum)
-						|| (info.buttons[i].type1 == KC_BUTTON_TYPE_HAT && info.buttons[i].button2 == ev.inputnum))
+						|| (info.buttons[i].type2 == KC_BUTTON_TYPE_HAT && info.buttons[i].button2 == ev.inputnum))
 					{
 						control = (CtrlType)i;
 						return true;
@@ -1116,7 +1118,7 @@ bool kc_check_joystick_event(plat_event& ev, CtrlType& control)
 				else
 				{
 					if ((info.buttons[i].type1 == KC_BUTTON_TYPE_BUTTON && info.buttons[i].button1 == ev.inputnum)
-						|| (info.buttons[i].type1 == KC_BUTTON_TYPE_BUTTON && info.buttons[i].button2 == ev.inputnum))
+						|| (info.buttons[i].type2 == KC_BUTTON_TYPE_BUTTON && info.buttons[i].button2 == ev.inputnum))
 					{
 						control = (CtrlType)i;
 						return true;
@@ -1143,6 +1145,22 @@ bool kc_check_keyboard_event(plat_event& ev, CtrlType& control)
 	return false;
 }
 
+bool kc_check_mouse_event(plat_event& ev, CtrlType& control)
+{
+	for (int i = 0; i < KC_NUM_CONTROLS; i++)
+	{
+		if (ev.inputnum == current_mouse_bindings[i].button1 ||
+			ev.inputnum == current_mouse_bindings[i].button2)
+		{
+			control = (CtrlType)i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 void kconfig_process_events()
 {
 	while (!event_queue.empty())
@@ -1159,6 +1177,9 @@ void kconfig_process_events()
 			break;
 		case EventSource::Joystick:
 			found = kc_check_joystick_event(ev, control);
+			break;
+		case EventSource::Mouse:
+			found = kc_check_mouse_event(ev, control);
 			break;
 		}
 
@@ -1256,6 +1277,66 @@ void controls_read_joystick(kc_joyinfo& info, control_info& controls, bool slide
 	}
 }
 
+fix check_mouse_axis(fix axises[], AxisType controlnum, bool apply_sensitivity)
+{
+	int axis_num = current_mouse_axises[(int)controlnum].axis;
+	if (axis_num < 0) return 0;
+
+	fix scaled_value = axises[axis_num];
+
+	//Invert it
+	if (current_mouse_axises[(int)controlnum].invert)
+		scaled_value = -scaled_value;
+
+	//Now scale based on sensitivity
+	if (apply_sensitivity)
+		return scaled_value * Config_joystick_sensitivity / 8;
+
+	return scaled_value;
+}
+
+void controls_read_mouse(control_info& controls, bool slide_on, bool bank_on)
+{
+	int dx, dy;
+	fix mouse_axis[2];
+	mouse_get_delta(&dx, &dy);
+	mouse_axis[0] = (dx * FrameTime) / 35;
+	mouse_axis[1] = (dy * FrameTime) / 25;
+
+	//Read pitch
+	fix temp = -check_mouse_axis(mouse_axis, AxisType::Pitch, !slide_on);
+
+	if (!slide_on)
+		controls.pitch_time += temp;
+	else
+		controls.vertical_thrust_time += temp;
+
+	//Read vertical_thrust_time
+	controls.vertical_thrust_time += check_mouse_axis(mouse_axis, AxisType::SlideUD, false);
+
+	//Read heading
+	temp = check_mouse_axis(mouse_axis, AxisType::Yaw, !slide_on);
+
+	if (!slide_on && !bank_on)
+		controls.heading_time += temp;
+	else if (slide_on)
+		controls.sideways_thrust_time += temp;
+
+	//Read sideways_thrust_time
+	controls.sideways_thrust_time += check_mouse_axis(mouse_axis, AxisType::SlideLR, false);
+
+	//Read bank
+	if (bank_on)
+		controls.bank_time += temp;
+
+	controls.bank_time += check_mouse_axis(mouse_axis, AxisType::Roll, true);
+
+	//Read thrust
+	controls.forward_thrust_time += check_mouse_axis(mouse_axis, AxisType::Throttle, true);
+}
+
+//Reads a ramped binary input for the control specified in control.
+//The result equals speed_factor * time_held_down / divisor if the control is currently engaged.
 constexpr fix scaled_reading(CtrlType control, int speed_factor, fix ctime, int divisor = 1)
 {
 	if (control >= CtrlType::NumCtrls || control < CtrlType::PitchForward)
@@ -1268,14 +1349,7 @@ constexpr fix scaled_reading(CtrlType control, int speed_factor, fix ctime, int 
 
 void controls_read_all()
 {
-	int i;
-	int dx, dy;
-	int idx, idy;
 	fix ctime;
-	fix mouse_axis[2];
-	int raw_joy_axis[4];
-	int mouse_buttons;
-	uint8_t channel_masks;
 	int use_mouse, use_joystick = 0;
 	int speed_factor = 1;
 
@@ -1286,8 +1360,8 @@ void controls_read_all()
 		fix temp = Controls.heading_time;
 		fix temp1 = Controls.pitch_time;
 		memset(&Controls, 0, sizeof(control_info));
-		//Controls.heading_time = temp;
-		//Controls.pitch_time = temp1;
+		Controls.heading_time = temp;
+		Controls.pitch_time = temp1;
 	}
 	bool slide_on = false;
 	bool bank_on = false;
@@ -1297,27 +1371,11 @@ void controls_read_all()
 	if (Config_control_type == 5) 
 	{
 		//---------  Read Mouse -----------
-		mouse_get_delta(&dx, &dy);
-		mouse_axis[0] = (dx * FrameTime) / 35;
-		mouse_axis[1] = (dy * FrameTime) / 25;
-		mouse_buttons = mouse_get_btns();
 		//mprintf(( 0, "Mouse %d,%d b:%d, 0x%x\n", mouse_axis[0], mouse_axis[1], mouse_buttons, FrameTime ));
-		use_mouse = 1;
-	}
-	else if (Config_control_type == 6) 
-	{
-		//---------  Read Cyberman -----------
-		mouse_get_cyberman_pos(&idx, &idy);
-		mouse_axis[0] = (idx * FrameTime) / 128;
-		mouse_axis[1] = (idy * FrameTime) / 128;
-		mouse_buttons = mouse_get_btns();
 		use_mouse = 1;
 	}
 	else
 	{
-		mouse_axis[0] = 0;
-		mouse_axis[1] = 0;
-		mouse_buttons = 0;
 		use_mouse = 0;
 	}
 
@@ -1346,16 +1404,6 @@ void controls_read_all()
 			if (Controls.pitch_time > 0)
 				Controls.pitch_time = 0;
 		Controls.pitch_time += kp;
-
-		// From mouse...
-		//mprintf(( 0, "UM: %d, PV: %d\n", use_mouse, kc_mouse[13].value ));
-		/*if ((use_mouse) && (kc_mouse[13].value < 255))
-		{
-			if (!kc_mouse[14].value)		// If not inverted...
-				Controls.pitch_time -= (mouse_axis[kc_mouse[13].value] * Config_joystick_sensitivity) / 8;
-			else
-				Controls.pitch_time += (mouse_axis[kc_mouse[13].value] * Config_joystick_sensitivity) / 8;
-		}*/
 	}
 	else 
 	{
@@ -1369,35 +1417,12 @@ void controls_read_all()
 	{
 		Controls.vertical_thrust_time += scaled_reading(CtrlType::PitchForward, speed_factor, ctime);
 		Controls.vertical_thrust_time -= scaled_reading(CtrlType::PitchBackward, speed_factor, ctime);
-
-		// From mouse...
-		/*if ((use_mouse) && (kc_mouse[13].value < 255)) 
-		{
-			if (!kc_mouse[14].value)		// If not inverted...
-				Controls.vertical_thrust_time -= mouse_axis[kc_mouse[13].value];
-			else
-				Controls.vertical_thrust_time += mouse_axis[kc_mouse[13].value];
-		}*/
 	}
 
 	Controls.vertical_thrust_time += scaled_reading(CtrlType::SlideUp, speed_factor, ctime);
 	Controls.vertical_thrust_time -= scaled_reading(CtrlType::SlideDown, speed_factor, ctime);
 
-	// From mouse buttons
-	//if ((use_mouse) && (kc_mouse[8].value < 255)) Controls.vertical_thrust_time += mouse_button_down_time(kc_mouse[8].value);
-	//if ((use_mouse) && (kc_mouse[9].value < 255)) Controls.vertical_thrust_time -= mouse_button_down_time(kc_mouse[9].value);
-
-	// From mouse...
-	/*if ((use_mouse) && (kc_mouse[19].value < 255)) 
-	{
-		if (!kc_mouse[20].value)		// If not inverted...
-			Controls.vertical_thrust_time += mouse_axis[kc_mouse[19].value];
-		else
-			Controls.vertical_thrust_time -= mouse_axis[kc_mouse[19].value];
-	}*/
-
 	//---------- Read heading_time -----------
-
 	if (!slide_on && !bank_on) 
 	{
 		//mprintf((0, "heading: %7.3f %7.3f: %7.3f\n", f2fl(k4), f2fl(k6), f2fl(Controls.heading_time)));
@@ -1415,14 +1440,6 @@ void controls_read_all()
 			if (Controls.heading_time > 0)
 				Controls.heading_time = 0;
 		Controls.heading_time += kh;
-
-		// From mouse...
-		/*if ((use_mouse) && (kc_mouse[15].value < 255)) {
-			if (!kc_mouse[16].value)		// If not inverted...
-				Controls.heading_time += (mouse_axis[kc_mouse[15].value] * Config_joystick_sensitivity) / 8;
-			else
-				Controls.heading_time -= (mouse_axis[kc_mouse[15].value] * Config_joystick_sensitivity) / 8;
-		}*/
 	}
 	else
 	{
@@ -1430,108 +1447,36 @@ void controls_read_all()
 	}
 
 	//----------- Read sideways_thrust_time -----------------
-
 	if (slide_on)
 	{
 		Controls.sideways_thrust_time -= scaled_reading(CtrlType::TurnLeft, speed_factor, ctime);
 		Controls.sideways_thrust_time += scaled_reading(CtrlType::TurnRight, speed_factor, ctime);
-
-		// From mouse...
-		/*if ((use_mouse) && (kc_mouse[15].value < 255))
-		{
-			if (!kc_mouse[16].value)		// If not inverted...
-				Controls.sideways_thrust_time += mouse_axis[kc_mouse[15].value];
-			else
-				Controls.sideways_thrust_time -= mouse_axis[kc_mouse[15].value];
-		}*/
 	}
 
 	// From keyboard...
 	Controls.sideways_thrust_time -= scaled_reading(CtrlType::SlideLeft, speed_factor, ctime);
 	Controls.sideways_thrust_time += scaled_reading(CtrlType::SlideRight, speed_factor, ctime);
 
-	// From mouse buttons
-	//if ((use_mouse) && (kc_mouse[6].value < 255)) Controls.sideways_thrust_time -= mouse_button_down_time(kc_mouse[6].value);
-	//if ((use_mouse) && (kc_mouse[7].value < 255)) Controls.sideways_thrust_time += mouse_button_down_time(kc_mouse[7].value);
-
-	// From mouse...
-	/*if ((use_mouse) && (kc_mouse[17].value < 255)) 
-	{
-		if (!kc_mouse[18].value)		// If not inverted...
-			Controls.sideways_thrust_time += mouse_axis[kc_mouse[17].value];
-		else
-			Controls.sideways_thrust_time -= mouse_axis[kc_mouse[17].value];
-	}*/
-
 	//----------- Read bank_time -----------------
-
 	if (bank_on) 
 	{
 		Controls.bank_time += scaled_reading(CtrlType::TurnLeft, speed_factor, ctime);
 		Controls.bank_time -= scaled_reading(CtrlType::TurnRight, speed_factor, ctime);
-		/*k0 = speed_factor * key_down_time(kc_keyboard[4].value);
-		k1 = speed_factor * key_down_time(kc_keyboard[5].value);
-		k2 = speed_factor * key_down_time(kc_keyboard[6].value);
-		k3 = speed_factor * key_down_time(kc_keyboard[7].value);
-
-		// From keyboard...
-		if (kc_keyboard[4].value < 255) Controls.bank_time += k0;
-		if (kc_keyboard[5].value < 255) Controls.bank_time += k1;
-		if (kc_keyboard[6].value < 255) Controls.bank_time -= k2;
-		if (kc_keyboard[7].value < 255) Controls.bank_time -= k3;*/
-
-		// From mouse...
-		/*if ((use_mouse) && (kc_mouse[15].value < 255)) 
-		{
-			if (!kc_mouse[16].value)		// If not inverted...
-				Controls.bank_time += (mouse_axis[kc_mouse[15].value] * Config_joystick_sensitivity) / 8;
-			else
-				Controls.bank_time -= (mouse_axis[kc_mouse[15].value] * Config_joystick_sensitivity) / 8;
-		}*/
 	}
 
-	// From keyboard...
-	/*if (kc_keyboard[20].value < 255) Controls.bank_time += speed_factor * key_down_time(kc_keyboard[20].value);
-	if (kc_keyboard[21].value < 255) Controls.bank_time += speed_factor * key_down_time(kc_keyboard[21].value);
-	if (kc_keyboard[22].value < 255) Controls.bank_time -= speed_factor * key_down_time(kc_keyboard[22].value);
-	if (kc_keyboard[23].value < 255) Controls.bank_time -= speed_factor * key_down_time(kc_keyboard[23].value);*/
 	Controls.bank_time += scaled_reading(CtrlType::BankLeft, speed_factor, ctime);
 	Controls.bank_time -= scaled_reading(CtrlType::BankRight, speed_factor, ctime);
 
-	// From mouse buttons
-	//if ((use_mouse) && (kc_mouse[11].value < 255)) Controls.bank_time += mouse_button_down_time(kc_mouse[11].value);
-	//if ((use_mouse) && (kc_mouse[12].value < 255)) Controls.bank_time -= mouse_button_down_time(kc_mouse[12].value);
-
-	// From mouse...
-	/*if ((use_mouse) && (kc_mouse[21].value < 255)) {
-		if (!kc_mouse[22].value)		// If not inverted...
-			Controls.bank_time += mouse_axis[kc_mouse[21].value];
-		else
-			Controls.bank_time -= mouse_axis[kc_mouse[21].value];
-	}*/
 
 	//----------- Read forward_thrust_time -------------
-
-		// From keyboard...
 	Controls.forward_thrust_time += scaled_reading(CtrlType::Accelerate, speed_factor, ctime);
 	Controls.forward_thrust_time -= scaled_reading(CtrlType::Reverse, speed_factor, ctime);
-
-	// From mouse...
-	/*if ((use_mouse) && (kc_mouse[23].value < 255)) 
-	{
-		if (!kc_mouse[24].value)		// If not inverted...
-			Controls.forward_thrust_time -= mouse_axis[kc_mouse[23].value];
-		else
-			Controls.forward_thrust_time += mouse_axis[kc_mouse[23].value];
-	}*/
-
-	// From mouse buttons
-	//if ((use_mouse) && (kc_mouse[2].value < 255)) Controls.forward_thrust_time += mouse_button_down_time(kc_mouse[2].value);
-	//if ((use_mouse) && (kc_mouse[3].value < 255)) Controls.forward_thrust_time -= mouse_button_down_time(kc_mouse[3].value);
 
 	//Add analog inputs later
 	for (kc_joyinfo& info : current_registered_joysticks)
 		controls_read_joystick(info, Controls, slide_on, bank_on);
+
+	controls_read_mouse(Controls, slide_on, bank_on);
 
 	//----------- Read fire_primary_down_count
 	Controls.fire_primary_down_count = Controls.fire_primary_state = control_down_count[(int)CtrlType::FirePrimary].down_count != 0;
@@ -1543,13 +1488,13 @@ void controls_read_all()
 	Controls.fire_flare_down_count = control_down_count[(int)CtrlType::FireFlare].down_count != 0;
 
 	//----------- Read drop_bomb_down_count
-	Controls.drop_bomb_down_count = control_down_count[(int)CtrlType::FireFlare].down_count != 0;
+	Controls.drop_bomb_down_count = control_down_count[(int)CtrlType::DropBomb].down_count != 0;
 
 	//----------- Read rear_view_down_count
-	Controls.rear_view_down_count = Controls.rear_view_down_state = control_down_count[(int)CtrlType::FireFlare].down_count != 0;
+	Controls.rear_view_down_count = Controls.rear_view_down_state = control_down_count[(int)CtrlType::RearView].down_count != 0;
 
 	//----------- Read automap_down_count
-	Controls.automap_down_count = Controls.automap_state = control_down_count[(int)CtrlType::FireFlare].down_count != 0;
+	Controls.automap_down_count = Controls.automap_state = control_down_count[(int)CtrlType::Automap].down_count != 0;
 
 	//----------- Read stupid-cruise-control-type of throttle.
 	{
@@ -1696,6 +1641,14 @@ void kconfig_reset_keybinds()
 
 	for (kc_button_binding& binding : default_keyboard_controls)
 		current_keyboard_bindings.push_back(binding);
+
+	current_mouse_bindings.clear();
+
+	for (kc_button_binding& binding : default_mouse_buttons)
+		current_mouse_bindings.push_back(binding);
+
+	for (kc_axis_binding& binding : default_mouse_axises)
+		current_mouse_axises.push_back(binding);
 }
 
 void kconfig_init_defaults()
@@ -1715,8 +1668,8 @@ void kconfig_init_defaults()
 	default_keyboard_controls[(int)CtrlType::SlideOn].button1 = KEY_LALT;
 	default_keyboard_controls[(int)CtrlType::SlideLeft].button2 = KEY_PAD1;
 	default_keyboard_controls[(int)CtrlType::SlideRight].button2 = KEY_PAD3;
-	default_keyboard_controls[(int)CtrlType::SlideUp].button2 = KEY_PADPLUS;
-	default_keyboard_controls[(int)CtrlType::SlideDown].button2 = KEY_PADMINUS;
+	default_keyboard_controls[(int)CtrlType::SlideUp].button2 = KEY_PADMINUS;
+	default_keyboard_controls[(int)CtrlType::SlideDown].button2 = KEY_PADPLUS;
 
 	default_keyboard_controls[(int)CtrlType::BankLeft].button1 = KEY_Q;
 	default_keyboard_controls[(int)CtrlType::BankLeft].button2 = KEY_PAD7;
@@ -1749,12 +1702,19 @@ void kconfig_init_defaults()
 	default_joystick_buttons[(int)CtrlType::SlideLeft].button1 = 3; 
 	default_joystick_buttons[(int)CtrlType::SlideLeft].type1 = KC_BUTTON_TYPE_HAT;
 
-	//default_joystick_axises[(int)AxisType::Pitch].axis = 4;
-	//default_joystick_axises[(int)AxisType::Yaw].axis = 3;
+	default_joystick_axises[(int)AxisType::Pitch].axis = 1;
+	default_joystick_axises[(int)AxisType::Yaw].axis = 0;
+
+	default_mouse_buttons[(int)CtrlType::FirePrimary].button1 = 0;
+	default_mouse_buttons[(int)CtrlType::FireSecondary].button1 = 1;
+
+	default_mouse_axises[(int)AxisType::Pitch].axis = 1;
+	default_mouse_axises[(int)AxisType::Pitch].invert = true;
+	default_mouse_axises[(int)AxisType::Yaw].axis = 0;
 
 	//temp
-	default_joystick_axises[(int)AxisType::Throttle].axis = 1;
-	default_joystick_axises[(int)AxisType::SlideLR].axis = 0;
+	//default_joystick_axises[(int)AxisType::Throttle].axis = 1;
+	//default_joystick_axises[(int)AxisType::SlideLR].axis = 0;
 	//default_joystick_buttons[(int)CtrlType::FirePrimary].button2 = 5;
 	//default_joystick_buttons[(int)CtrlType::FirePrimary].flags |= KC_BUTTON_B2_AXIS;
 

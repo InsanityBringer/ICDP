@@ -15,6 +15,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "platform/mouse.h"
 #include "platform/timer.h"
+#include "platform/event.h"
 #include "misc/error.h"
 
 #define MOUSE_MAX_BUTTONS	11
@@ -71,7 +72,6 @@ static mouse_info Mouse;
 int mouse_init(int enable_cyberman)
 {
 	Mouse_installed = 1;
-	//[ISB] man did anyone own a cyberman?
 
 	//SDL gives you five buttons, so you get five buttons. 
 	return 5;
@@ -80,8 +80,6 @@ int mouse_init(int enable_cyberman)
 void mouse_close()
 {
 	Mouse_installed = 0;
-	//[ISB] heeh
-	//[ISB] I guess I could make these call SDL's init or shutdown functions?
 }
 
 int mouse_set_limits(int x1, int y1, int x2, int y2)
@@ -117,6 +115,16 @@ void MousePressed(int button)
 	{
 		Mouse.pressed[button] = 1;
 		Mouse.time_went_down[button] = Mouse.ctime;
+
+		if (are_events_enabled())
+		{
+			plat_event ev = {};
+			ev.source = EventSource::Mouse;
+			ev.down = true;
+			ev.inputnum = button;
+
+			event_queue.push(ev);
+		}
 	}
 	Mouse.num_downs[button]++;
 }
@@ -128,6 +136,16 @@ void MouseReleased(int button)
 	{
 		Mouse.pressed[button] = 0;
 		Mouse.time_held_down[button] += Mouse.ctime - Mouse.time_went_down[button];
+
+		if (are_events_enabled())
+		{
+			plat_event ev = {};
+			ev.source = EventSource::Mouse;
+			ev.down = false;
+			ev.inputnum = button;
+
+			event_queue.push(ev);
+		}
 	}
 	Mouse.num_ups[button]++;
 }
@@ -171,9 +189,4 @@ fix mouse_button_down_time(int button)
 	}
 
 	return time_down;
-}
-
-void mouse_get_cyberman_pos(int* x, int* y)
-{
-	//Error("mouse_get_cyberman_pos: STUB How the hell did you get this to call???\n");
 }
