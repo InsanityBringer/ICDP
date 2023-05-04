@@ -201,6 +201,9 @@ void I_ScaleMouseToWindow(int* x, int* y)
 	//printf("out: (%d, %d)\n", *x, *y);
 }
 
+void plat_sdl_joy_event(int handle, int button, bool down);
+void plat_sdl_joy_hat(int handle, int num, int newbits);
+
 void plat_do_events()
 {
 	SDL_Event ev;
@@ -232,7 +235,7 @@ void plat_do_events()
 				plat_toggle_fullscreen();
 			}
 			else
-				I_KeyHandler(ev.key.keysym.scancode, ev.key.state);
+				I_KeyHandler(ev.key.keysym.scancode, ev.key.state, ev.key.repeat);
 			break;
 
 		case SDL_JOYDEVICEADDED:
@@ -240,6 +243,14 @@ void plat_do_events()
 			break;
 		case SDL_JOYDEVICEREMOVED:
 			plat_joystick_detached(ev.jdevice.which);
+			break;
+
+		case SDL_JOYBUTTONDOWN:
+		case SDL_JOYBUTTONUP:
+			plat_sdl_joy_event(ev.jdevice.which, ev.jbutton.button, ev.jdevice.type == SDL_JOYBUTTONDOWN);
+			break;
+		case SDL_JOYHATMOTION:
+			plat_sdl_joy_hat(ev.jdevice.which, ev.jhat.hat, ev.jhat.value);
 			break;
 		}
 	}

@@ -93,6 +93,8 @@ set(SHARED_SOURCES
 	misc/stb_vorbis.h
 	misc/types.h
 	platform/disk.h
+	platform/event.cpp
+	platform/event.h
 	platform/findfile.h
 	platform/i_sound.h
 	platform/joy.cpp

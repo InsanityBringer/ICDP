@@ -90,12 +90,9 @@ struct control_info
 };
 
 //Set to true if the first button in a kc_button_binding is a hat. button1 is the bit that must be set
-constexpr int KC_BUTTON_B1_HAT = 1;
-//Set to true if the second button in a kc_button_binding is a hat. button2 is the bit that must be set
-constexpr int KC_BUTTON_B2_HAT = 2;
-
-constexpr int KC_BUTTON_B1_AXIS = 4;
-constexpr int KC_BUTTON_B2_AXIS = 8;
+constexpr int KC_BUTTON_TYPE_BUTTON = 0;
+constexpr int KC_BUTTON_TYPE_HAT = 1;
+constexpr int KC_BUTTON_TYPE_AXIS = 2;
 
 struct kc_button_binding
 {
@@ -104,12 +101,12 @@ struct kc_button_binding
 	//>0 is bound straight to a button. 
 	//For keyboard keys, this is a scancode, for all others this is an index. 
 	int16_t button1, button2;
-	uint8_t flags;
+	uint8_t type1, type2;
 
 	kc_button_binding()
 	{
 		button1 = button2 = -32768;
-		flags = 0;
+		type1 = type2 = KC_BUTTON_TYPE_BUTTON;
 	}
 };
 
@@ -188,6 +185,7 @@ extern const char* control_text[CONTROL_MAX_TYPES];
 extern void kc_set_controls();
 
 void kconfig_init_defaults();
+void kconfig_flush_inputs();
 
 // Tries to use vfx1 head tracking.
 void kconfig_sense_init();

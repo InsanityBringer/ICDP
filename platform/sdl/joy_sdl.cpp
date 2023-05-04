@@ -6,6 +6,7 @@
 #include "platform/timer.h"
 #include "misc/error.h"
 #include "platform/mono.h"
+#include "platform/event.h"
 
 #ifdef USE_SDL
 
@@ -50,6 +51,9 @@ public:
 	}
 
 	void Read(fix delta);
+	//Generates events for a hat change. This will create up events for bits that are unset,
+	//and create down events for bits that are newly set. 
+	void GenerateHatEvent(int hatnum, int newmask);
 	void Flush();
 
 	SDL_JoystickID InstanceID() const
@@ -156,7 +160,7 @@ void JoystickInfo::Read(fix delta)
 		m_Axises[i] = SDL_JoystickGetAxis(m_Joystick, i) * 127 / 32727;
 
 	//Read hats
-	for (int i = 0; i < m_HatCount; i++)
+	/*for (int i = 0; i < m_HatCount; i++)
 		m_HatStates[i] = SDL_JoystickGetHat(m_Joystick, i);
 
 	//Read buttons
@@ -185,7 +189,42 @@ void JoystickInfo::Read(fix delta)
 				m_ButtonStates[i].down_time = 0;
 			}
 		}
+	}*/
+}
+
+void JoystickInfo::GenerateHatEvent(int hatnum, int newmask)
+{
+	int oldmask = m_HatStates[hatnum];
+	plat_event ev = {};
+	ev.source = EventSource::Joystick;
+	ev.flags = EV_FLAG_HAT;
+	ev.handle = m_InstanceID;
+
+	//Generate up events
+	ev.down = false;
+	for (int i = 0; i < 4; i++)
+	{
+		int bit = 1 << i;
+		if (((oldmask & bit) != 0) && ((newmask & bit) == 0))
+		{
+			ev.inputnum = hatnum * 4 + i;
+			event_queue.push(ev);
+		}
 	}
+
+	//Generate down events
+	ev.down = true;
+	for (int i = 0; i < 4; i++)
+	{
+		int bit = 1 << i;
+		if (((oldmask & bit) == 0) && ((newmask & bit) != 0))
+		{
+			ev.inputnum = hatnum * 4 + i;
+			event_queue.push(ev);
+		}
+	}
+
+	m_HatStates[hatnum] = newmask;
 }
 
 void JoystickInfo::Flush()
@@ -201,6 +240,35 @@ int numJoysticks;
 std::vector<JoystickInfo> sticks;
 std::vector<SDL_GameController*> controllers;
 SDL_GameController *controller;
+
+void plat_sdl_joy_event(int handle, int button, bool down)
+{
+	if (are_events_enabled())
+	{
+		plat_event ev = {};
+		ev.source = EventSource::Joystick;
+		ev.down = down;
+		ev.handle = handle;
+		ev.inputnum = button;
+
+		event_queue.push(ev);
+	}
+}
+
+void plat_sdl_joy_hat(int handle, int num, int newbits)
+{
+	if (are_events_enabled())
+	{
+		for (JoystickInfo& info : sticks)
+		{
+			if (info.InstanceID() == handle)
+			{
+				info.GenerateHatEvent(num, newbits);
+				return;
+			}
+		}
+	}
+}
 
 void I_InitSDLJoysticks()
 {
@@ -253,43 +321,6 @@ void I_JoystickHandler()
 
 void I_ControllerHandler()
 {
-	if (!controller || !usingGamepad) return;
-	int axisState[4];
-	int buttons = 0;
-	axisState[0] = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX) * 127 / 32767;
-	axisState[1] = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY) * 127 / 32767;
-	axisState[2] = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX) * 127 / 32767;
-	axisState[3] = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY) * 127 / 32767;
-
-	//These numbers start at 4. Gamepads are currently treated as a Flightstick Pro, which doesn't support buttons 1-4
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A))
-		buttons |= joybtn(11);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B))
-		buttons |= joybtn(15);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X))
-		buttons |= joybtn(17);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_Y))
-		buttons |= joybtn(19);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN))
-		buttons |= joybtn(12);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP))
-		buttons |= joybtn(20);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT))
-		buttons |= joybtn(16);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT))
-		buttons |= joybtn(8);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER))
-		buttons |= joybtn(7);
-	if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER))
-		buttons |= joybtn(9);
-	//XInput trigger hack
-	if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > (32767 / 3))
-		buttons |= joybtn(5);
-	if (SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > (32767 / 3))
-		buttons |= joybtn(6);
-
-	//printf("btns: %d axises: %d %d %d %d\n", buttons, axisState[0], axisState[1], axisState[2], axisState[3]);
-	JoystickInput(buttons, axisState, JOY_ALL_AXIS);
 }
 
 joy_device_callback attached_callback, removed_callback;

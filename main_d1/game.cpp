@@ -89,6 +89,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "ai.h"
 #include "2d/gr.h"
 #include "platform/platform.h"
+#include "platform/event.h"
 
 //#define TEST_TIMER	1		//if this is set, do checking on timer
 
@@ -854,6 +855,8 @@ void game_flush_inputs()
 	mouse_flush();
 	mouse_get_delta(&dx, &dy);	// Read mouse
 	memset(&Controls, 0, sizeof(control_info));
+	kconfig_flush_inputs();
+	flush_events();
 }
 
 void reset_time()
@@ -2067,6 +2070,7 @@ void game()
 
 	if (setjmp(LeaveGame) == 0) 
 	{
+		set_events_enabled(true);
 		while (1) 
 		{
 			// GAME LOOP!
@@ -2139,6 +2143,7 @@ void game()
 				I_DelayUS(diff - 2000);
 			while (I_GetUS() < startTime + numUS);
 		}
+		set_events_enabled(false);
 	}
 
 	digi_stop_all();
