@@ -1320,7 +1320,7 @@ void controls_read_joystick(kc_joyinfo& info, control_info& controls, bool slide
 			controls.sideways_thrust_time += temp;
 
 		//Read sideways thrust
-		controls.sideways_thrust_time = check_axis(info, axises, AxisType::SlideLR, 10, false);
+		controls.sideways_thrust_time += check_axis(info, axises, AxisType::SlideLR, 10, false);
 
 		//Read banking
 		if (bank_on)
