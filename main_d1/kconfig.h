@@ -167,7 +167,7 @@ struct kc_item
 	short u, d, l, r;
 	short text_num1;
 	uint8_t type;
-	uint8_t value;		// what key,button,etc
+	int16_t value;		// what key,button,etc
 };
 
 //New control flags
@@ -178,7 +178,7 @@ extern bool Kconfig_use_gamepad;
 extern control_info Controls;
 extern void controls_read_all();
 
-extern void kconfig(KConfigMode control_mode, char* title);
+extern void kconfig(KConfigMode control_mode, const char* title);
 
 extern uint8_t Config_digi_volume;
 extern uint8_t Config_midi_volume;

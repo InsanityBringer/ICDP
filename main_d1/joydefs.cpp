@@ -134,6 +134,9 @@ void joydefs_config()
 		case 0:
 			kconfig(KConfigMode::Keyboard, TXT_KEYBOARD);
 			break;
+		case 3:
+			kconfig(KConfigMode::Mouse, "Mouse");
+			break;
 		}
 
 		Config_joystick_sensitivity = m[9].value;

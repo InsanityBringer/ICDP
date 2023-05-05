@@ -267,33 +267,33 @@ kc_item kc_joystick[NUM_OTHER_CONTROLS] = {
 	{ 26, false, 25, 70, 85, 26,  4,  2,  7,  8,TNUM_DROP_BOMB, BT_JOY_BUTTON, 255 },
 };
 kc_item kc_mouse[NUM_OTHER_CONTROLS] = {
-	{  0, false, 25, 46, 85, 26, 12,  1, 24,  5,TNUM_FIRE_PRIMARY, BT_MOUSE_BUTTON, 255 },
-	{  1, false, 25, 54, 85, 26,  0,  4,  5,  6,TNUM_FIRE_SECONDARY, BT_MOUSE_BUTTON, 255 },
-	{  2, false, 25, 85, 85, 26, 26,  3,  9, 10,TNUM_ACCELERATE, BT_MOUSE_BUTTON, 255 },
-	{  3, false, 25, 93, 85, 26,  2, 25, 10, 11,TNUM_REVERSE, BT_MOUSE_BUTTON, 255 },
-	{  4, false, 25, 62, 85, 26,  1, 26,  6,  7,TNUM_FIRE_FLARE, BT_MOUSE_BUTTON, 255 },
-	{  5, false,180, 46, 59, 26, 24,  6,  0,  1,TNUM_SLIDE_ON, BT_MOUSE_BUTTON, 255 },
-	{  6, false,180, 54, 59, 26,  5,  7,  1,  4,TNUM_SLIDE_LEFT, BT_MOUSE_BUTTON, 255 },
-	{  7, false,180, 62, 59, 26,  6,  8,  4, 26,TNUM_SLIDE_RIGHT, BT_MOUSE_BUTTON, 255 },
-	{  8, false,180, 70, 59, 26,  7,  9, 26,  9,TNUM_SLIDE_UP, BT_MOUSE_BUTTON, 255 },
-	{  9, false,180, 78, 59, 26,  8, 10,  8,  2,TNUM_SLIDE_DOWN, BT_MOUSE_BUTTON, 255 },
-	{ 10, false,180, 90, 59, 26,  9, 11,  2,  3,TNUM_BANK_ON, BT_MOUSE_BUTTON, 255 },
-	{ 11, false,180, 98, 59, 26, 10, 12,  3, 12,TNUM_BANK_LEFT, BT_MOUSE_BUTTON, 255 },
-	{ 12, false,180,106, 59, 26, 11,  0, 11, 25,TNUM_BANK_RIGHT, BT_MOUSE_BUTTON, 255 },
-	{ 13, false,103,138, 58, 26, 25, 15, 25, 14,TNUM_PITCH_UD, BT_MOUSE_AXIS, 255 },
-	{ 14, false,103,138,106,  8, 23, 16, 13, 15,TNUM_PITCH_UD, BT_INVERT, 255 },
-	{ 15, false,103,146, 58, 26, 13, 17, 14, 16,TNUM_TURN_LR, BT_MOUSE_AXIS, 255 },
-	{ 16, false,103,146,106,  8, 14, 18, 15, 17,TNUM_TURN_LR, BT_INVERT, 255 },
-	{ 17, false,103,154, 58, 26, 15, 19, 16, 18,TNUM_SLIDE_LR, BT_MOUSE_AXIS, 255 },
-	{ 18, false,103,154,106,  8, 16, 20, 17, 19,TNUM_SLIDE_LR, BT_INVERT, 255 },
-	{ 19, false,103,162, 58, 26, 17, 21, 18, 20,TNUM_SLIDE_UD, BT_MOUSE_AXIS, 255 },
-	{ 20, false,103,162,106,  8, 18, 22, 19, 21,TNUM_SLIDE_UD, BT_INVERT, 255 },
-	{ 21, false,103,170, 58, 26, 19, 23, 20, 22,TNUM_BANK_LR, BT_MOUSE_AXIS, 255 },
-	{ 22, false,103,170,106,  8, 20, 24, 21, 23,TNUM_BANK_LR, BT_INVERT, 255 },
-	{ 23, false,103,182, 58, 26, 21, 14, 22, 24,TNUM_THROTTLE, BT_MOUSE_AXIS, 255 },
-	{ 24, false,103,182,106,  8, 22,  5, 23,  0,TNUM_THROTTLE, BT_INVERT, 255 },
-	{ 25, false, 25,109, 85, 26,  3, 13, 12, 13,TNUM_REAR_VIEW, BT_MOUSE_BUTTON, 255 },
-	{ 26, false, 25, 70, 85, 26,  4,  2,  7,  8,TNUM_DROP_BOMB, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::FirePrimary, false, 25, 46, 85, 26, 12,  1, 24,  5,TNUM_FIRE_PRIMARY, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::FireSecondary, false, 25, 54, 85, 26,  0,  4,  5,  6,TNUM_FIRE_SECONDARY, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::Accelerate, false, 25, 85, 85, 26, 26,  3,  9, 10,TNUM_ACCELERATE, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::Reverse, false, 25, 93, 85, 26,  2, 25, 10, 11,TNUM_REVERSE, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::FireFlare, false, 25, 62, 85, 26,  1, 26,  6,  7,TNUM_FIRE_FLARE, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::SlideOn, false,180, 46, 59, 26, 24,  6,  0,  1,TNUM_SLIDE_ON, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::SlideLeft, false,180, 54, 59, 26,  5,  7,  1,  4,TNUM_SLIDE_LEFT, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::SlideRight, false,180, 62, 59, 26,  6,  8,  4, 26,TNUM_SLIDE_RIGHT, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::SlideUp, false,180, 70, 59, 26,  7,  9, 26,  9,TNUM_SLIDE_UP, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::SlideDown, false,180, 78, 59, 26,  8, 10,  8,  2,TNUM_SLIDE_DOWN, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::BankOn, false,180, 90, 59, 26,  9, 11,  2,  3,TNUM_BANK_ON, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::BankLeft, false,180, 98, 59, 26, 10, 12,  3, 12,TNUM_BANK_LEFT, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::BankRight, false,180,106, 59, 26, 11,  0, 11, 25,TNUM_BANK_RIGHT, BT_MOUSE_BUTTON, 255 },
+	{(short)AxisType::Pitch, false,103,138, 58, 26, 25, 15, 25, 14,TNUM_PITCH_UD, BT_MOUSE_AXIS, 255 },
+	{(short)AxisType::Pitch, false,103,138,106,  8, 23, 16, 13, 15,TNUM_PITCH_UD, BT_INVERT, 255 },
+	{(short)AxisType::Yaw, false,103,146, 58, 26, 13, 17, 14, 16,TNUM_TURN_LR, BT_MOUSE_AXIS, 255 },
+	{(short)AxisType::Yaw, false,103,146,106,  8, 14, 18, 15, 17,TNUM_TURN_LR, BT_INVERT, 255 },
+	{(short)AxisType::SlideLR, false,103,154, 58, 26, 15, 19, 16, 18,TNUM_SLIDE_LR, BT_MOUSE_AXIS, 255 },
+	{(short)AxisType::SlideLR, false,103,154,106,  8, 16, 20, 17, 19,TNUM_SLIDE_LR, BT_INVERT, 255 },
+	{(short)AxisType::SlideUD, false,103,162, 58, 26, 17, 21, 18, 20,TNUM_SLIDE_UD, BT_MOUSE_AXIS, 255 },
+	{(short)AxisType::SlideUD, false,103,162,106,  8, 18, 22, 19, 21,TNUM_SLIDE_UD, BT_INVERT, 255 },
+	{(short)AxisType::Roll, false,103,170, 58, 26, 19, 23, 20, 22,TNUM_BANK_LR, BT_MOUSE_AXIS, 255 },
+	{(short)AxisType::Roll, false,103,170,106,  8, 20, 24, 21, 23,TNUM_BANK_LR, BT_INVERT, 255 },
+	{(short)AxisType::Throttle, false,103,182, 58, 26, 21, 14, 22, 24,TNUM_THROTTLE, BT_MOUSE_AXIS, 255 },
+	{(short)AxisType::Throttle, false,103,182,106,  8, 22,  5, 23,  0,TNUM_THROTTLE, BT_INVERT, 255 },
+	{(short)CtrlType::RearView, false, 25,109, 85, 26,  3, 13, 12, 13,TNUM_REAR_VIEW, BT_MOUSE_BUTTON, 255 },
+	{(short)CtrlType::DropBomb, false, 25, 70, 85, 26,  4,  2,  7,  8,TNUM_DROP_BOMB, BT_MOUSE_BUTTON, 255 },
 };
 
 int kconfig_is_axes_used(int axis)
@@ -307,7 +307,7 @@ int kconfig_is_axes_used(int axis)
 	return 0;
 }
 
-void kconfig_sub(kc_item* items, int nitems, char* title)
+void kconfig_sub(kc_item* items, int nitems, const char* title)
 {
 	grs_canvas* save_canvas;
 	grs_font* save_font;
@@ -452,7 +452,7 @@ void kconfig_sub(kc_item* items, int nitems, char* title)
 			save_screen_shot(0);
 			break;
 		case KEY_CTRLED + KEY_D:
-			items[citem].value = 255;
+			items[citem].value = -32768;
 			kc_drawitem(&items[citem], 1);
 			break;
 		case KEY_CTRLED + KEY_R:
@@ -610,7 +610,7 @@ void kc_drawitem(kc_item* item, int is_current)
 		gr_set_fontcolor(BM_XRGB(15, 15, 24), -1);
 	gr_string(item->x, item->y, Text_string[item->text_num1]);
 
-	if (item->value == 255) 
+	if (item->value < 0) 
 	{
 		sprintf(btext, "");
 	}
@@ -621,7 +621,11 @@ void kc_drawitem(kc_item* item, int is_current)
 		case BT_KEY:
 			strncpy(btext, key_text[item->value], 10); break;
 		case BT_MOUSE_BUTTON:
-			strncpy(btext, Text_string[mousebutton_text[item->value]], 10); break;
+			if (item->value < 3)
+				strncpy(btext, Text_string[mousebutton_text[item->value]], 10);
+			else
+				snprintf(btext, 10, "BTN %d", item->value);
+			break;
 		case BT_MOUSE_AXIS:
 			strncpy(btext, Text_string[mouseaxis_text[item->value]], 10); break;
 		case BT_JOY_BUTTON:
@@ -767,6 +771,9 @@ void kc_change_joybutton(kc_item* item)
 
 	gr_string(0x8000, INFO_Y, TXT_PRESS_NEW_JBUTTON);
 
+	bool old_event_state = are_events_enabled();
+	set_events_enabled(true);
+
 	game_flush_inputs();
 	code = 255;
 	k = 255;
@@ -778,8 +785,6 @@ void kc_change_joybutton(kc_item* item)
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
 			multi_menu_poll();
 #endif
-		//		if ( Game_mode & GM_MULTI )
-		//			GameLoop( 0, 0 );				// Continue
 		k = key_inkey();
 		I_Delay(10);
 
@@ -838,6 +843,7 @@ void kc_change_joybutton(kc_item* item)
 	}
 	kc_drawitem(item, 1);
 	nm_restore_background(0, INFO_Y, 310, grd_curcanv->cv_font->ft_h);
+	set_events_enabled(old_event_state);
 	game_flush_inputs();
 }
 
@@ -850,19 +856,19 @@ void kc_change_mousebutton(kc_item* item)
 
 	gr_string(0x8000, INFO_Y, TXT_PRESS_NEW_MBUTTON);
 
+	bool old_event_state = are_events_enabled();
+	set_events_enabled(true);
+
 	game_flush_inputs();
 	code = 255;
 	k = 255;
 	while ((k != KEY_ESC) && (code == 255)) 
 	{
-		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
 			multi_menu_poll();
 #endif
-		//		if ( Game_mode & GM_MULTI )
-		//			GameLoop( 0, 0 );				// Continue
 		k = key_inkey();
 		I_Delay(10);
 
@@ -870,13 +876,18 @@ void kc_change_mousebutton(kc_item* item)
 			save_screen_shot(0);
 
 		kc_drawquestion(item);
-
-		b = mouse_get_btns();
-		for (i = 0; i < 3; i++)
+		while (!event_queue.empty())
 		{
-			if (b & (1 << i))
-				code = i;
+			plat_event ev = event_queue.front(); event_queue.pop();
+
+			if (ev.source == EventSource::Mouse && ev.down)
+			{
+				code = ev.inputnum;
+				break;
+			}
 		}
+
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 	}
 	if (code != 255) 
 	{
@@ -893,6 +904,7 @@ void kc_change_mousebutton(kc_item* item)
 	}
 	kc_drawitem(item, 1);
 	nm_restore_background(0, INFO_Y, 310, grd_curcanv->cv_font->ft_h);
+	set_events_enabled(old_event_state);
 	game_flush_inputs();
 
 }
@@ -1031,7 +1043,7 @@ void kc_change_invert(kc_item* item)
 
 #include "screens.h"
 
-void kconfig(KConfigMode control_mode, char* title)
+void kconfig(KConfigMode control_mode, const char* title)
 {
 	int i;
 	set_screen_mode(SCREEN_MENU);
@@ -1049,6 +1061,16 @@ void kconfig(KConfigMode control_mode, char* title)
 		break;
 	case KConfigMode::Mouse:
 		kconfig_sub(kc_mouse, NUM_OTHER_CONTROLS, title);
+
+		for (i = 0; i < NUM_OTHER_CONTROLS; i++)
+		{
+			if (kc_mouse[i].type == BT_INVERT)
+				current_mouse_axises[kc_mouse[i].id].invert = kc_mouse[i].value;
+			else if (kc_mouse[i].type == BT_MOUSE_AXIS)
+				current_mouse_axises[kc_mouse[i].id].axis = kc_mouse[i].value;
+			else
+				current_mouse_bindings[kc_mouse[i].id].button1 = kc_mouse[i].value;
+		}
 		break;
 	default:
 		Int3();
@@ -1602,30 +1624,32 @@ void kc_set_controls()
 			kc_keyboard[i].value = current_keyboard_bindings[kc_keyboard[i].id].button1;
 	}
 
-	if ((Config_control_type > 0) && (Config_control_type < 5)) 
+	//why did I add support for any number of joysticks again?
+	/*for (i = 0; i < NUM_OTHER_CONTROLS; i++) 
 	{
-		for (i = 0; i < NUM_OTHER_CONTROLS; i++) 
+		kc_joystick[i].value = kconfig_settings[Config_control_type][i];
+		if (kc_joystick[i].type == BT_INVERT) 
 		{
-			kc_joystick[i].value = kconfig_settings[Config_control_type][i];
-			if (kc_joystick[i].type == BT_INVERT) 
-			{
-				if (kc_joystick[i].value != 1)
-					kc_joystick[i].value = 0;
-				kconfig_settings[Config_control_type][i] = kc_joystick[i].value;
-			}
+			if (kc_joystick[i].value != 1)
+				kc_joystick[i].value = 0;
+			kconfig_settings[Config_control_type][i] = kc_joystick[i].value;
 		}
-	}
-	else if (Config_control_type > 4) 
+	}*/
+
+	for (i = 0; i < NUM_OTHER_CONTROLS; i++) 
 	{
-		for (i = 0; i < NUM_OTHER_CONTROLS; i++) 
+		//kc_mouse[i].value = ;
+		if (kc_mouse[i].type == BT_INVERT) 
 		{
-			kc_mouse[i].value = kconfig_settings[Config_control_type][i];
-			if (kc_mouse[i].type == BT_INVERT) 
-			{
-				if (kc_mouse[i].value != 1)
-					kc_mouse[i].value = 0;
-				kconfig_settings[Config_control_type][i] = kc_mouse[i].value;
-			}
+			kc_mouse[i].value = current_mouse_axises[kc_mouse[i].id].invert;
+		}
+		else if (kc_mouse[i].type == BT_MOUSE_AXIS)
+		{
+			kc_mouse[i].value = current_mouse_axises[kc_mouse[i].id].axis;
+		}
+		else 
+		{
+			kc_mouse[i].value = current_mouse_bindings[kc_mouse[i].id].button1;
 		}
 	}
 }
