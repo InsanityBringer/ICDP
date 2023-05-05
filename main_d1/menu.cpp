@@ -831,13 +831,10 @@ void do_options_menu()
 		m[2].type = NM_TYPE_TEXT; m[2].text = (char*)"";
 		m[3].type = NM_TYPE_MENU; m[3].text = TXT_CONTROLS_;
 		m[4].type = NM_TYPE_MENU; m[4].text = TXT_DETAIL_LEVELS;
-		m[5].type = NM_TYPE_MENU; m[5].text = TXT_CAL_JOYSTICK;
-		m[6].type = NM_TYPE_TEXT; m[6].text = (char*)"";
-		m[7].type = NM_TYPE_SLIDER; m[7].text = TXT_JOYS_SENSITIVITY; m[7].value = Config_joystick_sensitivity; m[7].min_value = 0; m[7].max_value = 8;
-		m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
-		m[9].type = NM_TYPE_CHECK; m[9].text = (char*)"Ship auto-leveling"; m[9].value = Auto_leveling_on;
+		m[5].type = NM_TYPE_TEXT; m[5].text = (char*)"";
+		m[6].type = NM_TYPE_CHECK; m[6].text = (char*)"Ship auto-leveling"; m[6].value = Auto_leveling_on;
 
-		i = newmenu_do1(NULL, TXT_OPTIONS, 10, m, joydef_menuset, i);
+		i = newmenu_do1(NULL, TXT_OPTIONS, 7, m, joydef_menuset, i);
 
 		switch (i) 
 		{
@@ -853,13 +850,9 @@ void do_options_menu()
 		case 4: 
 			do_detail_level_menu();	
 			break;
-		case 5: 
-			joydefs_calibrate();
-			break;
 		}
 
-		Config_joystick_sensitivity = m[7].value;
-		Auto_leveling_on = m[9].value;
+		Auto_leveling_on = m[6].value;
 	} while (i > -1);
 
 	write_player_file();

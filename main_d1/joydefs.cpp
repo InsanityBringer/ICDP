@@ -37,36 +37,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "main_shared/digi.h"
 #include "playsave.h"
 
-int joydefs_calibrate_flag = 0;
-
-void joy_delay()
-{
-	int t1 = I_GetTicks() + 19 / 4;			// Wait 1/4 second...
-	stop_time();
-	while (I_GetTicks() < t1);
-	joy_flush();
-	start_time();
-}
-
-int joycal_message(char* title, char* text)
-{
-	int i;
-	newmenu_item	m[2];
-	m[0].type = NM_TYPE_TEXT; m[0].text = text;
-	m[1].type = NM_TYPE_MENU; m[1].text = TXT_OK;
-	i = newmenu_do(title, NULL, 2, m, NULL);
-	if (i < 0)
-		return 1;
-	return 0;
-}
-
 extern int WriteConfigFile();
-
-//[ISB] Chocolate Doom has things lucky, since input configuration is entirely separate from the game, so things like this aren't needed...
-void joydefs_calibrate()
-{
-	nm_messagebox(NULL, 1, TXT_OK, "Joystick calibration not\npossible in chocolate.");
-}
 
 const char *control_text[CONTROL_MAX_TYPES] = { "Keyboard only", "Joystick (1-2)", "Gamepad", "Joystick w/ throttle", "-", "Mouse", "-"};
 int choco_menu_remap[CONTROL_MAX_TYPES] = { 0, 1, 2, 3, 5, 0, 0 }; //Remaps the new options to the old input ID
@@ -81,27 +52,8 @@ void joydef_menuset_1(int nitems, newmenu_item* items, int* last_key, int citem)
 	last_key = last_key;
 	citem = citem;
 
-	for (i = 0; i < 5; i++)
-		if (items[i].value) Config_control_type = choco_menu_remap[i];
-
-	/*if ((oc_type != Config_control_type) && (Config_control_type == CONTROL_THRUSTMASTER_FCS)) 
-	{
-		nm_messagebox(TXT_IMPORTANT_NOTE, 1, TXT_OK, TXT_FCS);
-	}*/
-
 	if (oc_type != Config_control_type) 
 	{
-		/*switch (Config_control_type)
-		{
-			//		case	CONTROL_NONE:
-		case	CONTROL_JOYSTICK:
-		case	CONTROL_FLIGHTSTICK_PRO:
-		case	CONTROL_THRUSTMASTER_FCS:
-		case	CONTROL_GRAVIS_GAMEPAD:
-			//		case	CONTROL_MOUSE:
-			//		case	CONTROL_CYBERMAN:
-			joydefs_calibrate_flag = 1;
-		}*/
 		kc_set_controls();
 	}
 
@@ -112,26 +64,26 @@ void joydefs_config()
 	char xtext[128];
 	int i, old_masks, masks;
 	newmenu_item m[13];
-	int i1 = 9;
+	int i1 = 0;
 	int nitems;
 
 	do 
 	{
-		nitems = 8;
-		m[0].type = NM_TYPE_RADIO; m[0].text = const_cast<char*>(control_text[0]); m[0].value = 0; m[0].group = 0;
-		m[1].type = NM_TYPE_RADIO; m[1].text = const_cast<char*>(control_text[1]); m[1].value = 0; m[1].group = 0;
-		m[2].type = NM_TYPE_RADIO; m[2].text = const_cast<char*>(control_text[2]); m[2].value = 0; m[2].group = 0;
-		m[3].type = NM_TYPE_RADIO; m[3].text = const_cast<char*>(control_text[3]); m[3].value = 0; m[3].group = 0;
-		m[4].type = NM_TYPE_RADIO; m[4].text = const_cast<char*>(control_text[5]); m[4].value = 0; m[4].group = 0;
-		m[5].type = NM_TYPE_MENU; m[5].text = TXT_CUST_ABOVE;
-		m[6].type = NM_TYPE_TEXT; m[6].text = (char*)"";
-		m[7].type = NM_TYPE_MENU; m[7].text = TXT_CUST_KEYBOARD;
-
-		m[choco_id_to_menu_remap[Config_control_type]].value = 1;
+		nitems = 10;
+		m[0].type = NM_TYPE_MENU; m[0].text = TXT_CUST_KEYBOARD;
+		m[1].type = NM_TYPE_TEXT; m[1].text = (char*)"";
+		m[2].type = NM_TYPE_CHECK; m[2].text = (char*)"Enable mouse"; m[2].value = Kconfig_use_mouse;
+		m[3].type = NM_TYPE_MENU; m[3].text = (char*)"Customize mouse...";
+		m[4].type = NM_TYPE_CHECK; m[4].text = (char*)"Enable joystick"; m[4].value = Kconfig_use_joystick;
+		m[5].type = NM_TYPE_MENU; m[5].text = (char*)"Customize joysticks...";
+		m[6].type = NM_TYPE_CHECK; m[6].text = (char*)"Enable gamepad"; m[6].value = Kconfig_use_gamepad;
+		m[7].type = NM_TYPE_MENU; m[7].text = (char*)"Customize gamepad...";
+		m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
+		m[9].type = NM_TYPE_SLIDER; m[9].text = TXT_JOYS_SENSITIVITY; m[9].value = Config_joystick_sensitivity; m[9].min_value = 0; m[9].max_value = 8;
 
 		i1 = newmenu_do1(NULL, TXT_CONTROLS, nitems, m, joydef_menuset_1, i1);
 
-		switch (i1) 
+		/*switch (i1) 
 		{
 		case 5: 
 		{
@@ -175,7 +127,18 @@ void joydefs_config()
 		case 7:
 			kconfig(0, TXT_KEYBOARD);
 			break;
+		}*/
+
+		switch (i1)
+		{
+		case 0:
+			kconfig(KConfigMode::Keyboard, TXT_KEYBOARD);
+			break;
 		}
 
+		Config_joystick_sensitivity = m[9].value;
+		Kconfig_use_mouse = m[2].value != 0;
+		Kconfig_use_joystick = m[4].value != 0;
+		Kconfig_use_gamepad = m[6].value != 0;
 	} while (i1 > -1);
 }

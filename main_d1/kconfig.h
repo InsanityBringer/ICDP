@@ -18,6 +18,21 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/types.h"
 #include "fix/fix.h"
 
+//Game control sources that are identified by the engine.
+enum class KConfigMode
+{
+	//The keyboard, always enabled. 
+	Keyboard,
+	//A mouse, only one. Can bind axises and buttons.
+	Mouse,
+	//A joystick. There can be any number of joysticks in theory,
+	//and you can bind binary inputs to axises, hats, or buttons.
+	Joystick,
+	//A gamepad, a special case of joystick.
+	//Gamepads have very specific available buttons and axises (excepting the shoulder triggers, which may be buttons or axises)
+	Gamepad
+};
+
 enum class CtrlType
 {
 	PitchForward,
@@ -145,6 +160,7 @@ struct kc_joyinfo
 struct kc_item
 {
 	short id;				// The id of this item
+	bool bindalt; //True if this binds the second input for id, false otherwise. 
 	short x, y;
 	short w1;
 	short w2;
@@ -154,9 +170,15 @@ struct kc_item
 	uint8_t value;		// what key,button,etc
 };
 
+//New control flags
+extern bool Kconfig_use_mouse;
+extern bool Kconfig_use_joystick;
+extern bool Kconfig_use_gamepad;
+
 extern control_info Controls;
 extern void controls_read_all();
-extern void kconfig(int n, char* title);
+
+extern void kconfig(KConfigMode control_mode, char* title);
 
 extern uint8_t Config_digi_volume;
 extern uint8_t Config_midi_volume;
@@ -186,9 +208,6 @@ extern void kc_set_controls();
 
 void kconfig_init_defaults();
 void kconfig_flush_inputs();
-
-// Tries to use vfx1 head tracking.
-void kconfig_sense_init();
 
 //set the cruise speed to zero
 extern void reset_cruise(void);

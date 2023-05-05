@@ -13,7 +13,4 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
-void joydefs_calibrate();
 void joydefs_config();
-
-extern int joydefs_calibrate_flag;

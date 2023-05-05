@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <vector>
 #include <span>
+#include <string>
 #include "platform/joy.h"
 #include "platform/timer.h"
 #include "misc/error.h"
@@ -37,6 +38,8 @@ class JoystickInfo
 	SDL_JoystickGUID m_guid;
 
 	SDL_JoystickID m_InstanceID;
+
+	std::string m_name;
 
 public:
 	JoystickInfo(SDL_Joystick* joystick);
@@ -104,6 +107,12 @@ JoystickInfo::JoystickInfo(SDL_Joystick* joystick)
 	}
 
 	m_InstanceID = SDL_JoystickInstanceID(joystick);
+
+	const char* buf = SDL_JoystickName(m_Joystick);
+	if (buf)
+		m_name = std::string(buf, strlen(buf));
+	else //Most devices I test provide names, but not all
+		m_name = "Unidentified joystick";
 }
 
 JoystickInfo::JoystickInfo(const JoystickInfo& other)
@@ -135,6 +144,7 @@ JoystickInfo::JoystickInfo(const JoystickInfo& other)
 	}
 
 	m_InstanceID = other.m_InstanceID;
+	m_name = other.m_name;
 }
 
 JoystickInfo::~JoystickInfo()
