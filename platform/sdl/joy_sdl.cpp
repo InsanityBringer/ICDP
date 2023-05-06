@@ -181,11 +181,39 @@ JoystickInfo::~JoystickInfo()
 	//	SDL_JoystickClose(m_Joystick);
 }
 
+constexpr int joy_button_threshold = 127 / 3;
+
 void JoystickInfo::Read(fix delta)
 {
 	//Read axises
 	for (int i = 0; i < m_AxisCount; i++)
-		m_Axises[i] = SDL_JoystickGetAxis(m_Joystick, i) * 127 / 32727;
+	{
+		int new_axis_value = SDL_JoystickGetAxis(m_Joystick, i) * 127 / 32727;
+
+		//Generate axis events if a threshold is crossed, to allow binding axises to buttons
+		if (are_events_enabled())
+		{
+			if (new_axis_value >= joy_button_threshold && m_Axises[i] < joy_button_threshold)
+			{
+				plat_event ev = {};
+				ev.source = EventSource::Joystick;
+				ev.flags = EV_FLAG_AXIS;
+				ev.inputnum = i;
+				ev.down = true;
+				event_queue.push(ev);
+			}
+			else if (new_axis_value < joy_button_threshold && m_Axises[i] >= joy_button_threshold)
+			{
+				plat_event ev = {};
+				ev.source = EventSource::Joystick;
+				ev.flags = EV_FLAG_AXIS;
+				ev.inputnum = i;
+				ev.down = false;
+				event_queue.push(ev);
+			}
+		}
+		m_Axises[i] = new_axis_value;
+	}
 
 	//Read hats
 	/*for (int i = 0; i < m_HatCount; i++)
