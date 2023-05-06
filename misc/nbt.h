@@ -61,7 +61,7 @@ struct ByteTag : Tag
 	}
 	void write_data(FILE* fp) override
 	{
-		file_write_byte(fp);
+		file_write_byte(fp, value);
 	}
 };
 
@@ -155,7 +155,7 @@ struct DoubleTag : Tag
 	void write_data(FILE* fp) override
 	{
 		int64_t t = *(int64_t*)&value;
-		file_write_int64(fp);
+		file_write_int64(fp, t);
 	}
 };
 
