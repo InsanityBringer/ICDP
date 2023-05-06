@@ -14,6 +14,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #pragma once
 
 #include <span>
+#include <string>
+#include <vector>
 #include "misc/types.h"
 #include "fix/fix.h"
 
@@ -44,6 +46,14 @@ extern void joy_close();
 struct joy_guid
 {
 	uint8_t guid[16];
+};
+
+//Information about attached joysticks that are currently valid, to allow one
+//to select which device to do bindings for
+struct joy_info
+{
+	int handle;
+	std::string name;
 };
 
 typedef void(*joy_device_callback)(int handle, joy_guid guid);
@@ -105,6 +115,8 @@ void JoystickInput(int buttons, int axes[4], int presentmask);
 void I_InitSDLJoysticks();
 void I_ControllerHandler();
 void I_JoystickHandler();
+
+void joy_get_attached_joysticks(std::vector<joy_info>& info);
 
 //==========================================================================
 //Platform specific functions

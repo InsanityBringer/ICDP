@@ -75,6 +75,11 @@ public:
 		buttons = std::span<JoystickButton>(m_ButtonStates, m_ButtonCount);
 		hats = std::span<int>(m_HatStates, m_HatCount);
 	}
+
+	std::string GetName() const
+	{
+		return m_name;
+	}
 };
 
 JoystickInfo::JoystickInfo(SDL_Joystick* joystick)
@@ -403,6 +408,18 @@ bool joy_get_state(int handle, std::span<int>& axises, std::span<JoystickButton>
 		}
 	}
 	return false;
+}
+
+void joy_get_attached_joysticks(std::vector<joy_info>& info)
+{
+	info.clear();
+	for (JoystickInfo& joyinfo : sticks)
+	{
+		joy_info newinfo = {};
+		newinfo.handle = joyinfo.InstanceID();
+		newinfo.name = joyinfo.GetName();
+		info.push_back(newinfo);
+	}
 }
 
 #endif

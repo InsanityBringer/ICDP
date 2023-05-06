@@ -137,6 +137,29 @@ void joydefs_config()
 		case 3:
 			kconfig(KConfigMode::Mouse, "Mouse");
 			break;
+		case 5:
+		{
+			std::vector<joy_info> attached_joysticks;
+			joy_get_attached_joysticks(attached_joysticks);
+
+			if (attached_joysticks.size() == 0)
+			{
+				nm_messagebox("Error", 1, "OK", "No attached joysticks\nwere detected.");
+			}
+			else
+			{
+				char** nameptrs = new char* [attached_joysticks.size()];
+
+				for (i = 0; i < attached_joysticks.size(); i++)
+					nameptrs[i] = (char*)attached_joysticks[i].name.c_str();
+
+				int sticknum = newmenu_listbox("Select a joystick to bind", attached_joysticks.size(),
+					nameptrs, true, nullptr);
+
+				delete[] nameptrs;
+			}
+		}
+		break;
 		}
 
 		Config_joystick_sensitivity = m[9].value;
