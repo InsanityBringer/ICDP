@@ -433,7 +433,7 @@ void do_automap(int key_code)
 
 	while (!done) 
 	{
-		startTime = I_GetUS();
+		startTime = timer_get_us();
 		if (leave_mode == 0 && Controls.automap_state && (timer_get_fixed_seconds() - entry_time) > LEAVE_TIME)
 			leave_mode = 1;
 
@@ -571,10 +571,10 @@ void do_automap(int key_code)
 		//With suggestions from dpjudas.
 		uint64_t numUS = 1000000 / FPSLimit;
 		//[ISB] Combine a sleep with the polling loop to try to spare CPU cycles
-		uint64_t diff = (startTime + numUS) - I_GetUS();
+		uint64_t diff = (startTime + numUS) - timer_get_us();
 		if (diff > 2000) //[ISB] Sleep only if there's sufficient time to do so, since the scheduler isn't precise enough
-			I_DelayUS(diff - 2000);
-		while (I_GetUS() < startTime + numUS);
+			timer_delay_us(diff - 2000);
+		while (timer_get_us() < startTime + numUS);
 
 		t2 = timer_get_fixed_seconds();
 		if (pause_game)

@@ -117,7 +117,7 @@ int show_title_screen(const char* filename, int allow_keys)
 	timer = timer_get_fixed_seconds() + i2f(3);
 	while (1) 
 	{
-		I_MarkStart();
+		timer_mark_start();
 		plat_do_events();
 		if (local_key_inkey() && allow_keys) break;
 		if (timer_get_fixed_seconds() > timer) break;
@@ -135,7 +135,7 @@ int show_title_screen(const char* filename, int allow_keys)
 		}
 #endif
 		plat_present_canvas(*title_canvas, ASPECT_4_3);
-		I_MarkEnd(US_70FPS);
+		timer_mark_end(US_70FPS);
 	}
 	if (gr_palette_fade_out(New_pal, 32, allow_keys))
 		return 1;

@@ -54,41 +54,41 @@ fix timer_get_approx_seconds()
 	return timer_get_fixed_seconds();
 }
 
-uint32_t I_GetTicks()
+uint32_t timer_get_ticks()
 {
 	return (int)((GetClockTimeMS() - baseTick) * 18 / 1000);
 }
 
-uint32_t I_GetMS()
+uint32_t timer_get_ms()
 {
 	return GetClockTimeMS() - baseTick;
 }
 
-uint64_t I_GetUS()
+uint64_t timer_get_us()
 {
 	using namespace std::chrono;
 	return static_cast<uint64_t>(duration_cast<microseconds>(steady_clock::now().time_since_epoch()).count());
 }
 
-void I_Delay(int ms)
+void timer_delay(int ms)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 }
 
-void I_DelayUS(uint64_t us)
+void timer_delay_us(uint64_t us)
 {
 	std::this_thread::sleep_for(std::chrono::microseconds(us));
 }
 
-void I_MarkStart()
+void timer_mark_start()
 {
-	markTick = I_GetUS();
+	markTick = timer_get_us();
 }
 
-void I_MarkEnd(uint64_t numUS)
+void timer_mark_end(uint64_t numUS)
 {
-	uint64_t diff = (markTick + numUS) - I_GetUS();
+	uint64_t diff = (markTick + numUS) - timer_get_us();
 	if (diff > 2000) //[ISB] Sleep only if there's sufficient time to do so, since the scheduler isn't precise enough
-		I_DelayUS(diff - 2000);
-	while (I_GetUS() < markTick + numUS);
+		timer_delay_us(diff - 2000);
+	while (timer_get_us() < markTick + numUS);
 }

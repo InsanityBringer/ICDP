@@ -152,7 +152,7 @@ void credits_show()
 
 		for (i = 0; i < ROW_SPACING; i++) 
 		{
-			I_MarkStart();
+			timer_mark_start();
 			plat_do_events();
 			int y;
 
@@ -241,7 +241,7 @@ void credits_show()
 				return;
 			}
 			plat_present_canvas(*credits_canvas, 3.f/4.f);
-			I_DelayUS(US_70FPS);
+			timer_delay_us(US_70FPS);
 		}
 
 		if (buffer[(buffer_line + 1) % NUM_LINES][0] == '!') 

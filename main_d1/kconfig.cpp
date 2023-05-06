@@ -435,7 +435,7 @@ void kconfig_sub(kc_item* items, int nitems, const char* title)
 
 	while (1) 
 	{
-		I_MarkStart();
+		timer_mark_start();
 		plat_do_events();
 		k = key_inkey();
 		if (!time_stopped)
@@ -597,7 +597,7 @@ void kconfig_sub(kc_item* items, int nitems, const char* title)
 			kc_drawitem(&items[citem], 1);
 		}
 		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
-		I_MarkEnd(US_70FPS);
+		timer_mark_end(US_70FPS);
 	}
 }
 
@@ -713,7 +713,7 @@ void kc_change_key(kc_item* item)
 #endif
 
 		k = key_inkey();
-		I_Delay(10); //[ISB] TODO find something here
+		timer_delay(10); //[ISB] TODO find something here
 		kc_drawquestion(item);
 
 		while (!event_queue.empty())
@@ -780,14 +780,13 @@ void kc_change_joybutton(kc_item* item)
 	k = 255;
 	while ((k != KEY_ESC) && (code == 255)) 
 	{
-		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
 			multi_menu_poll();
 #endif
 		k = key_inkey();
-		I_Delay(10);
+		timer_delay(10);
 
 		if (k == KEY_PRINT_SCREEN)
 			save_screen_shot(0);
@@ -828,6 +827,7 @@ void kc_change_joybutton(kc_item* item)
 					code = i;
 			}
 		}
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 	}
 	if (code != 255) 
 	{
@@ -871,7 +871,7 @@ void kc_change_mousebutton(kc_item* item)
 			multi_menu_poll();
 #endif
 		k = key_inkey();
-		I_Delay(10);
+		timer_delay(10);
 
 		if (k == KEY_PRINT_SCREEN)
 			save_screen_shot(0);
@@ -936,7 +936,7 @@ void kc_change_joyaxis(kc_item* item)
 			multi_menu_poll();
 #endif
 		k = key_inkey();
-		I_Delay(10);
+		timer_delay(10);
 
 		if (k == KEY_PRINT_SCREEN)
 			save_screen_shot(0);
@@ -1000,7 +1000,7 @@ void kc_change_mouseaxis(kc_item* item)
 		//		if ( Game_mode & GM_MULTI )
 		//			GameLoop( 0, 0 );				// Continue
 		k = key_inkey();
-		I_Delay(10);
+		timer_delay(10);
 
 		if (k == KEY_PRINT_SCREEN)
 			save_screen_shot(0);

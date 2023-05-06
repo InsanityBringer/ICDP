@@ -313,8 +313,8 @@ void plat_wait_for_vbl()
 {
 	//Now what is a VBL, anyways?
 	//SDL_Delay(1000 / 70);
-	I_MarkEnd(refreshDuration);
-	I_MarkStart();
+	timer_mark_end(refreshDuration);
+	timer_mark_start();
 }
 
 extern uint8_t* gr_video_memory;

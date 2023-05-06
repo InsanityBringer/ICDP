@@ -431,7 +431,7 @@ ReshowScores:
 	time_out_value = timer_get_fixed_seconds() + i2f(60 * 5);
 	while (!done) 
 	{
-		I_MarkStart();
+		timer_mark_start();
 		plat_do_events();
 		if (citem > -1) 
 		{
@@ -475,7 +475,7 @@ ReshowScores:
 			break;
 		}
 		plat_present_canvas(0);
-		I_MarkEnd(US_70FPS);
+		timer_mark_end(US_70FPS);
 	}
 
 	// Restore background and exit
