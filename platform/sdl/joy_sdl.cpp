@@ -69,11 +69,24 @@ public:
 		return m_Joystick;
 	}
 
-	void GetData(std::span<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
+	void GetData(std::vector<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
 	{
-		axises = std::span<int>(m_Axises, m_AxisCount);
+		axises.clear();
+		for (int i = 0; i < m_AxisCount; i++)
+		{
+			axises.push_back(m_Axises[i]);
+		}
 		buttons = std::span<JoystickButton>(m_ButtonStates, m_ButtonCount);
 		hats = std::span<int>(m_HatStates, m_HatCount);
+	}
+
+	void GetAxises(std::vector<int>& axises)
+	{
+		axises.clear();
+		for (int i = 0; i < m_AxisCount; i++)
+		{
+			axises.push_back(m_Axises[i]);
+		}
 	}
 
 	std::string GetName() const
@@ -397,13 +410,26 @@ void joy_flush()
 	}
 }
 
-bool joy_get_state(int handle, std::span<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
+bool joy_get_state(int handle, std::vector<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
 {
 	for (JoystickInfo& info : sticks)
 	{
 		if (info.InstanceID() == handle)
 		{
 			info.GetData(axises, buttons, hats);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool joy_get_axis_state(int handle, std::vector<int>& axises)
+{
+	for (JoystickInfo& info : sticks)
+	{
+		if (info.InstanceID() == handle)
+		{
+			info.GetAxises(axises);
 			return true;
 		}
 	}

@@ -127,4 +127,5 @@ void plat_joystick_attached(int device_num);
 void plat_joystick_detached(int device_num);
 //Returns true if handle is a valid joystick handle, and will stick the current
 //state of the joystick into axises, buttons, and hats
-bool joy_get_state(int handle, std::span<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats);
+bool joy_get_state(int handle, std::vector<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats);
+bool joy_get_axis_state(int handle, std::vector<int>& axises);

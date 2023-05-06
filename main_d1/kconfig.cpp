@@ -644,7 +644,11 @@ void kc_drawitem(kc_item* item, int is_current)
 			}
 			break;
 		case BT_JOY_AXIS:
-			strncpy(btext, Text_string[joyaxis_text[item->value]], 10); break;
+			if (item->value < 4)
+				strncpy(btext, Text_string[joyaxis_text[item->value]], 10); 
+			else
+				snprintf(btext, 10, "%d", item->value);
+			break;
 		case BT_INVERT:
 			strncpy(btext, Text_string[invert_text[item->value]], 10); break;
 		}
@@ -747,7 +751,7 @@ void kc_change_key(kc_item* item)
 			n = item - All_items;
 			if ((i != n) && (All_items[i].type == BT_KEY) && (All_items[i].value == keycode)) 
 			{
-				All_items[i].value = 255;
+				All_items[i].value = -32768;
 				kc_drawitem(&All_items[i], 0);
 			}
 		}
@@ -766,6 +770,7 @@ void kc_change_key(kc_item* item)
 void kc_change_joybutton(kc_item* item)
 {
 	int n, i, k;
+	int extra = 0;
 	uint8_t code;
 
 	gr_set_fontcolor(BM_XRGB(28, 28, 28), -1);
@@ -793,22 +798,36 @@ void kc_change_joybutton(kc_item* item)
 
 		kc_drawquestion(item);
 
-		if (Config_control_type == CONTROL_THRUSTMASTER_FCS) 
+		while (!event_queue.empty())
 		{
-			int axis[4];
-			joystick_read_raw_axis(JOY_ALL_AXIS, axis);
-			if (joy_get_button_state(7)) code = 7;
-			if (joy_get_button_state(11)) code = 11;
-			if (joy_get_button_state(15)) code = 15;
-			if (joy_get_button_state(19)) code = 19;
-			//for (i = 0; i < 4; i++) 
-			for (i = 4; i < 20; i++) //Use Flightstick button assignments
+			plat_event ev = event_queue.front(); event_queue.pop();
+
+			if (ev.source == EventSource::Joystick && ev.down && ev.handle == Kconfig_joy_binding_handle)
 			{
-				if (joy_get_button_state(i))
-					code = i;
+				code = ev.inputnum;
+				if (ev.flags & EV_FLAG_AXIS)
+					extra = KC_BUTTON_TYPE_AXIS;
+				else if (ev.flags & EV_FLAG_HAT)
+				{
+					//have to find which bit was active...
+					int mask = 8;
+					int bitnum = 3;
+					while (mask > 0)
+					{
+						if (ev.inputnum & mask)
+						{
+							code = bitnum;
+							break;
+						}
+						mask >>= 1;
+						bitnum--;
+					}
+					extra = KC_BUTTON_TYPE_HAT;
+				}
 			}
 		}
-		else if (Config_control_type == CONTROL_FLIGHTSTICK_PRO) 
+
+		//else if (Config_control_type == CONTROL_FLIGHTSTICK_PRO) 
 		{
 			for (i = 4; i < 20; i++)
 			{
@@ -819,14 +838,6 @@ void kc_change_joybutton(kc_item* item)
 				}
 			}
 		}
-		else 
-		{
-			for (i = 0; i < 4; i++)
-			{
-				if (joy_get_button_state(i))
-					code = i;
-			}
-		}
 		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 	}
 	if (code != 255) 
@@ -834,13 +845,15 @@ void kc_change_joybutton(kc_item* item)
 		for (i = 0; i < Num_items; i++) 
 		{
 			n = item - All_items;
-			if ((i != n) && (All_items[i].type == BT_JOY_BUTTON) && (All_items[i].value == code)) 
+			if ((i != n) && (All_items[i].type == BT_JOY_BUTTON) && (All_items[i].value == code) 
+				&& All_items[i].extra == extra) 
 			{
-				All_items[i].value = 255;
+				All_items[i].value = -32768;
 				kc_drawitem(&All_items[i], 0);
 			}
 		}
 		item->value = code;
+		item->extra = extra;
 	}
 	kc_drawitem(item, 1);
 	nm_restore_background(0, INFO_Y, 310, grd_curcanv->cv_font->ft_h);
@@ -897,7 +910,7 @@ void kc_change_mousebutton(kc_item* item)
 			n = item - All_items;
 			if ((i != n) && (All_items[i].type == BT_MOUSE_BUTTON) && (All_items[i].value == code))
 			{
-				All_items[i].value = 255;
+				All_items[i].value = -32768;
 				kc_drawitem(&All_items[i], 0);
 			}
 		}
@@ -912,8 +925,6 @@ void kc_change_mousebutton(kc_item* item)
 
 void kc_change_joyaxis(kc_item* item)
 {
-	int axis[4];
-	int old_axis[4];
 	int n, i, k;
 	uint8_t code;
 
@@ -925,11 +936,17 @@ void kc_change_joyaxis(kc_item* item)
 	code = 255;
 	k = 255;
 
-	joystick_read_raw_axis(JOY_ALL_AXIS, old_axis);
+	//joystick_read_raw_axis(JOY_ALL_AXIS, old_axis);
+	std::vector<int> old_axis, axis;
+	if (!joy_get_axis_state(Kconfig_joy_binding_handle, old_axis))
+	{
+		nm_restore_background(0, INFO_Y, 310, grd_curcanv->cv_font->ft_h);
+		game_flush_inputs();
+		return;
+	}
 
 	while ((k != KEY_ESC) && (code == 255)) 
 	{
-		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
@@ -943,9 +960,14 @@ void kc_change_joyaxis(kc_item* item)
 
 		kc_drawquestion(item);
 
-		joystick_read_raw_axis(JOY_ALL_AXIS, axis);
+		if (!joy_get_axis_state(Kconfig_joy_binding_handle, axis))
+		{
+			nm_restore_background(0, INFO_Y, 310, grd_curcanv->cv_font->ft_h);
+			game_flush_inputs();
+			return;
+		}
 
-		for (i = 0; i < 4; i++)
+		for (i = 0; i < old_axis.size(); i++)
 		{
 			if (abs(axis[i] - old_axis[i]) > 20)
 			{
@@ -953,6 +975,8 @@ void kc_change_joyaxis(kc_item* item)
 			}
 			old_axis[i] = axis[i];
 		}
+
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 	}
 	if (code != 255) 
 	{
@@ -991,14 +1015,12 @@ void kc_change_mouseaxis(kc_item* item)
 
 	while ((k != KEY_ESC) && (code == 255)) 
 	{
-		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 		plat_do_events();
 #ifdef NETWORK
 		if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
 			multi_menu_poll();
 #endif
-		//		if ( Game_mode & GM_MULTI )
-		//			GameLoop( 0, 0 );				// Continue
+
 		k = key_inkey();
 		timer_delay(10);
 
@@ -1010,6 +1032,7 @@ void kc_change_mouseaxis(kc_item* item)
 		mouse_get_delta(&dx, &dy);
 		if (abs(dx) > 20) code = 0;
 		if (abs(dy) > 20)	code = 1;
+		plat_present_canvas(*kconfig_canvas, ASPECT_4_3);
 	}
 	if (code != 255) 
 	{
@@ -1100,10 +1123,10 @@ void kconfig(KConfigMode control_mode, const char* title)
 	switch (control_mode)
 	{
 	case KConfigMode::Keyboard:
-		kconfig_sub(kc_keyboard, NUM_KEY_CONTROLS, title); 
+		kconfig_sub(kc_keyboard, NUM_KEY_CONTROLS, title);
 		break;
 	case KConfigMode::Joystick:
-		kconfig_sub(kc_joystick, NUM_OTHER_CONTROLS, title); 
+		kconfig_sub(kc_joystick, NUM_OTHER_CONTROLS, title);
 		break;
 	case KConfigMode::Mouse:
 		kconfig_sub(kc_mouse, NUM_OTHER_CONTROLS, title);
@@ -1136,16 +1159,32 @@ void kconfig(KConfigMode control_mode, const char* title)
 			current_keyboard_bindings[kc_keyboard[i].id].button1 = kc_keyboard[i].value;
 	}
 
-	/*if ((Config_control_type > 0) && (Config_control_type < 5)) 
+	for (i = 0; i < NUM_OTHER_CONTROLS; i++)
 	{
-		for (i = 0; i < NUM_OTHER_CONTROLS; i++)
-			kconfig_settings[Config_control_type][i] = kc_joystick[i].value;
+		if (kc_mouse[i].type == BT_INVERT)
+			current_mouse_axises[kc_mouse[i].id].invert = kc_mouse[i].value;
+		else if (kc_mouse[i].type == BT_MOUSE_AXIS)
+			current_mouse_axises[kc_mouse[i].id].axis = kc_mouse[i].value;
+		else
+			current_mouse_bindings[kc_mouse[i].id].button1 = kc_mouse[i].value;
 	}
-	else if (Config_control_type > 4) 
+
+	if (control_mode == KConfigMode::Joystick && joyinfo)
 	{
 		for (i = 0; i < NUM_OTHER_CONTROLS; i++)
-			kconfig_settings[Config_control_type][i] = kc_mouse[i].value;
-	}*/
+		{
+			//The joystick may have been disconnected at this point, but the bindings will remain in the player file
+			if (kc_joystick[i].type == BT_INVERT)
+				joyinfo->axises[kc_joystick[i].id].invert = kc_joystick[i].value;
+			else if (kc_joystick[i].type == BT_JOY_AXIS)
+				joyinfo->axises[kc_joystick[i].id].axis = kc_joystick[i].value;
+			else
+			{
+				joyinfo->buttons[kc_joystick[i].id].button1 = kc_joystick[i].value;
+				joyinfo->buttons[kc_joystick[i].id].type1 = kc_joystick[i].extra;
+			}
+		}
+	}
 
 	gr_free_canvas(kconfig_canvas);
 }
@@ -1309,7 +1348,7 @@ void kconfig_process_events()
 }
 
 //Reads the axis for control controlnum, with the specified deadzone, and adjusting for sensitivity. 
-fix check_axis(kc_joyinfo& info, std::span<int>& axises, AxisType controlnum, int deadzone, bool apply_sensitivity)
+fix check_axis(kc_joyinfo& info, std::vector<int>& axises, AxisType controlnum, int deadzone, bool apply_sensitivity)
 {
 	int axis_num = info.axises[(int)controlnum].axis;
 	if (axis_num < 0) return 0;
@@ -1340,7 +1379,7 @@ fix check_axis(kc_joyinfo& info, std::span<int>& axises, AxisType controlnum, in
 void controls_read_joystick(kc_joyinfo& info, control_info& controls, bool slide_on, bool bank_on)
 {
 	std::span<JoystickButton> buttons;
-	std::span<int> axises;
+	std::vector<int> axises;
 	std::span<int> hats;
 
 	if (Kconfig_use_joystick && joy_get_state(info.handle, axises, buttons, hats))
@@ -1366,7 +1405,7 @@ void controls_read_joystick(kc_joyinfo& info, control_info& controls, bool slide
 			controls.sideways_thrust_time += temp;
 
 		//Read sideways thrust
-		controls.sideways_thrust_time = check_axis(info, axises, AxisType::SlideLR, 10, false);
+		controls.sideways_thrust_time += check_axis(info, axises, AxisType::SlideLR, 10, false);
 
 		//Read banking
 		if (bank_on)
