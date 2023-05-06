@@ -144,7 +144,7 @@ void joydefs_config()
 
 			if (attached_joysticks.size() == 0)
 			{
-				nm_messagebox("Error", 1, "OK", "No attached joysticks\nwere detected.");
+				nm_messagebox("Note", 1, "OK", "No attached joysticks\nwere detected.");
 			}
 			else
 			{
@@ -155,6 +155,12 @@ void joydefs_config()
 
 				int sticknum = newmenu_listbox("Select a joystick to bind", attached_joysticks.size(),
 					nameptrs, true, nullptr);
+
+				if (sticknum != -1)
+				{
+					Kconfig_joy_binding_handle = attached_joysticks[sticknum].handle;
+					kconfig(KConfigMode::Joystick, (const char*)nameptrs[sticknum]);
+				}
 
 				delete[] nameptrs;
 			}
