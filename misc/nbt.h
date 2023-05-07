@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <string_view>
 #include "cfile/cfile.h"
 
 void nbt_read_string(FILE* fp, std::string& str);
@@ -206,10 +207,26 @@ struct StringTag : Tag
 	}
 };
 
+//This really should be templated, but I'm not sure how to do it cleanly
+//When deseralized, you'd have to compare it to a generic type to read out list_type, then cast
+//to the correct templated type, which seems a bit messy, but maybe not less messy than this. 
 struct ListTag : Tag
 {
+private:
+	//Unlike the other tags, I'm not exposing this directly to ensure the list remains the right type.
 	NBTTag list_type;
 	std::vector<std::unique_ptr<Tag>> list;
+public:
+	ListTag()
+	{
+		list_type = NBTTag::End;
+	}
+
+	NBTTag get_list_type() const
+	{
+		return list_type;
+	}
+
 	NBTTag GetType() const override
 	{
 		return NBTTag::List;
@@ -228,6 +245,7 @@ struct ListTag : Tag
 			list.push_back(std::unique_ptr<Tag>(tag_p));
 		}
 	}
+
 	void write_data(FILE* fp) override
 	{
 		int8_t type = (int8_t)list_type;
@@ -237,6 +255,37 @@ struct ListTag : Tag
 		{
 			list[i]->write_data(fp);
 		}
+	}
+
+	void put_tag(Tag* ptr)
+	{
+		if (list.size() > 0)
+		{
+			if (ptr->GetType() != list_type)
+				throw std::runtime_error("ListTag::put_tag: Tag type mismatch");
+		}
+
+		else
+		{
+			list_type = ptr->GetType();
+		}
+
+		list.push_back(std::unique_ptr<Tag>(ptr));
+	}
+
+	void clear()
+	{
+		list.clear();
+	}
+
+	void remove_at(int index)
+	{
+		if (index < 0 || index >= list.size())
+			throw std::runtime_error("ListTag:remove_at: Index out of range");
+		auto it = list.begin();
+		it += index;
+
+		list.erase(it);
 	}
 };
 
@@ -264,11 +313,22 @@ struct CompoundTag : Tag
 	void write_data(FILE* fp) override
 	{
 		EndTag end;
-		for (std::unique_ptr<Tag>& tag_r : list)
+		for (std::unique_ptr<Tag>& tag_p : list)
 		{
-			tag_r->write_tag(fp);
+			tag_p->write_tag(fp);
 		}
 
 		end.write_tag(fp);
+	}
+
+	Tag* find_tag(std::string_view find_name)
+	{
+		for (std::unique_ptr<Tag>& tag_p : list)
+		{
+			if (!tag_p->name.compare(find_name))
+				return tag_p.get();
+		}
+
+		return nullptr;
 	}
 };
