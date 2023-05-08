@@ -83,52 +83,6 @@ void joydefs_config()
 
 		i1 = newmenu_do1(NULL, TXT_CONTROLS, nitems, m, joydef_menuset_1, i1);
 
-		/*switch (i1) 
-		{
-		case 5: 
-		{
-			old_masks = 0;
-			for (i = 0; i < 4; i++)
-			{
-				if (kconfig_is_axes_used(i))
-					old_masks |= (1 << i);
-			}
-			if (Config_control_type == 0)
-				// nothing...
-				Config_control_type = 0;
-			else if (Config_control_type < 5)
-				kconfig(1, const_cast<char*>(control_text[Config_control_type]));
-			else
-				kconfig(2, const_cast<char*>(control_text[Config_control_type]));
-
-			masks = 0;
-			for (i = 0; i < 4; i++)
-			{
-				if (kconfig_is_axes_used(i))
-					masks |= (1 << i);
-			}
-
-			switch (Config_control_type) 
-			{
-			case	CONTROL_JOYSTICK:
-			case	CONTROL_FLIGHTSTICK_PRO:
-			case	CONTROL_THRUSTMASTER_FCS:
-			{
-				for (i = 0; i < 4; i++) 
-				{
-					if ((masks & (1 << i)) && (!(old_masks & (1 << i))))
-						joydefs_calibrate_flag = 1;
-				}
-			}
-			break;
-			}
-		}
-				break;
-		case 7:
-			kconfig(0, TXT_KEYBOARD);
-			break;
-		}*/
-
 		switch (i1)
 		{
 		case 0:

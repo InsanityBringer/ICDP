@@ -985,7 +985,7 @@ void kc_change_joyaxis(kc_item* item)
 			n = item - All_items;
 			if ((i != n) && (All_items[i].type == BT_JOY_AXIS) && (All_items[i].value == code))
 			{
-				All_items[i].value = 255;
+				All_items[i].value = -32768;
 				kc_drawitem(&All_items[i], 0);
 			}
 		}
@@ -1870,4 +1870,68 @@ void kconfig_init_defaults()
 	//default_joystick_buttons[(int)CtrlType::FirePrimary].flags |= KC_BUTTON_B2_AXIS;
 
 	kconfig_reset_keybinds();
+}
+
+//Code for serializing the kconfig state to NBT tags
+void kc_binding_from_compound(kc_button_binding& binding, CompoundTag& tag)
+{
+	Tag* bindtag_p = tag.find_tag("Button1");
+	if (bindtag_p)
+		binding.button1 = nbt_get_integral(bindtag_p, binding.button1);
+	bindtag_p = tag.find_tag("Button2");
+	if (bindtag_p)
+		binding.button2 = nbt_get_integral(bindtag_p, binding.button2);
+	bindtag_p = tag.find_tag("Type1");
+	if (bindtag_p)
+		binding.type1 = nbt_get_integral(bindtag_p, binding.type1);
+	bindtag_p = tag.find_tag("Type2");
+	if (bindtag_p)
+		binding.type2 = nbt_get_integral(bindtag_p, binding.type2);
+}
+
+CompoundTag* kc_create_compound_for_binding(kc_button_binding& binding)
+{
+	CompoundTag* newtag = new CompoundTag();
+
+	newtag->list.push_back(std::make_unique<ShortTag>("Button1", binding.button1));
+	newtag->list.push_back(std::make_unique<ShortTag>("Button2", binding.button2));
+	newtag->list.push_back(std::make_unique<ByteTag>("Type1", binding.type1));
+	newtag->list.push_back(std::make_unique<ByteTag>("Type2", binding.type2));
+
+	return newtag;
+}
+
+void kc_read_bindings_from_controlinfo_tag(CompoundTag& tag)
+{
+	kconfig_reset_keybinds();
+	Tag* tag_p = tag.find_tag("Keyboard_bindings");
+
+	if (tag_p && tag_p->GetType() == NBTTag::List)
+	{
+		ListTag* ltag_p = (ListTag*)tag_p;
+		if (ltag_p->get_list_type() == NBTTag::Compound)
+		{
+			size_t count = std::min((size_t)KC_NUM_CONTROLS, ltag_p->size());
+			for (size_t i = 0; i < ltag_p->size(); i++)
+			{
+				CompoundTag* binding = (CompoundTag*)ltag_p->at(i);
+				kc_binding_from_compound(current_keyboard_bindings[i], *binding);
+			}
+		}
+	}
+}
+
+CompoundTag* kc_create_controlinfo_tag()
+{
+	CompoundTag* tag = new CompoundTag("Control_info");
+	tag->list.clear();
+
+	ListTag* tag_p = new ListTag("Keyboard_bindings");
+
+	for (kc_button_binding& binding : current_keyboard_bindings)
+		tag_p->put_tag(kc_create_compound_for_binding(binding));
+
+	tag->list.push_back(std::unique_ptr<Tag>(tag_p));
+
+	return tag;
 }

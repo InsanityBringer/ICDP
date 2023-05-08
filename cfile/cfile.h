@@ -51,7 +51,7 @@ int cfile_read_int(CFILE* fp);;
 uint8_t file_read_byte(FILE* fp);
 short file_read_short(FILE* fp);
 int file_read_int(FILE* fp);
-int64_t file_read_int64(FILE* fp)
+int64_t file_read_int64(FILE* fp);
 void file_write_byte(FILE* fp, uint8_t b);
 void file_write_short(FILE* fp, short s);
 void file_write_int(FILE* fp, int i);

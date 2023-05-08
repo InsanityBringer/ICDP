@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <stdexcept>
 #include "cfile/cfile.h"
 
 void nbt_read_string(FILE* fp, std::string& str);
@@ -29,6 +30,9 @@ struct Tag
 {
 	std::string name;
 
+	Tag() {}
+	Tag(std::string_view name) : name(name) {}
+
 	virtual NBTTag GetType() const = 0;
 	virtual void read_data(FILE* fp) = 0;
 	virtual void write_data(FILE* fp) = 0;
@@ -38,7 +42,7 @@ struct Tag
 	void write_tag(FILE* fp);
 };
 
-struct EndTag : Tag
+struct EndTag : public Tag
 {
 	NBTTag GetType() const override
 	{
@@ -48,9 +52,12 @@ struct EndTag : Tag
 	void write_data(FILE* fp) override {}
 };
 
-struct ByteTag : Tag
+struct ByteTag : public Tag
 {
 	int8_t value;
+	ByteTag() : value(0) {}
+	ByteTag(std::string_view name, int8_t value) : Tag(name), value(value) {}
+
 	NBTTag GetType() const override
 	{
 		return NBTTag::Byte;
@@ -66,9 +73,12 @@ struct ByteTag : Tag
 	}
 };
 
-struct ShortTag : Tag
+struct ShortTag : public Tag
 {
 	int16_t value;
+	ShortTag() : value(0) {}
+	ShortTag(std::string_view name, int16_t value) : Tag(name), value(value) {}
+
 	NBTTag GetType() const override
 	{
 		return NBTTag::Short;
@@ -84,9 +94,12 @@ struct ShortTag : Tag
 	}
 };
 
-struct IntTag : Tag
+struct IntTag : public Tag
 {
 	int32_t value;
+	IntTag() : value(0) {}
+	IntTag(std::string_view name, int32_t value) : Tag(name), value(value) {}
+
 	NBTTag GetType() const override
 	{
 		return NBTTag::Int;
@@ -102,7 +115,7 @@ struct IntTag : Tag
 	}
 };
 
-struct LongTag : Tag
+struct LongTag : public Tag
 {
 	int64_t value;
 	NBTTag GetType() const override
@@ -120,7 +133,7 @@ struct LongTag : Tag
 	}
 };
 
-struct FloatTag : Tag
+struct FloatTag : public Tag
 {
 	float value;
 	NBTTag GetType() const override
@@ -140,7 +153,7 @@ struct FloatTag : Tag
 	}
 };
 
-struct DoubleTag : Tag
+struct DoubleTag : public Tag
 {
 	double value;
 	NBTTag GetType() const override
@@ -160,7 +173,7 @@ struct DoubleTag : Tag
 	}
 };
 
-struct ByteArrayTag : Tag
+struct ByteArrayTag : public Tag
 {
 	std::vector<int8_t> array;
 	NBTTag GetType() const override
@@ -189,9 +202,15 @@ struct ByteArrayTag : Tag
 	}
 };
 
-struct StringTag : Tag
+struct StringTag : public Tag
 {
 	std::string value;
+
+	StringTag() {}
+	StringTag(std::string_view name, const char* str) : Tag(name), value(str) {}
+	StringTag(std::string_view name, std::string_view str) : Tag(name), value(str) {}
+	StringTag(std::string_view name, std::string str) : Tag(name), value(str) {}
+
 	NBTTag GetType() const override
 	{
 		return NBTTag::String;
@@ -210,7 +229,7 @@ struct StringTag : Tag
 //This really should be templated, but I'm not sure how to do it cleanly
 //When deseralized, you'd have to compare it to a generic type to read out list_type, then cast
 //to the correct templated type, which seems a bit messy, but maybe not less messy than this. 
-struct ListTag : Tag
+struct ListTag : public Tag
 {
 private:
 	//Unlike the other tags, I'm not exposing this directly to ensure the list remains the right type.
@@ -218,6 +237,10 @@ private:
 	std::vector<std::unique_ptr<Tag>> list;
 public:
 	ListTag()
+	{
+		list_type = NBTTag::End;
+	}
+	ListTag(std::string_view name) : Tag(name)
 	{
 		list_type = NBTTag::End;
 	}
@@ -273,6 +296,11 @@ public:
 		list.push_back(std::unique_ptr<Tag>(ptr));
 	}
 
+	size_t size()
+	{
+		return list.size();
+	}
+
 	void clear()
 	{
 		list.clear();
@@ -287,11 +315,23 @@ public:
 
 		list.erase(it);
 	}
+
+	Tag* at(int index)
+	{
+		if (index < 0 || index >= list.size())
+			throw std::runtime_error("ListTag:at: Index out of range");
+
+		return list[index].get();
+	}
 };
 
-struct CompoundTag : Tag
+struct CompoundTag : public Tag
 {
 	std::vector<std::unique_ptr<Tag>> list;
+
+	CompoundTag() {}
+	CompoundTag(std::string_view name) : Tag(name) {}
+
 	NBTTag GetType() const override
 	{
 		return NBTTag::Compound;
@@ -332,3 +372,19 @@ struct CompoundTag : Tag
 		return nullptr;
 	}
 };
+
+//Helper function to get a value as an integer (up to 32 bits, TODO 64 bit version)
+//If the tag isn't an integer type, instead returns def. 
+inline int nbt_get_integral(Tag* tag_p, int def)
+{
+	switch (tag_p->GetType())
+	{
+	case NBTTag::Byte:
+		return ((ByteTag*)tag_p)->value;
+	case NBTTag::Short:
+		return ((ShortTag*)tag_p)->value;
+	case NBTTag::Int:
+		return ((IntTag*)tag_p)->value;
+	}
+	return def;
+}

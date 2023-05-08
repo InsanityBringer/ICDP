@@ -16,6 +16,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <vector>
 
 #include "misc/types.h"
+#include "misc/nbt.h"
 #include "fix/fix.h"
 
 //Game control sources that are identified by the engine.
@@ -218,7 +219,6 @@ extern void reset_cruise(void);
 
 extern int kconfig_is_axes_used(int axis);
 
-extern void kconfig_init_external_controls(int intno, int address);
 void kc_drawitem(kc_item* item, int is_current);
 void kc_change_key(kc_item* item);
 void kc_change_joybutton(kc_item* item);
@@ -226,3 +226,6 @@ void kc_change_mousebutton(kc_item* item);
 void kc_change_joyaxis(kc_item* item);
 void kc_change_mouseaxis(kc_item* item);
 void kc_change_invert(kc_item* item);
+
+void kc_read_bindings_from_controlinfo_tag(CompoundTag& tag);
+CompoundTag* kc_create_controlinfo_tag();

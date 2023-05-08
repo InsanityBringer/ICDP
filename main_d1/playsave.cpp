@@ -35,6 +35,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/mono.h"
 #include "state.h"
 #include "cfile/cfile.h"
+#include "misc/nbt.h"
 
 #define SAVE_FILE_ID			'DPLR'
 
@@ -66,6 +67,17 @@ typedef struct hli
 	char	shortname[9];
 	uint8_t	level_num;
 } hli;
+
+struct pilot_gameinfo
+{
+	std::string Game_name;
+	std::vector<hli> highest_levels;
+};
+
+std::vector<pilot_gameinfo> all_gameinfo;
+//This is a pointer out of all_gameinfo, so all_gameinfo shouldn't be modified except when loading pilots
+//After all_gameinfo is populated from the pilot file, set this pointer. 
+pilot_gameinfo* current_gameinfo;
 
 int n_highest_levels;
 
@@ -135,6 +147,44 @@ int D_WriteHighestLevel(FILE* fp, hli* info)
 	return 1;
 }
 
+pilot_gameinfo generate_gameinfo_for_current_game()
+{
+	pilot_gameinfo gameinfo = {};
+	gameinfo.Game_name = "Descent";
+
+	//Generate hli for the built-in mission
+	hli default_hli = {};
+	default_hli.level_num = 1;
+	gameinfo.highest_levels.push_back(default_hli);
+
+	return gameinfo;
+}
+
+ListTag* generate_gameinfo_tag()
+{
+	ListTag* tag_p = new ListTag("Game_info");
+	for (pilot_gameinfo& gameinfo : all_gameinfo)
+	{
+		CompoundTag* gtag_p = new CompoundTag();
+		gtag_p->list.push_back(std::make_unique<StringTag>("Game_name", gameinfo.Game_name));
+		ListTag* ltag_p = new ListTag("Highest_level_info");
+
+		for (hli& entry : gameinfo.highest_levels)
+		{
+			CompoundTag* hlitag_p = new CompoundTag();
+			hlitag_p->list.push_back(std::make_unique<StringTag>("Mission_name", entry.shortname));
+			hlitag_p->list.push_back(std::make_unique<IntTag>("Highest_level", entry.level_num));
+
+			ltag_p->put_tag(hlitag_p);
+		}
+
+		gtag_p->list.push_back(std::unique_ptr<Tag>(ltag_p));
+		tag_p->put_tag(gtag_p);
+	}
+
+	return tag_p;
+}
+
 void init_game_list()
 {
 	int i;
@@ -191,6 +241,11 @@ RetrySelection:
 	strcpy(Network_message_macro[2], TXT_DEF_MACRO_3);
 	strcpy(Network_message_macro[3], TXT_DEF_MACRO_4);
 #endif
+
+	//TODO: Once the real gameinfo system is created this will need to be hooked up to that
+	current_gameinfo = nullptr; all_gameinfo.clear();
+	all_gameinfo.push_back(generate_gameinfo_for_current_game());
+	current_gameinfo = &all_gameinfo[0];
 
 	return 1;
 }
@@ -420,6 +475,14 @@ int get_highest_level(void)
 //write out player's saved games.  returns errno (0 == no error)
 int write_player_file()
 {
+	//TODO: Once the real gameinfo system is created this will need to be hooked up to that
+	current_gameinfo = nullptr; all_gameinfo.clear();
+	all_gameinfo.push_back(generate_gameinfo_for_current_game());
+	current_gameinfo = &all_gameinfo[0];
+
+	ListTag* gameinfo_tag = generate_gameinfo_tag();
+	CompoundTag* controlinfo_tag = kc_create_controlinfo_tag();
+
 	return 0;
 #if 0
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
