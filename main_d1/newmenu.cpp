@@ -777,7 +777,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 	while (!done) 
 	{
 		//network_listen();
-		I_MarkStart();
+		timer_mark_start();
 		plat_do_events();
 		k = key_inkey();
 
@@ -1073,7 +1073,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 			gr_palette_fade_in(gr_palette, 32, 0);
 		}
 		plat_present_canvas(*menu_canvas, 3.f/4.f);
-		I_MarkEnd(US_70FPS);
+		timer_mark_end(US_70FPS);
 	}
 
 	// Restore everything...
@@ -1379,7 +1379,7 @@ ReadFileNames:
 
 	while (!done) 
 	{
-		I_MarkStart();
+		timer_mark_start();
 		plat_do_events();
 		ocitem = citem;
 		ofirst_item = first_item;
@@ -1574,7 +1574,7 @@ ReadFileNames:
 			}
 		}
 		plat_present_canvas(*menu_canvas, 3.f/4.f);
-		I_MarkEnd(US_70FPS);
+		timer_mark_end(US_70FPS);
 	}
 
 ExitFileMenuEarly:
@@ -1688,7 +1688,7 @@ int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abo
 
 	while (!done) 
 	{
-		I_MarkStart();
+		timer_mark_start();
 		plat_do_events();
 		ocitem = citem;
 		ofirst_item = first_item;
@@ -1842,7 +1842,7 @@ int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abo
 			}
 		}
 		plat_present_canvas(*menu_canvas, 3.f/4.f);
-		I_MarkEnd(US_70FPS);
+		timer_mark_end(US_70FPS);
 	}
 	keyd_repeat = old_keyd_repeat;
 

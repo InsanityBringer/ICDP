@@ -742,7 +742,7 @@ void MidiPlayer::Run()
 {
 	uint64_t currentTime, delta;
 	initialized = true;
-	nextTimerTick = I_GetUS();
+	nextTimerTick = timer_get_us();
 	midi_start_source();
 	int i;
 
@@ -787,7 +787,7 @@ void MidiPlayer::Run()
 		//when a song gets loaded and some events exist. 
 		if (!songLoaded)
 		{
-			I_DelayUS(4000);
+			timer_delay_us(4000);
 		}
 		else
 		{
@@ -814,11 +814,11 @@ void MidiPlayer::Run()
 				}
 
 				midi_check_status();
-				I_DelayUS(4000);
+				timer_delay_us(4000);
 			}
 			else if (synth->ClassifySynth() == MIDISYNTH_LIVE)
 			{
-				currentTime = I_GetUS();
+				currentTime = timer_get_us();
 				while (currentTime > nextTimerTick)
 				{
 					currentTickFrac += TickFracDelta;
@@ -830,10 +830,10 @@ void MidiPlayer::Run()
 
 					nextTimerTick += (1000000 / 120);
 
-					delta = nextTimerTick - I_GetUS();
+					delta = nextTimerTick - timer_get_us();
 					if (delta > 2000)
 					{
-						I_DelayUS(delta - 2000);
+						timer_delay_us(delta - 2000);
 					}
 				}
 			}

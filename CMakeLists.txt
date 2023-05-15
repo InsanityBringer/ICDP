@@ -78,7 +78,7 @@ set(SHARED_SOURCES
 	main_shared/text.h
 	mem/mem.cpp
 	mem/mem.h
-    misc/args.cpp
+	misc/args.cpp
 	misc/args.h
 	misc/byteswap.cpp
 	misc/byteswap.h
@@ -86,10 +86,12 @@ set(SHARED_SOURCES
 	misc/error.h
 	misc/hash.cpp
 	misc/hash.h
+	misc/nbt.cpp
+	misc/nbt.h
 	misc/parsarg.cpp
 	misc/parsarg.h
-    misc/rand.h
-    misc/rand.cpp
+	misc/rand.h
+	misc/rand.cpp
 	misc/stb_vorbis.h
 	misc/types.h
 	platform/disk.h

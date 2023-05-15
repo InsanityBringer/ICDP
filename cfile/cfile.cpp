@@ -485,6 +485,16 @@ int file_read_int(FILE* fp)
 	return v;
 }
 
+int64_t file_read_int64(FILE* fp)
+{
+	uint8_t b[8];
+	int64_t v;
+	fread(&b[0], sizeof(uint8_t), 8, fp);
+	v = b[0] + (b[1] << 8) + (b[2] << 16) + (b[3] << 24) + 
+		(b[4] << 32) + (b[5] << 40) + (b[6] << 48) + (b[7] << 56);
+	return v;
+}
+
 void file_write_byte(FILE* fp, uint8_t b)
 {
 	fwrite(&b, sizeof(uint8_t), 1, fp);
@@ -508,6 +518,26 @@ void file_write_int(FILE* fp, int i)
 	fwrite(&b2, sizeof(uint8_t), 1, fp);
 	fwrite(&b3, sizeof(uint8_t), 1, fp);
 	fwrite(&b4, sizeof(uint8_t), 1, fp);
+}
+
+void file_write_int64(FILE* fp, int64_t i)
+{
+	uint8_t b1 = i & 255;
+	uint8_t b2 = (i >> 8) & 255;
+	uint8_t b3 = (i >> 16) & 255;
+	uint8_t b4 = (i >> 24) & 255;
+	uint8_t b5 = (i >> 32) & 255;
+	uint8_t b6 = (i >> 40) & 255;
+	uint8_t b7 = (i >> 48) & 255;
+	uint8_t b8 = (i >> 56) & 255;
+	fwrite(&b1, sizeof(uint8_t), 1, fp);
+	fwrite(&b2, sizeof(uint8_t), 1, fp);
+	fwrite(&b3, sizeof(uint8_t), 1, fp);
+	fwrite(&b4, sizeof(uint8_t), 1, fp);
+	fwrite(&b5, sizeof(uint8_t), 1, fp);
+	fwrite(&b6, sizeof(uint8_t), 1, fp);
+	fwrite(&b7, sizeof(uint8_t), 1, fp);
+	fwrite(&b8, sizeof(uint8_t), 1, fp);
 }
 
 //[ISB] so it turns out there was already a cfgets. OOPS. This is still needed for the level name loader though

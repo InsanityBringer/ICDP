@@ -865,8 +865,8 @@ int multi_menu_poll(void)
 	//	t1 = timer_get_fixed_seconds();
 	//	while (timer_get_fixed_seconds() < t1+F1_0/20)
 	//		;
-	t1 = I_GetTicks() + 1;		// Wait 1/18th of a second...
-	while (I_GetTicks() < t1)
+	t1 = timer_get_ticks() + 1;		// Wait 1/18th of a second...
+	while (timer_get_ticks() < t1)
 		;
 
 

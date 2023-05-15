@@ -83,52 +83,6 @@ void joydefs_config()
 
 		i1 = newmenu_do1(NULL, TXT_CONTROLS, nitems, m, joydef_menuset_1, i1);
 
-		/*switch (i1) 
-		{
-		case 5: 
-		{
-			old_masks = 0;
-			for (i = 0; i < 4; i++)
-			{
-				if (kconfig_is_axes_used(i))
-					old_masks |= (1 << i);
-			}
-			if (Config_control_type == 0)
-				// nothing...
-				Config_control_type = 0;
-			else if (Config_control_type < 5)
-				kconfig(1, const_cast<char*>(control_text[Config_control_type]));
-			else
-				kconfig(2, const_cast<char*>(control_text[Config_control_type]));
-
-			masks = 0;
-			for (i = 0; i < 4; i++)
-			{
-				if (kconfig_is_axes_used(i))
-					masks |= (1 << i);
-			}
-
-			switch (Config_control_type) 
-			{
-			case	CONTROL_JOYSTICK:
-			case	CONTROL_FLIGHTSTICK_PRO:
-			case	CONTROL_THRUSTMASTER_FCS:
-			{
-				for (i = 0; i < 4; i++) 
-				{
-					if ((masks & (1 << i)) && (!(old_masks & (1 << i))))
-						joydefs_calibrate_flag = 1;
-				}
-			}
-			break;
-			}
-		}
-				break;
-		case 7:
-			kconfig(0, TXT_KEYBOARD);
-			break;
-		}*/
-
 		switch (i1)
 		{
 		case 0:
@@ -137,6 +91,35 @@ void joydefs_config()
 		case 3:
 			kconfig(KConfigMode::Mouse, "Mouse");
 			break;
+		case 5:
+		{
+			std::vector<joy_info> attached_joysticks;
+			joy_get_attached_joysticks(attached_joysticks);
+
+			if (attached_joysticks.size() == 0)
+			{
+				nm_messagebox("Note", 1, "OK", "No attached joysticks\nwere detected.");
+			}
+			else
+			{
+				char** nameptrs = new char* [attached_joysticks.size()];
+
+				for (i = 0; i < attached_joysticks.size(); i++)
+					nameptrs[i] = (char*)attached_joysticks[i].name.c_str();
+
+				int sticknum = newmenu_listbox("Select a joystick to bind", attached_joysticks.size(),
+					nameptrs, true, nullptr);
+
+				if (sticknum != -1)
+				{
+					Kconfig_joy_binding_handle = attached_joysticks[sticknum].handle;
+					kconfig(KConfigMode::Joystick, (const char*)nameptrs[sticknum]);
+				}
+
+				delete[] nameptrs;
+			}
+		}
+		break;
 		}
 
 		Config_joystick_sensitivity = m[9].value;

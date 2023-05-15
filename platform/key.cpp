@@ -177,9 +177,9 @@ int key_getch()
 
 	while (!key_checkch())
 	{
-		I_MarkStart();
+		timer_mark_start();
 		plat_do_events(); //[ISB] so we can get the freakin key in the first place...
-		I_MarkEnd(US_60FPS);
+		timer_mark_end(US_60FPS);
 	}
 
 	return key_inkey();

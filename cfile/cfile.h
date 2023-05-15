@@ -43,7 +43,7 @@ int cfexist(const char* filename);	// Returns true if file exists on disk (1) or
 //[ISB] little endian reading functions
 uint8_t cfile_read_byte(CFILE* fp);
 short cfile_read_short(CFILE* fp);
-int cfile_read_int(CFILE* fp);
+int cfile_read_int(CFILE* fp);;
 
 #define cfile_read_fix(a) ((fix)cfile_read_int(a))
 
@@ -51,9 +51,11 @@ int cfile_read_int(CFILE* fp);
 uint8_t file_read_byte(FILE* fp);
 short file_read_short(FILE* fp);
 int file_read_int(FILE* fp);
+int64_t file_read_int64(FILE* fp);
 void file_write_byte(FILE* fp, uint8_t b);
 void file_write_short(FILE* fp, short s);
 void file_write_int(FILE* fp, int i);
+void file_write_int64(FILE* fp, int64_t i);
 //Unlike cfgets, this will only end at null terminators, not newlines. 
 void cfile_get_string(char* buffer, int count, CFILE* fp);
 

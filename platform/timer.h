@@ -17,7 +17,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "fix/fix.h"
 
 //Not 100% precise, but should do the job
-//Call I_MarkEnd(US_60FPS) as desired
+//Call timer_mark_end(US_60FPS) as desired
 #define US_60FPS 16667
 #define US_70FPS 14286
 
@@ -27,18 +27,18 @@ fix timer_get_fixed_seconds(); // Rolls about every 9 hours...
 fix timer_get_approx_seconds(); // Returns time since program started... accurate to 1/120th of a second
 
 //[ISB] Replacement for the annoying ticker, increments 18 times/sec
-uint32_t I_GetTicks();
+uint32_t timer_get_ticks();
 
-uint32_t I_GetMS();
-uint64_t I_GetUS();
+uint32_t timer_get_ms();
+uint64_t timer_get_us();
 
 //[ISB] replacement for delay?
-void I_Delay(int ms);
+void timer_delay(int ms);
 
-void I_DelayUS(uint64_t us);
+void timer_delay_us(uint64_t us);
 
 //Quick 'n dirty framerate limiting tools.
 //Call I_MarkStart at the beginning of the loop
-void I_MarkStart();
+void timer_mark_start();
 //Call I_MarkEnd with the desired delay time to make the thread relax for just long enough
-void I_MarkEnd(uint64_t numUS);
+void timer_mark_end(uint64_t numUS);

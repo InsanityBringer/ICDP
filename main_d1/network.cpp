@@ -2143,7 +2143,7 @@ void network_send_sync(void)
 
 	// Randomize their starting locations...
 
-	P_SRand(I_GetTicks());
+	P_SRand(timer_get_ticks());
 	for (i = 0; i < MaxNumNetPlayers; i++)
 	{
 		if (Players[i].connected)

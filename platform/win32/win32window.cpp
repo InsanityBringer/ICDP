@@ -597,8 +597,8 @@ void plat_read_palette(uint8_t* dest)
 
 void plat_wait_for_vbl()
 {
-	I_MarkEnd(US_60FPS);
-	I_MarkStart();
+	timer_mark_end(US_60FPS);
+	timer_mark_start();
 }
 
 struct LetterboxRect { int left, top, width, height; };

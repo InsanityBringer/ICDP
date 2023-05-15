@@ -208,7 +208,7 @@ void kmatrix_view(int network)
 
 	while (!done) 
 	{
-		I_MarkStart();
+		timer_mark_start();
 		plat_present_canvas(*kmatrix_canvas, ASPECT_4_3);
 		plat_do_events();
 		for (i = 0; i < 4; i++)
@@ -247,7 +247,7 @@ void kmatrix_view(int network)
 			if (key < -1)
 				done = 1;
 		}
-		I_MarkEnd(US_70FPS);
+		timer_mark_end(US_70FPS);
 	}
 
 	// Restore background and exit

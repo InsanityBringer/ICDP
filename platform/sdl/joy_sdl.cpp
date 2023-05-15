@@ -69,11 +69,29 @@ public:
 		return m_Joystick;
 	}
 
-	void GetData(std::span<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
+	void GetData(std::vector<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
 	{
-		axises = std::span<int>(m_Axises, m_AxisCount);
+		axises.clear();
+		for (int i = 0; i < m_AxisCount; i++)
+		{
+			axises.push_back(m_Axises[i]);
+		}
 		buttons = std::span<JoystickButton>(m_ButtonStates, m_ButtonCount);
 		hats = std::span<int>(m_HatStates, m_HatCount);
+	}
+
+	void GetAxises(std::vector<int>& axises)
+	{
+		axises.clear();
+		for (int i = 0; i < m_AxisCount; i++)
+		{
+			axises.push_back(m_Axises[i]);
+		}
+	}
+
+	std::string GetName() const
+	{
+		return m_name;
 	}
 };
 
@@ -163,11 +181,39 @@ JoystickInfo::~JoystickInfo()
 	//	SDL_JoystickClose(m_Joystick);
 }
 
+constexpr int joy_button_threshold = 127 / 3;
+
 void JoystickInfo::Read(fix delta)
 {
 	//Read axises
 	for (int i = 0; i < m_AxisCount; i++)
-		m_Axises[i] = SDL_JoystickGetAxis(m_Joystick, i) * 127 / 32727;
+	{
+		int new_axis_value = SDL_JoystickGetAxis(m_Joystick, i) * 127 / 32727;
+
+		//Generate axis events if a threshold is crossed, to allow binding axises to buttons
+		if (are_events_enabled())
+		{
+			if (new_axis_value >= joy_button_threshold && m_Axises[i] < joy_button_threshold)
+			{
+				plat_event ev = {};
+				ev.source = EventSource::Joystick;
+				ev.flags = EV_FLAG_AXIS;
+				ev.inputnum = i;
+				ev.down = true;
+				event_queue.push(ev);
+			}
+			else if (new_axis_value < joy_button_threshold && m_Axises[i] >= joy_button_threshold)
+			{
+				plat_event ev = {};
+				ev.source = EventSource::Joystick;
+				ev.flags = EV_FLAG_AXIS;
+				ev.inputnum = i;
+				ev.down = false;
+				event_queue.push(ev);
+			}
+		}
+		m_Axises[i] = new_axis_value;
+	}
 
 	//Read hats
 	/*for (int i = 0; i < m_HatCount; i++)
@@ -392,7 +438,7 @@ void joy_flush()
 	}
 }
 
-bool joy_get_state(int handle, std::span<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
+bool joy_get_state(int handle, std::vector<int>& axises, std::span<JoystickButton>& buttons, std::span<int>& hats)
 {
 	for (JoystickInfo& info : sticks)
 	{
@@ -403,6 +449,31 @@ bool joy_get_state(int handle, std::span<int>& axises, std::span<JoystickButton>
 		}
 	}
 	return false;
+}
+
+bool joy_get_axis_state(int handle, std::vector<int>& axises)
+{
+	for (JoystickInfo& info : sticks)
+	{
+		if (info.InstanceID() == handle)
+		{
+			info.GetAxises(axises);
+			return true;
+		}
+	}
+	return false;
+}
+
+void joy_get_attached_joysticks(std::vector<joy_info>& info)
+{
+	info.clear();
+	for (JoystickInfo& joyinfo : sticks)
+	{
+		joy_info newinfo = {};
+		newinfo.handle = joyinfo.InstanceID();
+		newinfo.name = joyinfo.GetName();
+		info.push_back(newinfo);
+	}
 }
 
 #endif

@@ -1743,7 +1743,7 @@ int do_game_pause(int allow_menu)
 
 	while (paused) 
 	{
-		I_MarkStart();
+		timer_mark_start();
 		plat_present_canvas(*VR_screen_buffer, Game_aspect);
 		plat_do_events();
 		key = key_getch();
@@ -1780,7 +1780,7 @@ int do_game_pause(int allow_menu)
 			break;
 		}
 
-		I_MarkEnd(1000000 / FPSLimit);
+		timer_mark_end(1000000 / FPSLimit);
 	}
 
 	game_flush_inputs();
@@ -2077,7 +2077,7 @@ void game()
 			Automap_flag = 0;
 			Config_menu_flag = 0;
 
-			startTime = I_GetUS();
+			startTime = timer_get_us();
 
 			Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
 
@@ -2138,10 +2138,10 @@ void game()
 			//waiting loop for polled fps mode
 			uint64_t numUS = 1000000 / FPSLimit;
 			//[ISB] Combine a sleep with the polling loop to try to spare CPU cycles
-			uint64_t diff = (startTime + numUS) - I_GetUS();
+			uint64_t diff = (startTime + numUS) - timer_get_us();
 			if (diff > 2000) //[ISB] Sleep only if there's sufficient time to do so, since the scheduler isn't precise enough
-				I_DelayUS(diff - 2000);
-			while (I_GetUS() < startTime + numUS);
+				timer_delay_us(diff - 2000);
+			while (timer_get_us() < startTime + numUS);
 		}
 		set_events_enabled(false);
 	}
