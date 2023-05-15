@@ -84,8 +84,9 @@ bool Kconfig_use_gamepad;
 //When reading controls, this array is used to handle binary controls. 
 struct control_down_info
 {
-	int down_count;
+	int num_inputs_down;
 	fix down_time;
+	int down_count;
 };
 control_down_info control_down_count[KC_NUM_CONTROLS];
 
@@ -1129,11 +1130,19 @@ fix max_magnitude(fix a, fix b)
 	return b;
 }
 
-void kconfig_flush_inputs()
+void kconfig_clear_down_counts()
 {
 	for (int i = 0; i < KC_NUM_CONTROLS; i++)
 	{
 		control_down_count[i].down_count = 0;
+	}
+}
+
+void kconfig_flush_inputs()
+{
+	for (int i = 0; i < KC_NUM_CONTROLS; i++)
+	{
+		control_down_count[i].num_inputs_down = 0;
 	}
 }
 
@@ -1244,19 +1253,20 @@ void kconfig_process_events()
 			if (ev.down)
 			{
 				//For key ramping, if this is the first time the key was down, record the time
-				if (control_down_count[(int)control].down_count == 0)
+				if (control_down_count[(int)control].num_inputs_down == 0)
 					control_down_count[(int)control].down_time = timer_get_fixed_seconds();
 
+				control_down_count[(int)control].num_inputs_down++;
 				control_down_count[(int)control].down_count++;
 			}
 			else
 			{
-				control_down_count[(int)control].down_count--;
+				control_down_count[(int)control].num_inputs_down--;
 
 				//Clamp the decrement. This can occasionally go negative if you hold a button, enter the menu, close it, and then release it
 				//since the controls were flushed during this time.
-				if (control_down_count[(int)control].down_count < 0)
-					control_down_count[(int)control].down_count = 0;
+				if (control_down_count[(int)control].num_inputs_down < 0)
+					control_down_count[(int)control].num_inputs_down = 0;
 			}
 		}
 	}
@@ -1400,7 +1410,7 @@ constexpr fix scaled_reading(CtrlType control, int speed_factor, fix ctime, int 
 {
 	if (control >= CtrlType::NumCtrls || control < CtrlType::PitchForward)
 		return 0;
-	if (control_down_count[(int)control].down_count > 0)
+	if (control_down_count[(int)control].num_inputs_down > 0)
 		return speed_factor * (ctime - control_down_count[(int)control].down_time) / divisor;
 
 	return 0;
@@ -1427,24 +1437,14 @@ void controls_read_all()
 
 	ctime = timer_get_fixed_seconds();
 
-	if (Config_control_type == 5) 
-	{
-		//---------  Read Mouse -----------
-		//mprintf(( 0, "Mouse %d,%d b:%d, 0x%x\n", mouse_axis[0], mouse_axis[1], mouse_buttons, FrameTime ));
-		use_mouse = 1;
-	}
-	else
-	{
-		use_mouse = 0;
-	}
-
+	kconfig_clear_down_counts();
 	kconfig_process_events();
 
 	//------------- Read slide_on -------------
-	slide_on = control_down_count[(int)CtrlType::SlideOn].down_count > 0;
+	slide_on = control_down_count[(int)CtrlType::SlideOn].num_inputs_down > 0;
 
 	//------------- Read bank_on ---------------
-	bank_on = control_down_count[(int)CtrlType::BankOn].down_count > 0;
+	bank_on = control_down_count[(int)CtrlType::BankOn].num_inputs_down > 0;
 
 	//------------ Read pitch_time -----------
 	if (!slide_on)
@@ -1538,29 +1538,33 @@ void controls_read_all()
 	controls_read_mouse(Controls, slide_on, bank_on);
 
 	//----------- Read fire_primary_down_count
-	Controls.fire_primary_down_count = Controls.fire_primary_state = control_down_count[(int)CtrlType::FirePrimary].down_count != 0;
+	Controls.fire_primary_down_count = control_down_count[(int)CtrlType::FirePrimary].down_count;
+	Controls.fire_primary_state = control_down_count[(int)CtrlType::FirePrimary].num_inputs_down != 0;
 
 	//----------- Read fire_secondary_down_count
-	Controls.fire_secondary_down_count = Controls.fire_secondary_state = control_down_count[(int)CtrlType::FireSecondary].down_count != 0;
+	Controls.fire_secondary_down_count = control_down_count[(int)CtrlType::FireSecondary].down_count;
+	Controls.fire_secondary_state = control_down_count[(int)CtrlType::FireSecondary].num_inputs_down != 0;
 
 	//----------- Read fire_flare_down_count
-	Controls.fire_flare_down_count = control_down_count[(int)CtrlType::FireFlare].down_count != 0;
+	Controls.fire_flare_down_count = control_down_count[(int)CtrlType::FireFlare].down_count;
 
 	//----------- Read drop_bomb_down_count
-	Controls.drop_bomb_down_count = control_down_count[(int)CtrlType::DropBomb].down_count != 0;
+	Controls.drop_bomb_down_count = control_down_count[(int)CtrlType::DropBomb].down_count;
 
 	//----------- Read rear_view_down_count
-	Controls.rear_view_down_count = Controls.rear_view_down_state = control_down_count[(int)CtrlType::RearView].down_count != 0;
+	Controls.rear_view_down_count = control_down_count[(int)CtrlType::RearView].down_count != 0;
+	Controls.rear_view_down_state = control_down_count[(int)CtrlType::RearView].num_inputs_down != 0;
 
 	//----------- Read automap_down_count
-	Controls.automap_down_count = Controls.automap_state = control_down_count[(int)CtrlType::Automap].down_count != 0;
+	Controls.automap_down_count = control_down_count[(int)CtrlType::Automap].down_count;
+	Controls.automap_state = control_down_count[(int)CtrlType::Automap].num_inputs_down != 0;
 
 	//----------- Read stupid-cruise-control-type of throttle.
 	{
 		Cruise_speed += fixdiv(scaled_reading(CtrlType::CruiseFaster, speed_factor, ctime) * 5, FrameTime);
 		Cruise_speed -= fixdiv(scaled_reading(CtrlType::CruiseSlower, speed_factor, ctime) * 5, FrameTime);
 
-		if (control_down_count[(int)CtrlType::CruiseOff].down_count)
+		if (control_down_count[(int)CtrlType::CruiseOff].num_inputs_down)
 			Cruise_speed = 0;
 
 		if (Cruise_speed > i2f(100)) Cruise_speed = i2f(100);
