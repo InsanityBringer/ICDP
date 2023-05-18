@@ -478,8 +478,8 @@ int ui_get_filename(char* filename, int bufsize, const char* Filespec, const cha
 
 				//i = TICKER;
 				//while (TICKER < i + 2);
-				i = I_GetTicks();
-				while (I_GetTicks() < i + 2);
+				i = timer_get_ticks();
+				while (timer_get_ticks() < i + 2);
 				//[ISB] this code is going to be hell to get ported..
 			}
 			else 

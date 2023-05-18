@@ -258,52 +258,52 @@ void Texmap::DrawScanlinePerspective()
 
 fix pdiv(int a, int b)
 {
-	return (fix)((((int64_t)a << ZSHIFT) / b) << (16 - ZSHIFT));
+	return (fix)((((int64_t)a << (16 - ZSHIFT)) / b) << (ZSHIFT));
 }
 
 //even and odd
-#define C_TMAP_SCANLINE_PLN_LOOP        *dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))]];\
+#define C_TMAP_SCANLINE_PLN_LOOP        *dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))]];\
 										dest++; \
-										uvt += uvi;\
+										ut += ui; vt += vi;\
 										l += dldx;\
-										*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))]];\
+										*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))]];\
 										dest++; \
-										uvt += uvi;\
+										ut += ui; vt += vi;\
 										l += dldx;
 
-#define C_TMAP_SCANLINE_PLT_LOOP 		c = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										uvt += uvi;\
+#define C_TMAP_SCANLINE_PLT_LOOP 		c = (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))];\
+										ut += ui; vt += vi;\
 										if (c != 255)\
 										*dest = gr_fade_table[(l & (0xff00)) + c];\
 										dest++;\
 										l += dldx;\
-										c = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										uvt += uvi;\
+										c = (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))];\
+										ut += ui; vt += vi;\
 										if (c != 255)\
 										*dest = gr_fade_table[(l & (0xff00)) + c];\
 										dest++;\
 										l += dldx;
 
-#define C_TMAP_SCANLINE_PLN_LOOP_F 				*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))]];\
+#define C_TMAP_SCANLINE_PLN_LOOP_F 				*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))]];\
 												dest++; \
-												uvt += uvi;\
+												ut += ui; vt += vi;\
 												l += dldx;\
 												if (--num_left_over == 0) return;\
-												*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))]];\
+												*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))]];\
 												dest++; \
-												uvt += uvi;\
+												ut += ui; vt += vi;\
 												l += dldx;\
 												if (--num_left_over == 0) return;
 
-#define C_TMAP_SCANLINE_PLT_LOOP_F 		c = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										uvt += uvi;\
+#define C_TMAP_SCANLINE_PLT_LOOP_F 		c = (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))];\
+										ut += ui; vt += vi;\
 										if (c != 255)\
 										*dest = gr_fade_table[(l & (0xff00)) + c];\
 										dest++;\
 										l += dldx;\
 										if (--num_left_over == 0) return;\
-										c = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										uvt += uvi;\
+										c = (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))];\
+										ut += ui; vt += vi;\
 										if (c != 255)\
 										*dest = gr_fade_table[(l & (0xff00)) + c];\
 										dest++;\
@@ -373,8 +373,10 @@ void Texmap::DrawScanlinePerspectivePer16()
 		V1 = pdiv(v, z);
 		U1 = pdiv(u, z);
 
-		uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
-		uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
+		//uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
+		ut = U0 << 10; vt = V0 << 10;
+		//uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
+		ui = ((U1 - U0) << 10) >> NBITS; vi = ((V1 - V0) << 10) >> NBITS;
 
 		U0 = U1;
 		V0 = V1;
@@ -438,8 +440,10 @@ void Texmap::DrawScanlinePerspectivePer16()
 			V1 = pdiv(v, z);
 			U1 = pdiv(u, z);
 
-			uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
-			uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
+			//uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
+			ut = U0 << 10; vt = V0 << 10;
+			//uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
+			ui = ((U1 - U0) << 10) >> NBITS; vi = ((V1 - V0) << 10) >> NBITS;
 
 			U0 = U1;
 			V0 = V1;

@@ -97,8 +97,8 @@ class Texmap
 	int loop_count, num_left_over;
 	dbool new_end;
 
-	uint16_t ut, vt;
-	uint16_t ui, vi;
+	unsigned int ut, vt;
+	unsigned int ui, vi;
 	int uvt, uvi;
 	fix U0, V0, Z0, U1, V1;
 

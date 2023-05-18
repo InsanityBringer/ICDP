@@ -326,17 +326,17 @@ int last_event = 0;
 
 void ui_reset_idle_seconds()
 {
-	last_event = I_GetTicks();
+	last_event = timer_get_ticks();
 }
 
 int ui_get_idle_seconds()
 {
-	return (((I_GetTicks() - last_event) * 10) / 182);
+	return (((timer_get_ticks() - last_event) * 10) / 182);
 }
 
 void ui_mega_process()
 {
-	I_MarkStart();
+	timer_mark_start();
 	plat_do_events();
 	int mx, my;
 	unsigned char k;
@@ -351,7 +351,7 @@ void ui_mega_process()
 		last_keypress = key_inkey();
 
 		if (Mouse.new_buttons || last_keypress || Mouse.new_dx || Mouse.new_dy) {
-			last_event = I_GetTicks();
+			last_event = timer_get_ticks();
 		}
 
 		break;
@@ -593,7 +593,7 @@ void ui_mega_process()
 
 	ui_mouse_process();
 	plat_present_canvas(*ui_canvas, ASPECT_4_3);
-	I_MarkEnd(US_60FPS);
+	timer_mark_end(US_60FPS);
 }
 
 void ui_wprintf(UI_WINDOW* wnd, char* format, ...)

@@ -1041,7 +1041,7 @@ void editor(void)
 	while (Function_mode == FMODE_EDITOR) 
 	{
 		plat_set_mouse_relative_mode(1); //[ISB] mouse relative mode can be lost, so keep it going.
-		I_MarkStart();
+		timer_mark_start();
 		plat_do_events();
 		gr_set_curfont(editor_font);
 		info_display_all(EditorWindow);
@@ -1364,7 +1364,7 @@ void editor(void)
 			ui_mouse_show();
 		}
 		plat_present_canvas(*ui_canvas, ASPECT_4_3);
-		I_MarkEnd(US_60FPS);
+		timer_mark_end(US_60FPS);
 	}
 
 	clear_warn_func(med_show_warning);

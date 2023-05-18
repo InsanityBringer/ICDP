@@ -121,9 +121,9 @@ void ui_scrollbar_do(UI_GADGET_SCROLLBAR* scrollbar, int keypress)
 	if ((scrollbar->up_button->position != 0) || (keyfocus && keyd_pressed[KEY_UP]))
 	{
 		//[ISB] cheap way of attempting to shut up compiler error
-		if ((unsigned int)I_GetTicks() > scrollbar->last_scrolled + 1)
+		if ((unsigned int)timer_get_ticks() > scrollbar->last_scrolled + 1)
 		{
-			scrollbar->last_scrolled = I_GetTicks();
+			scrollbar->last_scrolled = timer_get_ticks();
 			scrollbar->position--;
 			if (scrollbar->position < scrollbar->start)
 				scrollbar->position = scrollbar->start;
@@ -135,9 +135,9 @@ void ui_scrollbar_do(UI_GADGET_SCROLLBAR* scrollbar, int keypress)
 
 	if ((scrollbar->down_button->position != 0) || (keyfocus && keyd_pressed[KEY_DOWN]))
 	{
-		if ((unsigned int)I_GetTicks() > scrollbar->last_scrolled + 1)
+		if ((unsigned int)timer_get_ticks() > scrollbar->last_scrolled + 1)
 		{
-			scrollbar->last_scrolled = I_GetTicks();
+			scrollbar->last_scrolled = timer_get_ticks();
 			scrollbar->position++;
 			if (scrollbar->position > scrollbar->stop)
 				scrollbar->position = scrollbar->stop;
@@ -171,9 +171,9 @@ void ui_scrollbar_do(UI_GADGET_SCROLLBAR* scrollbar, int keypress)
 		scrollbar->drag_starting = scrollbar->fake_position;
 	}
 
-	if (B1_PRESSED && OnMe && !OnSlider && ((unsigned int)I_GetTicks() > scrollbar->last_scrolled + 4))
+	if (B1_PRESSED && OnMe && !OnSlider && ((unsigned int)timer_get_ticks() > scrollbar->last_scrolled + 4))
 	{
-		scrollbar->last_scrolled = I_GetTicks();
+		scrollbar->last_scrolled = timer_get_ticks();
 
 		if (Mouse.y < scrollbar->fake_position + scrollbar->y1)
 		{
