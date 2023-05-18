@@ -231,9 +231,20 @@ fix compute_dl_dy_lin(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip
 	return fixmul(t->verts[bottom_vertex].l - t->verts[top_vertex].l, recip_dy);
 }
 
+fix compute_dl_dy_lin_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, int dy)
+{
+	return (t->verts[bottom_vertex].l - t->verts[top_vertex].l) / dy;
+}
+
 fix compute_dx_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
 {
 	return fixmul(t->verts[bottom_vertex].x2d - t->verts[top_vertex].x2d, recip_dy);
+}
+
+fix compute_dx_dy_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, int dy)
+{
+	//return fixmul(t->verts[bottom_vertex].x2d - t->verts[top_vertex].x2d, recip_dy);
+	return (t->verts[bottom_vertex].x2d - t->verts[top_vertex].x2d) / dy;
 }
 
 fix compute_du_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
@@ -241,15 +252,33 @@ fix compute_du_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
 	return fixmul(fixmul(t->verts[bottom_vertex].u, t->verts[bottom_vertex].z) - fixmul(t->verts[top_vertex].u, t->verts[top_vertex].z), recip_dy);
 }
 
+fix compute_du_dy_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, int dy)
+{
+	return (fixmul(t->verts[bottom_vertex].u, t->verts[bottom_vertex].z) - fixmul(t->verts[top_vertex].u, t->verts[top_vertex].z)) / dy;
+}
+
 fix compute_dv_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
 {
 	return fixmul(fixmul(t->verts[bottom_vertex].v, t->verts[bottom_vertex].z) - fixmul(t->verts[top_vertex].v, t->verts[top_vertex].z), recip_dy);
+}
+
+fix compute_dv_dy_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, int dy)
+{
+	return (fixmul(t->verts[bottom_vertex].v, t->verts[bottom_vertex].z) - fixmul(t->verts[top_vertex].v, t->verts[top_vertex].z)) / dy;
 }
 
 fix compute_dz_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
 {
 	return fixmul(t->verts[bottom_vertex].z - t->verts[top_vertex].z, recip_dy);
 }
+
+fix compute_dz_dy_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix dy)
+{
+	return (t->verts[bottom_vertex].z - t->verts[top_vertex].z) / dy;
+}
+
+//Tests for more precise but slower tmap. Better, but still not enough bits. Need floating point..
+//#define SLOW_BUT_PRECISE_TMAP
 
 // -------------------------------------------------------------------------------------
 //	Texture map current scanline in perspective.
@@ -275,6 +304,7 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright,
 	if (fx_xright > Window_clip_right)
 		fx_xright = Window_clip_right;
 
+#ifndef SLOW_BUT_PRECISE_TMAP
 	// setup to call assembler scanline renderer
 	if (dx < FIX_RECIP_TABLE_SIZE)
 		recip_dx = fix_recip[dx];
@@ -284,6 +314,15 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright,
 	du_dx = fixmul(uright - uleft, recip_dx);
 	dv_dx = fixmul(vright - vleft, recip_dx);
 	dz_dx = fixmul(zright - zleft, recip_dx);
+#else
+	int divhack = dx;
+	if (divhack == 0)
+		divhack = 1;
+
+	du_dx = (uright - uleft) / divhack;
+	dv_dx = (vright - vleft) / divhack;
+	dz_dx = (zright - zleft) / divhack;
+#endif
 
 	z = zleft;
 
@@ -318,7 +357,11 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright,
 		if (lright > (NUM_LIGHTING_LEVELS * F1_0 - F1_0 / 2)) lright = (NUM_LIGHTING_LEVELS * F1_0 - F1_0 / 2);
 
 		fx_l = lleft;
+#ifndef SLOW_BUT_PRECISE_TMAP
 		fx_dl_dx = fixmul(lright - lleft, recip_dx);
+#else
+		fx_dl_dx = (lright - lleft) / divhack;
+#endif
 
 		//	This is a pretty ugly hack to prevent lighting overflows.
 		mul_thing = dx * fx_dl_dx;
@@ -392,17 +435,30 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 
 	// Set amount to change x coordinate for each advance to next scanline.
 	dy = f2i(t->verts[vlb].y2d) - f2i(t->verts[vlt].y2d);
+#ifndef SLOW_BUT_PRECISE_TMAP
 	if (dy < FIX_RECIP_TABLE_SIZE)
 		recip_dyl = fix_recip[dy];
 	else
 		recip_dyl = F1_0 / dy;
-
 	dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dyl);
 	du_dy_left = compute_du_dy(t, vlt, vlb, recip_dyl);
 	dv_dy_left = compute_dv_dy(t, vlt, vlb, recip_dyl);
 	dz_dy_left = compute_dz_dy(t, vlt, vlb, recip_dyl);
+#else
+	int divhack = dy;
+	if (divhack == 0)
+		divhack = 1;
+
+	int dyl = divhack;
+
+	dx_dy_left = compute_dx_dy_slow(t, vlt, vlb, dyl);
+	du_dy_left = compute_du_dy_slow(t, vlt, vlb, dyl);
+	dv_dy_left = compute_dv_dy_slow(t, vlt, vlb, dyl);
+	dz_dy_left = compute_dz_dy_slow(t, vlt, vlb, dyl);
+#endif
 
 	dy = f2i(t->verts[vrb].y2d) - f2i(t->verts[vrt].y2d);
+#ifndef SLOW_BUT_PRECISE_TMAP
 	if (dy < FIX_RECIP_TABLE_SIZE)
 		recip_dyr = fix_recip[dy];
 	else
@@ -412,11 +468,28 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 	dx_dy_right = compute_dx_dy(t, vrt, vrb, recip_dyr);
 	dv_dy_right = compute_dv_dy(t, vrt, vrb, recip_dyr);
 	dz_dy_right = compute_dz_dy(t, vrt, vrb, recip_dyr);
+#else
+	divhack = dy;
+	if (divhack == 0)
+		divhack = 1;
+
+	int dyr = divhack;
+
+	du_dy_right = compute_du_dy_slow(t, vrt, vrb, dyr);
+	dx_dy_right = compute_dx_dy_slow(t, vrt, vrb, dyr);
+	dv_dy_right = compute_dv_dy_slow(t, vrt, vrb, dyr);
+	dz_dy_right = compute_dz_dy_slow(t, vrt, vrb, dyr);
+#endif
 
 	if (Lighting_enabled) 
 	{
+#ifndef SLOW_BUT_PRECISE_TMAP
 		dl_dy_left = compute_dl_dy_lin(t, vlt, vlb, recip_dyl);
 		dl_dy_right = compute_dl_dy_lin(t, vrt, vrb, recip_dyr);
+#else
+		dl_dy_left = compute_dl_dy_lin(t, vlt, vlb, dyl);
+		dl_dy_right = compute_dl_dy_lin(t, vrt, vrb, dyr);
+#endif
 
 		lleft = v3d[vlt].l;
 		lright = v3d[vrt].l;
@@ -457,26 +530,43 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 			next_break_left = f2i(v3d[vlb].y2d);
 
 			dy = f2i(t->verts[vlb].y2d) - f2i(t->verts[vlt].y2d);
+#ifndef SLOW_BUT_PRECISE_TMAP
 			if (dy < FIX_RECIP_TABLE_SIZE)
 				recip_dy = fix_recip[dy];
 			else
 				recip_dy = F1_0 / dy;
 
 			dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dy);
+#else
+			divhack = dy;
+			if (divhack == 0)
+				divhack = 1;
+
+			dx_dy_left = compute_dx_dy_slow(t, vlt, vlb, divhack);
+#endif
 
 			xleft = v3d[vlt].x2d;
 			zleft = v3d[vlt].z;
 			uleft = fixmul(v3d[vlt].u, zleft);
 			vleft = fixmul(v3d[vlt].v, zleft);
 			lleft = v3d[vlt].l;
-
+#ifndef SLOW_BUT_PRECISE_TMAP
 			du_dy_left = compute_du_dy(t, vlt, vlb, recip_dy);
 			dv_dy_left = compute_dv_dy(t, vlt, vlb, recip_dy);
 			dz_dy_left = compute_dz_dy(t, vlt, vlb, recip_dy);
+#else
+			du_dy_left = compute_du_dy_slow(t, vlt, vlb, divhack);
+			dv_dy_left = compute_dv_dy_slow(t, vlt, vlb, divhack);
+			dz_dy_left = compute_dz_dy_slow(t, vlt, vlb, divhack);
+#endif
 
 			if (Lighting_enabled) 
 			{
+#ifndef SLOW_BUT_PRECISE_TMAP
 				dl_dy_left = compute_dl_dy_lin(t, vlt, vlb, recip_dy);
+#else
+				dl_dy_left = compute_dl_dy_lin_slow(t, vlt, vlb, divhack);
+#endif
 				lleft = v3d[vlt].l;
 			}
 		}
@@ -496,25 +586,41 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 			next_break_right = f2i(v3d[vrb].y2d);
 
 			dy = f2i(t->verts[vrb].y2d) - f2i(t->verts[vrt].y2d);
+#ifndef SLOW_BUT_PRECISE_TMAP
 			if (dy < FIX_RECIP_TABLE_SIZE)
 				recip_dy = fix_recip[dy];
 			else
 				recip_dy = F1_0 / dy;
 
 			dx_dy_right = compute_dx_dy(t, vrt, vrb, recip_dy);
+#else
+			divhack = dy;
+			if (divhack == 0)
+				divhack = 1;
+			dx_dy_right = compute_dx_dy_slow(t, vrt, vrb, divhack);
+#endif
 
 			xright = v3d[vrt].x2d;
 			zright = v3d[vrt].z;
 			uright = fixmul(v3d[vrt].u, zright);
 			vright = fixmul(v3d[vrt].v, zright);
-
+#ifndef SLOW_BUT_PRECISE_TMAP
 			du_dy_right = compute_du_dy(t, vrt, vrb, recip_dy);
 			dv_dy_right = compute_dv_dy(t, vrt, vrb, recip_dy);
 			dz_dy_right = compute_dz_dy(t, vrt, vrb, recip_dy);
+#else
+			du_dy_right = compute_du_dy_slow(t, vrt, vrb, divhack);
+			dv_dy_right = compute_dv_dy_slow(t, vrt, vrb, divhack);
+			dz_dy_right = compute_dz_dy_slow(t, vrt, vrb, divhack);
+#endif
 
 			if (Lighting_enabled)
 			{
+#ifndef SLOW_BUT_PRECISE_TMAP
 				dl_dy_right = compute_dl_dy_lin(t, vrt, vrb, recip_dy);
+#else
+				dl_dy_right = compute_dl_dy_lin_slow(t, vrt, vrb, divhack);
+#endif
 				lright = v3d[vrt].l;
 			}
 		}
