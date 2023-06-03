@@ -438,8 +438,6 @@ void DoGameOver()
 	longjmp(LeaveGame, 0);		// Exit out of game loop
 }
 
-extern void do_save_game_menu();
-
 //update various information about the player
 void update_player_stats()
 {
@@ -905,12 +903,7 @@ void DoEndLevelScoreGlitz(int network)
 //give the player the opportunity to save his game
 void DoEndlevelMenu()
 {
-#ifdef SHAREWARE
-	if (!Cheats_enabled)
-		do_save_game_menu();
-#else
 	//No between level saves......!!!	state_save_all(1);
-#endif
 }
 
 int AdvanceLevel(int secret_flag); //[ISB] this probably has killed a million kitties at this point tbh

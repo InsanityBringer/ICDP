@@ -79,10 +79,6 @@ std::vector<pilot_gameinfo> all_gameinfo;
 //After all_gameinfo is populated from the pilot file, set this pointer. 
 pilot_gameinfo* current_gameinfo;
 
-int n_highest_levels;
-
-hli highest_levels[MAX_MISSIONS];
-
 #define SAVED_GAME_VERSION		7		//increment this every time saved_game struct changes
 
 //version 5 -> 6: added new highest level information
@@ -292,9 +288,6 @@ RetrySelection:
 
 	Player_default_difficulty = 1;
 	Auto_leveling_on = Default_leveling_on = 1;
-	n_highest_levels = 1;
-	highest_levels[0].shortname[0] = 0;			//no name for mission 0
-	highest_levels[0].level_num = 1;				//was highest level in old struct
 	Config_joystick_sensitivity = 8;
 
 	// Default taunt macros
@@ -350,139 +343,12 @@ int read_player_file()
 		return errno;
 	}
 
-	/*if (D_LoadInfoHeader(file, &info) != 1) 
-	{
-		errno_ret = errno;
-		fclose(file);
-		return errno_ret;
-	}
-
-	if (info.id != SAVE_FILE_ID) 
-	{
-		nm_messagebox(TXT_ERROR, 1, TXT_OK, "Invalid player file");
-		fclose(file);
-		return -1;
-	}
-
-	if (info.saved_game_version < COMPATIBLE_SAVED_GAME_VERSION || info.player_struct_version < COMPATIBLE_PLAYER_STRUCT_VERSION) 
-	{
-		nm_messagebox(TXT_ERROR, 1, TXT_OK, TXT_ERROR_PLR_VERSION);
-		fclose(file);
-		return -1;
-	}
-
-	if (info.saved_game_version <= 5) 
-	{
-		//deal with old-style highest level info
-
-		n_highest_levels = 1;
-
-		highest_levels[0].shortname[0] = 0;							//no name for mission 0
-		highest_levels[0].level_num = info.n_highest_levels;	//was highest level in old struct
-
-		//This hack allows the player to start on level 8 if he's made it to
-		//level 7 on the shareware.  We do this because the shareware didn't
-		//save the information that the player finished level 7, so the most
-		//we know is that he made it to level 7.
-		if (info.n_highest_levels == 7)
-			highest_levels[0].level_num = 8;
-
-	}
-	else //read new highest level info
-	{
-		n_highest_levels = info.n_highest_levels;
-
-		for (int hl = 0; hl < n_highest_levels; hl++)
-		{
-			if (D_LoadHighestLevel(file, &highest_levels[hl]) != 1)
-			{
-				errno_ret = errno;
-				fclose(file);
-				return errno_ret;
-			}
-		}
-	}
-
-	Player_default_difficulty = info.default_difficulty_level;
-	Default_leveling_on = info.default_leveling_on;
-
-	if (info.saved_game_version < 7) // Read old saved games.
-	{
-		if (fread(saved_games, sizeof(saved_games), 1, file) != 1) 
-		{
-			errno_ret = errno;
-			fclose(file);
-			return errno_ret;
-		}
-	}
-
-	//read taunt macros
-	{
-		int i, len;
-
-		len = (info.saved_game_version == 4) ? SHAREWARE_MAX_MESSAGE_LEN : MAX_MESSAGE_LEN;
-
-#ifdef NETWORK
-		for (i = 0; i < 4; i++)
-			if (fread(Network_message_macro[i], len, 1, file) != 1)
-			{
-				errno_ret = errno; break;
-			}
-#else
-		i = 0;
-		fseek(file, 4 * len, SEEK_CUR); //[ISB] this presumably shouldn't be 48?
-#endif
-	}
-
-	//read kconfig data
-	{
-		if (fread(kconfig_settings, MAX_CONTROLS * CONTROL_MAX_TYPES, 1, file) != 1)
-			errno_ret = errno;
-		else if (fread(&Config_control_type, sizeof(uint8_t), 1, file) != 1)
-			errno_ret = errno;
-		else if (fread(&Config_joystick_sensitivity, sizeof(uint8_t), 1, file) != 1)
-			errno_ret = errno;
-
-		if (errno_ret == EZERO)
-		{
-			kc_set_controls();
-		}
-	}*/
-
 	Tag* tag_p = Tag::read_tag(file);
 	if (tag_p->GetType() != NBTTag::Compound)
 		errno_ret = 1;
 
 	if (fclose(file) && errno_ret == EZERO)
 		errno_ret = errno;
-
-	/*if (info.saved_game_version == COMPATIBLE_SAVED_GAME_VERSION) 
-	{
-		int i;
-
-		Assert(N_SAVE_SLOTS == 10);
-
-		for (i = 0; i < N_SAVE_SLOTS; i++) 
-		{
-			if (saved_games[i].name[0]) 
-			{
-				state_save_old_game(i, saved_games[i].name, &saved_games[i].playerinst,
-					saved_games[i].difficulty_level, saved_games[i].primary_weapon,
-					saved_games[i].secondary_weapon, saved_games[i].next_level_num);
-			}
-		}
-		write_player_file();
-	}*/
-
-	//temp code to copy over the legacy HLI info into the new gameinfo system
-	/*current_gameinfo = nullptr; all_gameinfo.clear();
-	all_gameinfo.push_back(generate_gameinfo_for_current_game());
-	current_gameinfo = &all_gameinfo[0];
-
-	for (int hlinum = 0; hlinum < n_highest_levels; hlinum++)
-	{
-		current_gameinfo->highest_levels.push_back(highest_levels[hlinum]);
-	}*/
 
 	if (errno_ret == EZERO) //file read okay, so process the data
 	{
@@ -518,19 +384,15 @@ int find_hli_entry()
 {
 	int i;
 
-	for (i = 0; i < n_highest_levels; i++)
-		if (!_strfcmp(highest_levels[i].shortname, Mission_list[Current_mission_num].filename))
+	for (i = 0; i < current_gameinfo->highest_levels.size(); i++)
+		if (!_strfcmp(current_gameinfo->highest_levels[i].shortname, Mission_list[Current_mission_num].filename))
 			break;
 
-	if (i == n_highest_levels) //not found.  create entry
+	if (i == current_gameinfo->highest_levels.size()) //not found.  create entry
 	{
-		if (i == MAX_MISSIONS)
-			i--;		//take last entry
-		else
-			n_highest_levels++;
-
-		strcpy(highest_levels[i].shortname, Mission_list[Current_mission_num].filename);
-		highest_levels[i].level_num = 0;
+		current_gameinfo->highest_levels.emplace_back();
+		strcpy(current_gameinfo->highest_levels[i].shortname, Mission_list[Current_mission_num].filename);
+		current_gameinfo->highest_levels[i].level_num = 0;
 	}
 
 	return i;
@@ -547,8 +409,8 @@ void set_highest_level(int levelnum)
 
 	i = find_hli_entry();
 
-	if (levelnum > highest_levels[i].level_num)
-		highest_levels[i].level_num = levelnum;
+	if (levelnum > current_gameinfo->highest_levels[i].level_num)
+		current_gameinfo->highest_levels[i].level_num = levelnum;
 
 	write_player_file();
 }
@@ -562,12 +424,12 @@ int get_highest_level(void)
 #ifndef DEST_SAT
 	if (strlen(Mission_list[Current_mission_num].filename) == 0)
 	{
-		for (i = 0; i < n_highest_levels; i++)
-			if (!_strfcmp(highest_levels[i].shortname, "DESTSAT")) 	//	Destination Saturn.
-				highest_saturn_level = highest_levels[i].level_num;
+		for (i = 0; i < current_gameinfo->highest_levels.size(); i++)
+			if (!_strfcmp(current_gameinfo->highest_levels[i].shortname, "DESTSAT")) 	//	Destination Saturn.
+				highest_saturn_level = current_gameinfo->highest_levels[i].level_num;
 	}
 #endif
-	i = highest_levels[find_hli_entry()].level_num;
+	i = current_gameinfo->highest_levels[find_hli_entry()].level_num;
 	if (highest_saturn_level > i)
 		i = highest_saturn_level;
 	return i;
@@ -622,64 +484,6 @@ int write_player_file()
 	}
 
 	return errno_ret;
-}
-
-//returns errno (0 == no error)
-int save_player_game(int slot_num, const char* text)
-{
-	int ret;
-
-	if ((ret = read_player_file()) != EZERO)
-		if (ret != ENOENT)		//if file doesn't exist, that's ok
-			return ret;
-
-	Assert(slot_num < N_SAVE_SLOTS);
-
-	strcpy(saved_games[slot_num].name, text);
-
-	saved_games[slot_num].playerinst = Players[Player_num];
-
-	saved_games[slot_num].difficulty_level = Difficulty_level;
-	saved_games[slot_num].auto_leveling_on = Auto_leveling_on;
-	saved_games[slot_num].primary_weapon = Primary_weapon;
-	saved_games[slot_num].secondary_weapon = Secondary_weapon;
-	saved_games[slot_num].cockpit_mode = Cockpit_mode;
-	saved_games[slot_num].window_w = Game_window_w;
-	saved_games[slot_num].window_h = Game_window_h;
-	saved_games[slot_num].next_level_num = Next_level_num;
-
-	return write_player_file();
-}
-
-
-//returns errno (0 == no error)
-int load_player_game(int slot_num)
-{
-	char save_callsign[CALLSIGN_LEN + 1];
-	int ret;
-
-	Assert(slot_num < N_SAVE_SLOTS);
-
-	if ((ret = read_player_file()) != EZERO)
-		return ret;
-
-	Assert(saved_games[slot_num].name[0] != 0);
-
-	strcpy(save_callsign, Players[Player_num].callsign);
-	Players[Player_num] = saved_games[slot_num].playerinst;
-	strcpy(Players[Player_num].callsign, save_callsign);
-
-	Difficulty_level = saved_games[slot_num].difficulty_level;
-	Auto_leveling_on = saved_games[slot_num].auto_leveling_on;
-	Primary_weapon = saved_games[slot_num].primary_weapon;
-	Secondary_weapon = saved_games[slot_num].secondary_weapon;
-	Cockpit_mode = saved_games[slot_num].cockpit_mode;
-	Game_window_w = saved_games[slot_num].window_w;
-	Game_window_h = saved_games[slot_num].window_h;
-
-	Players[Player_num].level = saved_games[slot_num].next_level_num;
-
-	return EZERO;
 }
 
 //fills in a list of pointers to strings describing saved games
