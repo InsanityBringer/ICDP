@@ -17,7 +17,7 @@ void Warning(const char* fmt, ...);				//print out warning message to user
 void set_warn_func(void (*f)(const char* s));//specifies the function to call with warning messages
 void clear_warn_func(void (*f)(const char* s));//say this function no longer valid
 void _Assert(int expr, const char* expr_text, const char* filename, int linenum);	//assert func
-void Error(const char* fmt, ...);					//exit with error code=1, print message
+[[noreturn]] void Error(const char* fmt, ...);					//exit with error code=1, print message
 
 #define Assert(expr) _Assert(expr,#expr,__FILE__,__LINE__)
 void Int3();
