@@ -277,14 +277,17 @@ void plat_set_mouse_relative_mode(int state)
 void plat_write_palette(int start, int end, uint8_t* data)
 {
 	int i;
+	int alpha = 255;
 
 	//TODO: don't waste time storing in the SDL color array
 	for (i = 0; i <= end-start; i++)
 	{
+		if (i == 255)
+			alpha = 0;
 		colors[i].r = (Uint8)(data[i * 3 + 0] * 255 / 63);
 		colors[i].g = (Uint8)(data[i * 3 + 1] * 255 / 63);
 		colors[i].b = (Uint8)(data[i * 3 + 2] * 255 / 63);
-		localPal[start+i] = (255 << 24) | (colors[i].r << 16) | (colors[i].g << 8) | (colors[i].b);
+		localPal[start+i] = (alpha << 24) | (colors[i].r << 16) | (colors[i].g << 8) | (colors[i].b);
 	}
 	GL_SetPalette(localPal);
 }
@@ -351,6 +354,30 @@ void plat_present_canvas(grs_canvas& canvas)
 {
 	float aspect = (float)canvas.cv_bitmap.bm_h / canvas.cv_bitmap.bm_w;
 	plat_present_canvas(canvas, aspect);
+}
+
+void plat_present_canvas_no_flip(grs_canvas& canvas, float aspect)
+{
+	GL_Clear();
+	I_SetScreenRect(canvas.cv_bitmap.bm_w, canvas.cv_bitmap.bm_h, aspect);
+	GL_DrawCanvas(canvas, screenRectangle);
+}
+
+void plat_present_canvas_masked(grs_canvas& canvas, float aspect)
+{
+	I_SetScreenRect(canvas.cv_bitmap.bm_w, canvas.cv_bitmap.bm_h, aspect);
+	GL_DrawCanvas(canvas, screenRectangle, true);
+}
+
+void plat_present_canvas_masked_on(grs_canvas& canvas, grs_canvas& base, float aspect)
+{
+	I_SetScreenRect(base.cv_bitmap.bm_w, base.cv_bitmap.bm_h, aspect);
+	GL_DrawCanvas(canvas, screenRectangle, true);
+}
+
+void plat_flip()
+{
+	SDL_GL_SwapWindow(gameWindow);
 }
 
 void plat_blit_canvas(grs_canvas *canv)

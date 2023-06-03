@@ -205,6 +205,9 @@ bool I_InitGLContext(SDL_Window *win)
 	sglTexParameteri = (void (APIENTRY*)(GLenum target, GLenum pname, GLint param))SDL_GL_GetProcAddress("glTexParameteri");
 	sglTexParameteriv = (void (APIENTRY*)(GLenum target, GLenum pname, const GLint * params))SDL_GL_GetProcAddress("glTexParameteriv");
 	sglDrawArrays = (void (APIENTRY *)(GLenum mode, GLint first, GLsizei count))SDL_GL_GetProcAddress("glDrawArrays");
+	sglBlendFunc = (void (APIENTRY*)(GLenum src, GLenum dest))SDL_GL_GetProcAddress("glBlendFunc");
+	sglEnable = (void (APIENTRY*)(GLenum cap))SDL_GL_GetProcAddress("glEnable");
+	sglDisable = (void (APIENTRY*)(GLenum cap))SDL_GL_GetProcAddress("glDisable");
 
 	//The window size is constant, so just do this now
 	int w, h;
@@ -271,6 +274,8 @@ bool I_InitGLContext(SDL_Window *win)
 
 	SDL_GL_SetSwapInterval(SwapInterval);
 
+	sglBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	return false;
 }
 
@@ -293,8 +298,11 @@ void GL_Clear()
 	sglClear(GL_COLOR_BUFFER_BIT);
 }
 
-void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds)
+void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds, bool blend)
 {
+	if (blend)
+		sglEnable(GL_BLEND);
+
 	SDL_GL_MakeCurrent(window, context);
 	sglActiveTexture(GL_TEXTURE0);
 	sglBindTexture(GL_TEXTURE_2D, sourceFBName);
@@ -306,6 +314,9 @@ void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds)
 
 	sglViewport(bounds.x, bounds.y, bounds.w, bounds.h);
 	sglDrawArrays(GL_TRIANGLE_FAN, 0, 3);
+
+	if (blend)
+		sglDisable(GL_BLEND);
 }
 
 void I_ShutdownGL()
@@ -396,3 +407,8 @@ void (APIENTRY* sglTexParameteri)(GLenum target, GLenum pname, GLint param);
 void (APIENTRY* sglTexParameteriv)(GLenum target, GLenum pname, const GLint* params);
 
 void (APIENTRY* sglDrawArrays)(GLenum mode, GLint first, GLsizei count);
+
+void(APIENTRY* sglBlendFunc)(GLenum sfactor, GLenum dfactor);
+
+void(APIENTRY* sglEnable)(GLenum cap);
+void(APIENTRY* sglDisable)(GLenum cap);

@@ -31,6 +31,14 @@ extern void close_gauge_canvases();
 
 void render_gauges(void);
 void init_gauges(void);
+void init_cockpit_canvas(void);
+
+grs_canvas* get_cockpit_canvas();
+grs_canvas* get_hud_canvas();
+
+//Helper function to get the bitmap for the current cockpit mode and screen resolution. 
+//returns null if no bitmap for this mode, pointer to the bitmap otherwise
+grs_bitmap* get_cockpit_bitmap(int cockpit_mode);
 //extern void check_erase_message(void);
 
 // Call to flash a message on the HUD

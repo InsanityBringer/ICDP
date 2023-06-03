@@ -16,6 +16,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <stdlib.h>
 #include <stdarg.h>
 
+#include "iff/iff.h"
 #include "platform/posixstub.h"
 #include "inferno.h"
 #include "game.h"
@@ -48,6 +49,20 @@ grs_canvas* Canv_LeftEnergyGauge;
 grs_canvas* Canv_SBEnergyGauge;
 grs_canvas* Canv_RightEnergyGauge;
 grs_canvas* Canv_NumericalGauge;
+
+grs_canvas* cockpit_canvas;
+//This canvas only considers the 4:3 box in the center of the screen to avoid having to tweak all the gauge drawing code
+grs_canvas cockpit_center_canvas;
+
+grs_canvas* hud_canvas;
+//This is a sub canvas of the hud_canvas that the HUD is actually drawn into. This is because cockpits modify the bounds of the viewport, and this needs to match it
+//This isn't a subcanvas of cockpit_canvas since it needs to be cleared each frame. 
+grs_canvas hud_draw_canvas;
+
+grs_bitmap* cockpit_left_bm, * cockpit_right_bm;
+
+//In hud_canvas, this is the X offset of where the cockpit bitmap was drawn. 
+int extension_center_offset;
 
 //bitmap numbers for gauges
 
@@ -1065,6 +1080,17 @@ void close_gauge_canvases()
 	gr_free_canvas(Canv_NumericalGauge);
 }
 
+grs_bitmap* get_cockpit_bitmap(int cockpit_mode)
+{
+	if (cockpit_mode >= CM_FULL_COCKPIT && cockpit_mode <= CM_STATUS_BAR)
+	{
+		PIGGY_PAGE_IN(cockpit_bitmap[cockpit_mode]);
+		return &GameBitmaps[cockpit_bitmap[cockpit_mode].index];
+	}
+
+	return nullptr;
+}
+
 void init_gauges()
 {
 	int i;
@@ -1088,6 +1114,113 @@ void init_gauges()
 	}
 
 	cloak_fade_state = 0;
+
+	init_gauge_canvases();
+}
+
+void init_gauge_extra_bitmaps()
+{
+	uint8_t paltemp[768];
+	cockpit_left_bm = (grs_bitmap*)malloc(sizeof(grs_bitmap));
+	//read the extension graphics
+	int iff_error = iff_read_bitmap("ckpitxl.bbm", cockpit_left_bm, BM_LINEAR, paltemp);
+	if (iff_error != IFF_NO_ERROR)
+	{
+		gr_free_bitmap(cockpit_left_bm);
+		cockpit_left_bm = nullptr;
+	}
+	else
+	{
+		cockpit_right_bm = (grs_bitmap*)malloc(sizeof(grs_bitmap));
+		iff_error = iff_read_bitmap("ckpitxr.bbm", cockpit_right_bm, BM_LINEAR, paltemp);
+		if (iff_error != IFF_NO_ERROR)
+		{
+			gr_free_bitmap(cockpit_left_bm);
+			cockpit_left_bm = nullptr;
+			gr_free_bitmap(cockpit_right_bm);
+			cockpit_right_bm = nullptr;
+		}
+	}
+}
+
+void init_cockpit_canvas()
+{
+	if (cockpit_canvas)
+		gr_free_canvas(cockpit_canvas);
+
+	if (cockpit_left_bm)
+	{
+		gr_free_bitmap(cockpit_left_bm);
+		cockpit_left_bm = nullptr;
+	}
+	if (cockpit_right_bm)
+	{
+		gr_free_bitmap(cockpit_right_bm);
+		cockpit_right_bm = nullptr;
+	}
+
+	grs_bitmap* ref_bm = get_cockpit_bitmap(Cockpit_mode);
+
+	int canvas_width = ceil(240 / Game_aspect);
+
+	if (canvas_width & 1)
+		canvas_width++; //try to ensure even value
+
+	if (Cockpit_mode == CM_FULL_COCKPIT && canvas_width > 428)
+		canvas_width = 428; //maximum of the extension graphics
+
+	if (canvas_width < 320)
+		canvas_width = 320;
+
+	//currently only have extension graphics for the full cockpit
+	if (Cockpit_mode == CM_FULL_COCKPIT)
+	{
+		init_gauge_extra_bitmaps();
+
+		//at this point the extension graphics will either be loaded or not be loaded. If they aren't loaded, don't bother with aspect correction
+		if (!cockpit_left_bm)
+			canvas_width = 320;
+	}
+
+	cockpit_canvas = gr_create_canvas(canvas_width, 200);
+	extension_center_offset = (canvas_width - 320) / 2;
+	hud_canvas = gr_create_canvas(canvas_width, 200);
+
+	grs_canvas* oldcanv = grd_curcanv;
+	gr_set_current_canvas(hud_canvas);
+	gr_clear_canvas(255);
+	gr_set_current_canvas(cockpit_canvas);
+	gr_clear_canvas(255);
+
+	//draw the base graphic
+	if (ref_bm)
+	{
+		int y_offset = Cockpit_mode == CM_STATUS_BAR ? 200 - ref_bm->bm_w : 0;
+		gr_bitmapm(extension_center_offset, y_offset, ref_bm);
+
+		gr_init_sub_canvas(&cockpit_center_canvas, cockpit_canvas, extension_center_offset, 0, ref_bm->bm_w, ref_bm->bm_h);
+	}
+
+	//draw the extensions if they exist
+	if (Cockpit_mode == CM_FULL_COCKPIT && cockpit_left_bm)
+	{
+		gr_bitmapm(extension_center_offset - cockpit_left_bm->bm_w, 0, cockpit_left_bm);
+		gr_bitmapm(extension_center_offset + ref_bm->bm_w, 0, cockpit_right_bm);
+	}
+
+	gr_init_sub_canvas(&hud_draw_canvas, hud_canvas, extension_center_offset, 0, 320, 133);
+
+	gr_set_current_canvas(oldcanv);
+}
+
+grs_canvas* get_cockpit_canvas()
+{
+	return cockpit_canvas;
+}
+
+grs_canvas* get_hud_canvas()
+{
+	return hud_canvas;
 }
 
 void draw_energy_bar(int energy)
@@ -1116,7 +1249,7 @@ void draw_energy_bar(int energy)
 			if (x2 > x1) gr_uscanline(x1, x2, y);
 		}
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 	gr_ubitmapm(LEFT_ENERGY_GAUGE_X, LEFT_ENERGY_GAUGE_Y, &Canv_LeftEnergyGauge->cv_bitmap);
 
 	// Draw right energy bar
@@ -1137,7 +1270,7 @@ void draw_energy_bar(int energy)
 			if (x2 > x1) gr_uscanline(x1, x2, y);
 		}
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 	gr_ubitmapm(RIGHT_ENERGY_GAUGE_X, RIGHT_ENERGY_GAUGE_Y, &Canv_RightEnergyGauge->cv_bitmap);
 
 }
@@ -1225,7 +1358,7 @@ void draw_player_ship(int cloak_state, int old_cloak_state, int x, int y)
 	gr_rect(x, y, x + bm->bm_w - 1, y + bm->bm_h - 1);
 	Gr_scanline_darkening_level = GR_FADE_LEVELS;
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 	gr_bm_ubitbltm(bm->bm_w, bm->bm_h, x, y, x, y, &VR_render_buffer.cv_bitmap, &grd_curcanv->cv_bitmap);
 }
 
@@ -1245,14 +1378,14 @@ void draw_numerical_display(int shield, int energy)
 	gr_set_fontcolor(gr_getcolor(25, 18, 6), -1);
 	gr_printf((energy > 99) ? 3 : ((energy > 9) ? 5 : 7), 2, "%d", energy);
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 	gr_ubitmapm(NUMERICAL_GAUGE_X, NUMERICAL_GAUGE_Y, &Canv_NumericalGauge->cv_bitmap);
 }
 
 
 void draw_keys()
 {
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 
 	if (Players[Player_num].flags & PLAYER_FLAGS_BLUE_KEY) 
 	{
@@ -1467,7 +1600,7 @@ int draw_weapon_box(int weapon_type, int weapon_num)
 		Gr_scanline_darkening_level = GR_FADE_LEVELS;
 	}
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 
 	return drew_flag;
 }
@@ -1529,7 +1662,7 @@ void sb_draw_energy_bar(int energy)
 		gr_rect(0, 0, SB_ENERGY_GAUGE_W - 1, erase_height - 1);
 	}
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 	gr_ubitmapm(SB_ENERGY_GAUGE_X, SB_ENERGY_GAUGE_Y, &Canv_SBEnergyGauge->cv_bitmap);
 
 	//draw numbers
@@ -1559,7 +1692,7 @@ void sb_draw_shield_bar(int shield)
 {
 	int bm_num = shield >= 100 ? 9 : (shield / 10);
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 
 	PIGGY_PAGE_IN(Gauges[GAUGE_SHIELDS + 9 - bm_num]);
 	gr_ubitmapm(SB_SHIELD_GAUGE_X, SB_SHIELD_GAUGE_Y, &GameBitmaps[Gauges[GAUGE_SHIELDS + 9 - bm_num].index]);
@@ -1570,7 +1703,7 @@ void sb_draw_keys()
 	grs_bitmap* bm;
 	int flags = Players[Player_num].flags;
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 
 	bm = &GameBitmaps[Gauges[(flags & PLAYER_FLAGS_BLUE_KEY) ? SB_GAUGE_BLUE_KEY : SB_GAUGE_BLUE_KEY_OFF].index];
 	PIGGY_PAGE_IN(Gauges[(flags & PLAYER_FLAGS_BLUE_KEY) ? SB_GAUGE_BLUE_KEY : SB_GAUGE_BLUE_KEY_OFF]);
@@ -1588,7 +1721,7 @@ void draw_invulnerable_ship()
 {
 	static fix time = 0;
 
-	gr_set_current_canvas(get_current_game_screen());
+	gr_set_current_canvas(&cockpit_center_canvas);
 
 	if (((Players[Player_num].invulnerable_time + INVULNERABLE_TIME_MAX - GameTime) > F1_0 * 4) || (GameTime & 0x8000)) 
 	{
@@ -1911,6 +2044,9 @@ void hud_show_kill_list()
 //draw all the things on the HUD
 void draw_hud()
 {
+	grs_canvas* save = grd_curcanv;
+	gr_set_current_canvas(&hud_draw_canvas);
+	gr_clear_canvas(255);
 	//	Show score so long as not in rearview
 	if (!Rear_view && Cockpit_mode != CM_REAR_VIEW && Cockpit_mode != CM_STATUS_BAR) 
 	{
@@ -1972,7 +2108,7 @@ void draw_hud()
 		else
 			gr_printf(0x8000, grd_curcanv->cv_h - 10, TXT_REAR_VIEW);
 	}
-
+	gr_set_current_canvas(save);
 }
 
 //print out some player statistics
@@ -1990,7 +2126,9 @@ void render_gauges()
 
 	if (shields < 0) shields = 0;
 
-	gr_set_current_canvas(get_current_game_screen());
+	//gr_set_current_canvas(get_current_game_screen());
+	grs_canvas* save = grd_curcanv;
+	gr_set_current_canvas(&cockpit_center_canvas);
 	gr_set_curfont(GAME_FONT);
 
 	if (Newdemo_state == ND_STATE_RECORDING)
@@ -2144,6 +2282,8 @@ void render_gauges()
 	}
 
 	draw_weapon_boxes();
+
+	gr_set_current_canvas(save);
 }
 
 //	---------------------------------------------------------------------------------------------------------

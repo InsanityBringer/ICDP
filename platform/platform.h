@@ -87,8 +87,15 @@ void plat_present_canvas(grs_canvas& canv);
 //The rowsize of the canvas must match its width or weird things will happen.
 void plat_present_canvas(grs_canvas& canv, float aspect);
 
+//temporary function
+//presents a canvas but doesn't flip the native back buffer. 
+void plat_present_canvas_no_flip(grs_canvas& canv, float aspect);
+
 //Masked canvases are similar to normal canvases, but any usage of palette index 255 will render as transparent. This can be used to overlay graphics
 void plat_present_canvas_masked(grs_canvas& canv, float aspect);
+
+//Draws canvas canv on top of base, matching its rectangle
+void plat_present_canvas_masked_on(grs_canvas& canv, grs_canvas& base, float aspect);
 
 //Flips the native back buffer. This is no longer implicit because the new presentation system lets you present multiple canvases
 void plat_flip();

@@ -336,20 +336,22 @@ void update_cockpits(int force_redraw)
 	//Redraw the on-screen cockpit bitmaps
 	if (VR_render_mode != VR_NONE)	return;
 
+	init_cockpit_canvas();
+
 	switch (Cockpit_mode) 
 	{
 	case CM_FULL_COCKPIT:
 	case CM_REAR_VIEW:
-		gr_set_current_canvas(VR_screen_buffer);
-		PIGGY_PAGE_IN(cockpit_bitmap[Cockpit_mode]);
-		gr_ubitmapm(0, 0, &GameBitmaps[cockpit_bitmap[Cockpit_mode].index]);
+		//gr_set_current_canvas(VR_screen_buffer);
+		//PIGGY_PAGE_IN(cockpit_bitmap[Cockpit_mode]);
+		//gr_ubitmapm(0, 0, &GameBitmaps[cockpit_bitmap[Cockpit_mode].index]);
 		break;
 	case CM_FULL_SCREEN:
 		break;
 	case CM_STATUS_BAR:
-		gr_set_current_canvas(VR_screen_buffer);
-		PIGGY_PAGE_IN(cockpit_bitmap[Cockpit_mode]);
-		gr_ubitmapm(0, max_window_h, &GameBitmaps[cockpit_bitmap[Cockpit_mode].index]);
+		//gr_set_current_canvas(VR_screen_buffer);
+		//PIGGY_PAGE_IN(cockpit_bitmap[Cockpit_mode]);
+		//gr_ubitmapm(0, max_window_h, &GameBitmaps[cockpit_bitmap[Cockpit_mode].index]);
 		w = Game_window_w;
 		h = Game_window_h;
 		x = (VR_render_width - w) / 2;
@@ -378,10 +380,10 @@ void init_cockpit()
 	int minx, maxx, miny, maxy;
 
 	//Initialize the on-screen canvases
-	if (VR_render_width != 320 || VR_render_height != 200)
+	/*if (VR_render_width != 320 || VR_render_height != 200)
 	{
 		Cockpit_mode = CM_FULL_SCREEN;
-	}
+	}*/
 
 	if (Screen_mode == SCREEN_EDITOR)
 		Cockpit_mode = CM_FULL_SCREEN;
@@ -398,19 +400,36 @@ void init_cockpit()
 	case CM_REAR_VIEW: 
 	{
 		grs_bitmap* bm = &GameBitmaps[cockpit_bitmap[Cockpit_mode].index];
+		//Temp canvas used to decompress the cockpit bitmap. 
+		grs_canvas* hackcanv = gr_create_canvas(bm->bm_w, bm->bm_h);
 
 		PIGGY_PAGE_IN(cockpit_bitmap[Cockpit_mode]);
-		gr_set_current_canvas(VR_offscreen_buffer);
+		gr_set_current_canvas(hackcanv);
 		gr_bitmap(0, 0, bm);
-		bm = &VR_offscreen_buffer->cv_bitmap;
+		bm = &hackcanv->cv_bitmap;
 		bm->bm_flags = BM_FLAG_TRANSPARENT;
 		gr_ibitblt_find_hole_size(bm, &minx, &miny, &maxx, &maxy);
+		
 		if (Cockpit_mode == CM_REAR_VIEW)
 			printf("%d %d %d %d\n", minx, miny, maxx, maxy);
-		Game_cockpit_copy_code = gr_ibitblt_create_mask(bm, minx, miny, maxx - minx + 1, maxy - miny + 1, VR_offscreen_buffer->cv_bitmap.bm_rowsize);
+		//Game_cockpit_copy_code = gr_ibitblt_create_mask(bm, minx, miny, maxx - minx + 1, maxy - miny + 1, VR_offscreen_buffer->cv_bitmap.bm_rowsize);
+
+		//Scale the mins and maxes so that they are relative to the current resolution
+		miny = (int)(((double)miny / bm->bm_h) * VR_render_height);
+		maxy = (int)(((double)maxy / bm->bm_h) * VR_render_height);
+
+		//clamp for safety
+		if (miny < 0)
+			miny = 0;
+		if (maxy > VR_render_height)
+			maxy = VR_render_height;
+
 		bm->bm_flags = 0;		// Clear all flags for offscreen canvas
-		//game_init_render_sub_buffers(0, 0, maxx - minx + 1, maxy - miny + 1);
-		game_init_render_sub_buffers(minx, 0, maxx - minx + 1, maxy - miny + 1); //[ISB] honestly not sure why this works with y set to 0.....
+		gr_free_canvas(hackcanv);
+		//game_init_render_sub_buffers(minx, 0, maxx - minx + 1, maxy - miny + 1);
+		//Unlike the original game, keep the buffer the width of the screen, rather than the measured cockpit hole. 
+		//This is needed to get an accurate view for the rearview, since that doens't go to the screen edges. The view through the hole should be the same. 
+		game_init_render_sub_buffers(0, miny, VR_render_width, maxy - miny + 1);
 		break;
 	}
 	case CM_FULL_SCREEN:
@@ -2132,7 +2151,14 @@ void game()
 				longjmp(LeaveGame, 0);
 
 			//[ISB] assumption is that anything calling without renderflag (basically network mode) will already be updating. 
-			plat_present_canvas(*VR_screen_buffer, Game_aspect);
+			plat_present_canvas_no_flip(*VR_screen_buffer, Game_aspect);
+			grs_canvas* cockpit_canvas = get_cockpit_canvas();
+			if (cockpit_canvas)
+				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+			cockpit_canvas = get_hud_canvas();
+			if (cockpit_canvas)
+				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+			plat_flip();
 			plat_do_events();
 			//waiting loop for polled fps mode
 			uint64_t numUS = 1000000 / FPSLimit;

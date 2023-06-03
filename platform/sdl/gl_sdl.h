@@ -34,7 +34,7 @@ void GL_DrawPhase1();
 void I_ShutdownGL();
 
 void GL_Clear();
-void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds);
+void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds, bool blend = false);
 
 //GL API
 //Literally done just to avoid pulling in a lightweight library. This was a dumb idea but for a good reason.
@@ -221,3 +221,24 @@ extern void (APIENTRY* sglTexParameteriv)(GLenum target, GLenum pname, const GLi
 
 //draw calls
 extern void (APIENTRY* sglDrawArrays)(GLenum mode, GLint first, GLsizei count);
+
+#define GL_ZERO                 0x0000
+#define GL_ONE                  0x0001
+#define GL_SRC_COLOR            0x0300
+#define GL_ONE_MINUS_SRC_COLOR  0x0301
+#define GL_SRC_ALPHA            0x0302
+#define GL_ONE_MINUS_SRC_ALPHA  0x0303
+#define GL_DST_ALPHA            0x0304
+#define GL_ONE_MINUS_DST_ALPHA  0x0305
+#define GL_DST_COLOR            0x0306
+#define GL_ONE_MINUS_DST_COLOR  0x0307
+#define GL_SRC_ALPHA_SATURATE   0x0308
+
+#define GL_BLEND_DST                        0x0BE0
+#define GL_BLEND_SRC                        0x0BE1
+#define GL_BLEND                            0x0BE2
+
+extern void(APIENTRY* sglBlendFunc)(GLenum sfactor, GLenum dfactor);
+
+extern void(APIENTRY* sglEnable)(GLenum cap);
+extern void(APIENTRY* sglDisable)(GLenum cap);

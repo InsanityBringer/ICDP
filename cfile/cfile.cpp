@@ -491,7 +491,7 @@ int64_t file_read_int64(FILE* fp)
 	int64_t v;
 	fread(&b[0], sizeof(uint8_t), 8, fp);
 	v = b[0] + (b[1] << 8) + (b[2] << 16) + (b[3] << 24) + 
-		(b[4] << 32) + (b[5] << 40) + (b[6] << 48) + (b[7] << 56);
+		((int64_t)b[4] << 32) + ((int64_t)b[5] << 40) + ((int64_t)b[6] << 48) + ((int64_t)b[7] << 56);
 	return v;
 }
 

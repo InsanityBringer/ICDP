@@ -681,7 +681,7 @@ int convert_rgb15(grs_bitmap* bm, iff_bitmap_header* bmheader)
 }
 
 //read in a entire file into a fake file structure
-int open_fake_file(char* ifilename, FFILE* ffile)
+int open_fake_file(const char* ifilename, FFILE* ffile)
 {
 	CFILE* ifile;
 	int ret;
@@ -805,7 +805,7 @@ done:
 }
 
 //returns error codes - see IFF.H.  see GR.H for bitmap_type
-int iff_read_bitmap(char* ifilename, grs_bitmap* bm, int bitmap_type, uint8_t* palette)
+int iff_read_bitmap(const char* ifilename, grs_bitmap* bm, int bitmap_type, uint8_t* palette)
 {
 	int ret;			//return code
 	FFILE ifile;
@@ -830,7 +830,7 @@ done:
 
 //like iff_read_bitmap(), but reads into a bitmap that already exists,
 //without allocating memory for the bitmap. 
-int iff_read_into_bitmap(char* ifilename, grs_bitmap* bm, uint8_t* palette)
+int iff_read_into_bitmap(const char* ifilename, grs_bitmap* bm, uint8_t* palette)
 {
 	int ret;			//return code
 	FFILE ifile;
@@ -1176,7 +1176,7 @@ done:
 
 //read in many brushes.  fills in array of pointers, and n_bitmaps.
 //returns iff error codes
-int iff_read_animbrush(char* ifilename, grs_bitmap** bm_list, int max_bitmaps, int* n_bitmaps, uint8_t* palette)
+int iff_read_animbrush(const char* ifilename, grs_bitmap** bm_list, int max_bitmaps, int* n_bitmaps, uint8_t* palette)
 {
 	int ret;			//return code
 	FFILE ifile;
