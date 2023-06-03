@@ -376,7 +376,8 @@ void Texmap::DrawScanlinePerspectivePer16()
 		//uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
 		ut = U0 << 10; vt = V0 << 10;
 		//uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
-		ui = ((U1 - U0) << 10) >> NBITS; vi = ((V1 - V0) << 10) >> NBITS;
+		//These calculations must be overflowing, because if it's shift left by 10 and then shift right by NBITS in that order, large deltas don't work
+		ui = ((U1 - U0) >> NBITS) << 10; vi = ((V1 - V0) >> NBITS) << 10;
 
 		U0 = U1;
 		V0 = V1;
@@ -443,7 +444,7 @@ void Texmap::DrawScanlinePerspectivePer16()
 			//uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
 			ut = U0 << 10; vt = V0 << 10;
 			//uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
-			ui = ((U1 - U0) << 10) >> NBITS; vi = ((V1 - V0) << 10) >> NBITS;
+			ui = ((U1 - U0) >> NBITS) << 10; vi = ((V1 - V0) >> NBITS) << 10;
 
 			U0 = U1;
 			V0 = V1;
