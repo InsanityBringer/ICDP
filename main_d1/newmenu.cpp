@@ -16,6 +16,10 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <string.h>
 #include <stdarg.h>
 #include <ctype.h>
+#include <string>
+#include <string_view>
+#include <vector>
+#include <span>
 
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
@@ -1169,35 +1173,75 @@ int nm_messagebox(const char* title, int nchoices, ...)
 	return newmenu_do(title, nm_text, nchoices, nm_message_items, NULL);
 }
 
-void newmenu_file_sort(int n, char* list)
+struct newmenu_fileentry
 {
-	int i, j, incr;
-	char t[14];
+	std::string filename;
+	std::string displayname;
+	bool truncated;
 
-	incr = n / 2;
-	while (incr > 0) 
+	newmenu_fileentry()
 	{
-		for (i = incr; i < n; i++) 
+		truncated = false;
+	}
+
+	newmenu_fileentry(std::string_view newfilename, bool noext) 
+	{
+		filename = newfilename;
+		truncated = noext;
+		if (noext)
 		{
-			j = i - incr;
-			while (j >= 0) 
+			std::string::size_type pos = filename.find_last_of(".");
+			if (pos == std::string::npos)
+				displayname = filename;
+			else
+				displayname = std::string(filename, 0, pos);
+		}
+		else
+		{
+			displayname = filename;
+		}
+	}
+
+	//Helper function, truncated entries can have a $ as the first character, this needs to be stored but not displayed
+	const char* get_display_name()
+	{
+		if (!truncated || (displayname.size() > 0 && displayname[0] != '$'))
+			return displayname.c_str();
+		
+		return displayname.c_str() + 1;
+	}
+};
+
+void newmenu_file_sort(std::span<newmenu_fileentry> entries)
+{
+	int n = entries.size();
+	int incr = n / 2;
+	newmenu_fileentry t;
+
+	while (incr > 0)
+	{
+		for (int i = incr; i < n; i++)
+		{
+			int j = i - incr;
+			while (j >= 0)
 			{
-				if (strncmp(&list[j * 14], &list[(j + incr) * 14], 12) > 0) 
+				if (entries[j].filename.compare(entries[j + incr].filename) > 0)
 				{
-					memcpy(t, &list[j * 14], 13);
-					memcpy(&list[j * 14], &list[(j + incr) * 14], 13);
-					memcpy(&list[(j + incr) * 14], t, 13);
+					t = std::move(entries[j]);
+					entries[j] = std::move(entries[j + incr]);
+					entries[j + incr] = std::move(t);
 					j -= incr;
 				}
 				else
 					break;
 			}
 		}
-		incr = incr / 2;
+		incr /= 2;
 	}
+
 }
 
-void delete_player_saved_games(char* name)
+void delete_player_saved_games(const char* name)
 {
 	int i;
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
@@ -1227,16 +1271,17 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	int i;
 	FILEFINDSTRUCT find;
 	int NumFiles = 0, key, done, citem, ocitem;
-	char* filenames = NULL;
+	std::vector<newmenu_fileentry> files;
 	int NumFiles_displayed = 8;
 	int first_item = -1, ofirst_item;
 	int old_keyd_repeat = keyd_repeat;
-	int player_mode = 0;
-	int demo_mode = 0;
+	bool player_mode = false;
+	bool demo_mode = false;
 	int demos_deleted = 0;
 	int initialized = 0;
 	int exit_value = 0;
 	int w_x, w_y, w_w, w_h;
+
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char localized_pilot_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char localized_demo_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
@@ -1248,7 +1293,7 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	wildcard_pos = strrchr(filespec, '*');
 	if (wildcard_pos != NULL)
 	{
-		if (!_strfcmp(wildcard_pos, "*.plr"))
+		if (!_strfcmp(wildcard_pos, "*.nplt"))
 		{
 			player_mode = 1;
 			get_platform_localized_query_string(localized_filespec, CHOCOLATE_PILOT_DIR, wildcard_pos);
@@ -1261,19 +1306,16 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	}
 #endif
 
-	filenames = (char*)malloc(MAX_FILES * 14);
-	if (filenames == NULL) return 0;
-
 	citem = 0;
 	keyd_repeat = 1;
 
 	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
 
 #if !defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	if (!_strfcmp(filespec, "*.plr"))
-		player_mode = 1;
+	if (!_strfcmp(filespec, "*.nplt"))
+		player_mode = true;
 	else if (!_strfcmp(filespec, "*.dem"))
-		demo_mode = 1;
+		demo_mode = true;
 #endif
 
 ReadFileNames:
@@ -1282,28 +1324,25 @@ ReadFileNames:
 
 	if (player_mode) 
 	{
-		strncpy(&filenames[NumFiles * 14], TXT_CREATE_NEW, FILENAME_LEN);
+		files.emplace_back(TXT_CREATE_NEW, false);
 		NumFiles++;
 	}
 
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	if (!FileFindFirst(localized_filespec, &find))
 #else
-	if (!FileFindFirst(filespec, &find)) 
+	if (!FileFindFirstLFNTemp(filespec, &find)) 
 #endif
 	{
 		do 
 		{
 			if (NumFiles < MAX_FILES) 
 			{
-				strncpy(&filenames[NumFiles * 14], find.name, FILENAME_LEN);
-				if (player_mode) 
+				if (!player_mode || strlen(find.name) <= 13) //12345678.0123
 				{
-					char* p;
-					p = strchr(&filenames[NumFiles * 14], '.');
-					if (p)* p = '\0';
+					files.emplace_back(find.name, player_mode);
+					NumFiles++;
 				}
-				NumFiles++;
 			}
 			else 
 			{
@@ -1365,14 +1404,15 @@ ReadFileNames:
 
 	if (!player_mode)
 	{
-		newmenu_file_sort(NumFiles, filenames);
+		newmenu_file_sort(files);
 	}
 	else 
 	{
-		newmenu_file_sort(NumFiles - 1, &filenames[14]);		// Don't sort first one!
-		for (i = 0; i < NumFiles; i++) 
+		newmenu_file_sort(std::span<newmenu_fileentry>(files.begin() + 1, files.end()));
+
+		for (i = 0; i < files.size(); i++) 
 		{
-			if (!_strfcmp(Players[Player_num].callsign, &filenames[i * 14]))
+			if (!_strfcmp(Players[Player_num].callsign, files[i].displayname.c_str()))
 				citem = i;
 		}
 	}
@@ -1392,16 +1432,13 @@ ReadFileNames:
 			{
 				int x = 1;
 				if (player_mode)
-					x = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, "%s %s?", TXT_DELETE_PILOT, &filenames[citem * 14] + ((player_mode && filenames[citem * 14] == '$') ? 1 : 0));
+					x = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, "%s %s?", TXT_DELETE_PILOT, files[citem].get_display_name());
 				else if (demo_mode)
-					x = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, "%s %s?", TXT_DELETE_DEMO, &filenames[citem * 14] + ((demo_mode && filenames[citem * 14] == '$') ? 1 : 0));
+					x = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, "%s %s?", TXT_DELETE_DEMO, files[citem].get_display_name());
 				if (x == 0) 
 				{
-					char* p;
 					int ret;
-					p = &filenames[(citem * 14) + strlen(&filenames[citem * 14])];
-					if (player_mode)
-						* p = '.';
+
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 					char file_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 
@@ -1415,22 +1452,20 @@ ReadFileNames:
 					}
 					ret = _unlink(file_full_path);
 #else
-					ret = _unlink(&filenames[citem * 14]);
+					ret = _unlink(files[citem].filename.c_str());
 #endif
-					if (player_mode)
-						* p = 0;
 
 					if ((!ret) && player_mode) 
 					{
-						delete_player_saved_games(&filenames[citem * 14]);
+						delete_player_saved_games(files[citem].filename.c_str());
 					}
 
 					if (ret) 
 					{
 						if (player_mode)
-							nm_messagebox(NULL, 1, TXT_OK, "%s %s %s", TXT_COULDNT, TXT_DELETE_PILOT, &filenames[citem * 14] + ((player_mode && filenames[citem * 14] == '$') ? 1 : 0));
+							nm_messagebox(NULL, 1, TXT_OK, "%s %s %s", TXT_COULDNT, TXT_DELETE_PILOT, files[citem].get_display_name());
 						else if (demo_mode)
-							nm_messagebox(NULL, 1, TXT_OK, "%s %s %s", TXT_COULDNT, TXT_DELETE_DEMO, &filenames[citem * 14] + ((demo_mode && filenames[citem * 14] == '$') ? 1 : 0));
+							nm_messagebox(NULL, 1, TXT_OK, "%s %s %s", TXT_COULDNT, TXT_DELETE_DEMO, files[citem].get_display_name());
 					}
 					else if (demo_mode)
 						demos_deleted = 1;
@@ -1488,7 +1523,7 @@ ReadFileNames:
 					if (cc >= NumFiles) cc = 0;
 					if (citem == cc) break;
 
-					if (toupper(filenames[cc * 14]) == toupper(ascii)) 
+					if (toupper(files[cc].displayname[0]) == toupper(ascii)) 
 					{
 						citem = cc;
 						break;
@@ -1538,9 +1573,10 @@ ReadFileNames:
 						grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
 					else
 						grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
-					gr_get_string_size(&filenames[i * 14], &w, &h, &aw);
+					gr_get_string_size(files[i].displayname.c_str(), &w, &h, &aw);
 					gr_rect(100, y - 1, 220, y + 11);
-					gr_string(105, y, (&filenames[i * 14]) + ((player_mode && filenames[i * 14] == '$') ? 1 : 0));
+					//gr_string(105, y, (&filenames[i * 14]) + ((player_mode && filenames[i * 14] == '$') ? 1 : 0));
+					gr_string(105, y, files[i].get_display_name());
 				}
 			}
 		}
@@ -1556,9 +1592,10 @@ ReadFileNames:
 					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
 				else
 					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
-				gr_get_string_size(&filenames[i * 14], &w, &h, &aw);
+				gr_get_string_size(files[i].displayname.c_str(), &w, &h, &aw);
 				gr_rect(100, y - 1, 220, y + 11);
-				gr_string(105, y, (&filenames[i * 14]) + ((player_mode && filenames[i * 14] == '$') ? 1 : 0));
+				//gr_string(105, y, (&filenames[i * 14]) + ((player_mode && filenames[i * 14] == '$') ? 1 : 0));
+				gr_string(105, y, files[i].get_display_name());
 			}
 			i = citem;
 			if ((i >= 0) && (i < NumFiles)) 
@@ -1568,9 +1605,9 @@ ReadFileNames:
 					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
 				else
 					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
-				gr_get_string_size(&filenames[i * 14], &w, &h, &aw);
+				gr_get_string_size(files[i].displayname.c_str(), &w, &h, &aw);
 				gr_rect(100, y - 1, 220, y + 11);
-				gr_string(105, y, (&filenames[i * 14]) + ((player_mode && filenames[i * 14] == '$') ? 1 : 0));
+				gr_string(105, y, files[i].get_display_name());
 			}
 		}
 		plat_present_canvas(*menu_canvas, 3.f/4.f);
@@ -1580,7 +1617,7 @@ ReadFileNames:
 ExitFileMenuEarly:
 	if (citem > -1) 
 	{
-		strncpy(filename, (&filenames[citem * 14]) + ((player_mode && filenames[citem * 14] == '$') ? 1 : 0), 13);
+		strncpy(filename, files[citem].get_display_name(), 13);
 		exit_value = 1;
 	}
 	else 
@@ -1595,9 +1632,6 @@ ExitFileMenu:
 	{
 		gr_bm_bitblt(320, 200, 0, 0, 0, 0, &(VR_offscreen_buffer->cv_bitmap), &(grd_curcanv->cv_bitmap));
 	}
-
-	if (filenames)
-		free(filenames);
 
 	gr_free_canvas(menu_canvas);
 

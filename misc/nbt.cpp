@@ -15,6 +15,7 @@ void nbt_read_string(FILE* fp, std::string& str)
 void nbt_write_string(FILE* fp, std::string& str)
 {
 	unsigned short length = (unsigned short)str.size();
+	file_write_short(fp, length);
 	for (int i = 0; i < length; i++)
 	{
 		file_write_byte(fp, str[i]);
@@ -48,6 +49,9 @@ Tag* Tag::get_tag_of_type(NBTTag type)
 	case NBTTag::Double:
 		tag = new DoubleTag();
 		break;
+	case NBTTag::ByteArray:
+		tag = new ByteArrayTag();
+		break;
 	case NBTTag::String:
 		tag = new StringTag();
 		break;
@@ -58,7 +62,7 @@ Tag* Tag::get_tag_of_type(NBTTag type)
 		tag = new CompoundTag();
 		break;
 	default:
-		throw std::runtime_error("Tag::get_tag_of_type encountered a unknown tag type");
+		throw std::runtime_error("Tag::get_tag_of_type encountered an unknown tag type");
 		break;
 	}
 

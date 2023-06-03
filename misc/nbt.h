@@ -175,7 +175,25 @@ struct DoubleTag : public Tag
 
 struct ByteArrayTag : public Tag
 {
-	std::vector<int8_t> array;
+	std::vector<uint8_t> array;
+
+	ByteArrayTag() {}
+	ByteArrayTag(std::string_view name) : Tag(name) {}
+
+	ByteArrayTag(uint8_t* data, int length)
+	{
+		array.reserve(length);
+		for (int i = 0; i < length; i++)
+			array.push_back(data[i]);
+	}
+
+	ByteArrayTag(std::string_view name, uint8_t* data, int length) : Tag(name)
+	{
+		array.reserve(length);
+		for (int i = 0; i < length; i++)
+			array.push_back(data[i]);
+	}
+
 	NBTTag GetType() const override
 	{
 		return NBTTag::ByteArray;
@@ -272,6 +290,7 @@ public:
 	void write_data(FILE* fp) override
 	{
 		int8_t type = (int8_t)list_type;
+		file_write_byte(fp, type);
 		file_write_int(fp, list.size());
 
 		for (int i = 0; i < list.size(); i++)
@@ -377,6 +396,9 @@ struct CompoundTag : public Tag
 //If the tag isn't an integer type, instead returns def. 
 inline int nbt_get_integral(Tag* tag_p, int def)
 {
+	if (!tag_p)
+		return def;
+
 	switch (tag_p->GetType())
 	{
 	case NBTTag::Byte:

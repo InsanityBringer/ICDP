@@ -145,6 +145,8 @@ struct kc_joyinfo
 	uint8_t guid[16];
 	//Due to guids not being unique per instance of a device, store a handle for usage with the joystick libs.
 	int handle;
+	//Whether or not this has been initialized. This is to allow identifying 
+	bool initialized;
 
 	//These are variable length because the same bindings are shared across Descent 1 and 2, with 2 having more bindings.
 	//If it is less than the amount of controls a game has, it gets expanded with defaults. If it is greater, the extras are preserved as-is.
@@ -229,3 +231,5 @@ void kc_change_invert(kc_item* item);
 
 void kc_read_bindings_from_controlinfo_tag(CompoundTag& tag);
 CompoundTag* kc_create_controlinfo_tag();
+
+void kconfig_reset_keybinds();

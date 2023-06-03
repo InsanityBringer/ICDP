@@ -185,6 +185,66 @@ ListTag* generate_gameinfo_tag()
 	return tag_p;
 }
 
+void read_highest_level_entry_tag(hli& hli_entry, CompoundTag& compoundtag)
+{
+	Tag* tag_p = compoundtag.find_tag("Mission_name");
+	
+	if (tag_p && tag_p->GetType() == NBTTag::String)
+	{
+		//TODO: hli::shortname needs to be std::string
+		strncpy(hli_entry.shortname, ((StringTag*)tag_p)->value.c_str(), 9);
+		hli_entry.shortname[8] = '\0';
+	}
+
+	hli_entry.level_num = nbt_get_integral(compoundtag.find_tag("Highest_level"), 0);
+}
+
+void read_gameinfo_entry(pilot_gameinfo& gameinfo, CompoundTag& compoundtag)
+{
+	Tag* tag_p = compoundtag.find_tag("Game_name");
+
+	if (!tag_p || tag_p->GetType() != NBTTag::String)
+		throw std::runtime_error("read_gameinfo_entry: Missing or invalid game name for gameinfo.");
+
+	gameinfo.Game_name = ((StringTag*)tag_p)->value;
+
+	tag_p = compoundtag.find_tag("Highest_level_info");
+
+	if (tag_p && tag_p->GetType() == NBTTag::List)
+	{
+		ListTag* listtag_p = (ListTag*)tag_p;
+		gameinfo.highest_levels.resize(listtag_p->size());
+		for (int i = 0; i < listtag_p->size(); i++)
+			read_highest_level_entry_tag(gameinfo.highest_levels[i], (CompoundTag&)*listtag_p->at(i));
+	}
+}
+
+void read_gameinfo_tag(ListTag& listtag)
+{
+	if (listtag.get_list_type() != NBTTag::Compound)
+		return;
+
+	all_gameinfo.resize(listtag.size());
+	for (int i = 0; i < listtag.size(); i++)
+		read_gameinfo_entry(all_gameinfo[i], (CompoundTag&)*listtag.at(i));
+}
+
+void find_gameinfo_for_current_game()
+{
+	for (pilot_gameinfo& gameinfo : all_gameinfo)
+	{
+		if (!gameinfo.Game_name.compare("Descent"))
+			current_gameinfo = &gameinfo;
+	}
+
+	//Didn't find it, so generate gameinfo
+	if (!current_gameinfo)
+	{
+		all_gameinfo.push_back(generate_gameinfo_for_current_game());
+		current_gameinfo = &all_gameinfo[all_gameinfo.size() - 1];
+	}
+}
+
 void init_game_list()
 {
 	int i;
@@ -203,6 +263,7 @@ int new_player_config()
 	int i, j, control_choice;
 	newmenu_item m[7];
 
+	/*
 RetrySelection:
 	for (i = 0; i < 5; i++) 
 	{
@@ -225,7 +286,9 @@ RetrySelection:
 			kconfig_settings[i][j] = default_kconfig_settings[i][j];
 	kc_set_controls();
 
-	Config_control_type = control_choice;
+	Config_control_type = control_choice;*/
+
+	kconfig_reset_keybinds();
 
 	Player_default_difficulty = 1;
 	Auto_leveling_on = Default_leveling_on = 1;
@@ -265,11 +328,11 @@ int read_player_file()
 
 	//sprintf(filename, "%8s.plr", Players[Player_num].callsign);
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	snprintf(filename, FILENAME_LEN, "%s.plr", Players[Player_num].callsign);
+	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
 	get_full_file_path(filename_full_path, filename, CHOCOLATE_PILOT_DIR);
 	file = fopen(filename_full_path, "rb");
 #else
-	snprintf(filename, FILENAME_LEN, "%s.plr", Players[Player_num].callsign);
+	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
 	file = fopen(filename, "rb");
 #endif
 
@@ -287,7 +350,7 @@ int read_player_file()
 		return errno;
 	}
 
-	if (D_LoadInfoHeader(file, &info) != 1) 
+	/*if (D_LoadInfoHeader(file, &info) != 1) 
 	{
 		errno_ret = errno;
 		fclose(file);
@@ -384,12 +447,16 @@ int read_player_file()
 		{
 			kc_set_controls();
 		}
-	}
+	}*/
+
+	Tag* tag_p = Tag::read_tag(file);
+	if (tag_p->GetType() != NBTTag::Compound)
+		errno_ret = 1;
 
 	if (fclose(file) && errno_ret == EZERO)
 		errno_ret = errno;
 
-	if (info.saved_game_version == COMPATIBLE_SAVED_GAME_VERSION) 
+	/*if (info.saved_game_version == COMPATIBLE_SAVED_GAME_VERSION) 
 	{
 		int i;
 
@@ -405,7 +472,42 @@ int read_player_file()
 			}
 		}
 		write_player_file();
+	}*/
+
+	//temp code to copy over the legacy HLI info into the new gameinfo system
+	/*current_gameinfo = nullptr; all_gameinfo.clear();
+	all_gameinfo.push_back(generate_gameinfo_for_current_game());
+	current_gameinfo = &all_gameinfo[0];
+
+	for (int hlinum = 0; hlinum < n_highest_levels; hlinum++)
+	{
+		current_gameinfo->highest_levels.push_back(highest_levels[hlinum]);
+	}*/
+
+	if (errno_ret == EZERO) //file read okay, so process the data
+	{
+		kconfig_reset_keybinds();
+
+		CompoundTag* roottag_p = (CompoundTag*)tag_p;
+		current_gameinfo = nullptr; //Going to reload the gameinfo, so the vector may move around.
+		
+		tag_p = roottag_p->find_tag("Game_info");
+		if (tag_p && tag_p->GetType() == NBTTag::List)
+			read_gameinfo_tag((ListTag&)*tag_p);
+
+		tag_p = roottag_p->find_tag("Control_info");
+		if (tag_p && tag_p->GetType() == NBTTag::Compound)
+			kc_read_bindings_from_controlinfo_tag((CompoundTag&)*tag_p);
+
+		//Read loose toggles
+		Player_default_difficulty = nbt_get_integral(roottag_p->find_tag("Default_difficulty_level"), 1);
+		Default_leveling_on = nbt_get_integral(roottag_p->find_tag("Auto_leveling"), 1);
+
+		find_gameinfo_for_current_game();
 	}
+
+	if (tag_p)
+		delete tag_p;
 
 	return errno_ret;
 }
@@ -475,116 +577,51 @@ int get_highest_level(void)
 //write out player's saved games.  returns errno (0 == no error)
 int write_player_file()
 {
-	//TODO: Once the real gameinfo system is created this will need to be hooked up to that
-	current_gameinfo = nullptr; all_gameinfo.clear();
-	all_gameinfo.push_back(generate_gameinfo_for_current_game());
-	current_gameinfo = &all_gameinfo[0];
-
 	ListTag* gameinfo_tag = generate_gameinfo_tag();
 	CompoundTag* controlinfo_tag = kc_create_controlinfo_tag();
 
-	return 0;
-#if 0
+	CompoundTag rootTag = CompoundTag("Pilot");
+	rootTag.list.emplace_back(controlinfo_tag);
+	rootTag.list.emplace_back(gameinfo_tag);
+
+	//Toggles are currently loose tags, but there may not be any particular reason to group them up. 
+	rootTag.list.push_back(std::make_unique<ByteTag>("Default_difficulty_level", Player_default_difficulty));
+	rootTag.list.push_back(std::make_unique<ByteTag>("Auto_leveling", Auto_leveling_on));
+
+	//Structure is generated, so now serialize it.
+	int errno_ret = WriteConfigFile();
+
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 #endif
-	char filename[13];
-	FILE* file;
-	save_info info;
-	int errno_ret;
-
-	errno_ret = WriteConfigFile();
-
-	info.id = SAVE_FILE_ID;
-	info.saved_game_version = SAVED_GAME_VERSION;
-	info.player_struct_version = PLAYER_STRUCT_VERSION;
-	info.saved_game_version = SAVED_GAME_VERSION;
-	info.player_struct_version = PLAYER_STRUCT_VERSION;
-	info.default_difficulty_level = Player_default_difficulty;
-	info.default_leveling_on = Auto_leveling_on;
-
-	info.n_highest_levels = n_highest_levels;
+	char filename[_MAX_PATH];
 
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	snprintf(filename, FILENAME_LEN, "%s.plr", Players[Player_num].callsign);
+	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
 	get_full_file_path(filename_full_path, filename, CHOCOLATE_PILOT_DIR);
-	file = fopen(filename_full_path, "wb");
+	FILE* file = fopen(filename_full_path, "wb");
 #else
-	sprintf(filename, "%s.plr", Players[Player_num].callsign);
-	file = fopen(filename, "wb");
+	sprintf(filename, "%s.nplt", Players[Player_num].callsign);
+	FILE* file = fopen(filename, "wb");
 #endif
-
-	//check filename
-	/*if (file && isatty(fileno(file))) //[ISB] need to fix tty issue. ugh 
-	{
-		//if the callsign is the name of a tty device, prepend a char
-
-		fclose(file);
-		sprintf(filename, "$%.7s.plr", Players[Player_num].callsign);
-		file = fopen(filename, "wb");
-	}*/
 
 	if (!file)
 		return errno;
 
 	errno_ret = EZERO;
 
-	if (D_WriteInfoHeader(file, &info) != 1) 
-	{
-		errno_ret = errno;
-		fclose(file);
-		return errno_ret;
-	}
-
-	//write higest level info
-	for (int hl = 0; hl < n_highest_levels; hl++)
-	{
-		if (D_WriteHighestLevel(file, &highest_levels[hl]) != 1)
-		{
-			errno_ret = errno;
-			fclose(file);
-			return errno_ret;
-		}
-	}
-
-	//	if (fwrite(saved_games,sizeof(saved_games),1,file) != 1) {
-	//		errno_ret = errno;
-	//		fclose(file);
-	//		return errno_ret;
-	//	}
-
-#ifdef NETWORK
-	if ((fwrite(Network_message_macro, MAX_MESSAGE_LEN, 4, file) != 4)) {
-		errno_ret = errno;
-		fclose(file);
-		return errno_ret;
-	}
-#else
-	fseek(file, MAX_MESSAGE_LEN * 4, SEEK_CUR);
-#endif
-
-	//write kconfig info
-	{
-		if (fwrite(kconfig_settings, MAX_CONTROLS * CONTROL_MAX_TYPES, 1, file) != 1)
-			errno_ret = errno;
-		else if (fwrite(&Config_control_type, sizeof(uint8_t), 1, file) != 1)
-			errno_ret = errno;
-		else if (fwrite(&Config_joystick_sensitivity, sizeof(uint8_t), 1, file) != 1)
-			errno_ret = errno;
-	}
+	rootTag.write_tag(file);
 
 	if (fclose(file))
 		errno_ret = errno;
 
-	if (errno_ret != EZERO) 
+	if (errno_ret != EZERO)
 	{
 		remove(filename);			//delete bogus file
 		nm_messagebox(TXT_ERROR, 1, TXT_OK, "%s\n\n%s", TXT_ERROR_WRITING_PLR, strerror(errno_ret));
 	}
 
-
 	return errno_ret;
-#endif
 }
 
 //returns errno (0 == no error)

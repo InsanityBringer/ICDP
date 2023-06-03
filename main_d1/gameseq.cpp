@@ -630,7 +630,7 @@ int RegisterPlayer()
 do_menu_again:
 	;
 
-	if (!newmenu_get_filename(TXT_SELECT_PILOT, "*.plr", filename, allow_abort_flag)) 
+	if (!newmenu_get_filename(TXT_SELECT_PILOT, "*.nplt", filename, allow_abort_flag)) 
 	{
 		return 0;		// They hit Esc in file selector
 	}

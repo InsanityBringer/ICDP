@@ -30,8 +30,11 @@ typedef struct FILEFINDSTRUCT
 	uint32_t size;
 	uint32_t type;
 	char name[FF_PATHSIZE];
+	bool temp_lfn_safe;
 } FILEFINDSTRUCT;
 
 int FileFindFirst(const char* search_str, FILEFINDSTRUCT* ffstruct);
+//Temporary: this will serve parts of the engine that do support LFNs, untill all parts do
+int FileFindFirstLFNTemp(const char* search_str, FILEFINDSTRUCT* ffstruct);
 int FileFindNext(FILEFINDSTRUCT* ffstruct);
 int FileFindClose(void);

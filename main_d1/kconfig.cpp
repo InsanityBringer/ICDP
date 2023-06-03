@@ -1748,6 +1748,8 @@ void kconfig_reset_joy_buttons(kc_joyinfo& info)
 	info.buttons.clear();
 	info.axises.clear();
 
+	info.initialized = false;
+
 	for (kc_button_binding& binding : default_joystick_buttons)
 		info.buttons.push_back(binding);
 
@@ -1780,6 +1782,7 @@ void kconfig_unregister_device(int handle, joy_guid guid)
 	{
 		if (!memcmp(info.guid, guid.guid, 16) && info.handle == handle)
 		{
+			//Retain the device in the list, since I still need to save its bindings later. 
 			info.handle = -1;
 
 			//Flush events. This is a bit brute-force, but controls would get stuck if you pulled a stick that had a pending release event
@@ -1804,6 +1807,9 @@ void kconfig_reset_keybinds()
 
 	for (kc_axis_binding& binding : default_mouse_axises)
 		current_mouse_axises.push_back(binding);
+
+	for (kc_joyinfo& joystick : current_registered_joysticks)
+		kconfig_reset_joy_buttons(joystick);
 }
 
 void kconfig_init_defaults()
@@ -1877,6 +1883,18 @@ void kconfig_init_defaults()
 }
 
 //Code for serializing the kconfig state to NBT tags
+CompoundTag* kc_create_compound_for_binding(kc_button_binding& binding)
+{
+	CompoundTag* newtag = new CompoundTag();
+
+	newtag->list.push_back(std::make_unique<ShortTag>("Button1", binding.button1));
+	newtag->list.push_back(std::make_unique<ShortTag>("Button2", binding.button2));
+	newtag->list.push_back(std::make_unique<ByteTag>("Type1", binding.type1));
+	newtag->list.push_back(std::make_unique<ByteTag>("Type2", binding.type2));
+
+	return newtag;
+}
+
 void kc_binding_from_compound(kc_button_binding& binding, CompoundTag& tag)
 {
 	Tag* bindtag_p = tag.find_tag("Button1");
@@ -1893,49 +1911,197 @@ void kc_binding_from_compound(kc_button_binding& binding, CompoundTag& tag)
 		binding.type2 = nbt_get_integral(bindtag_p, binding.type2);
 }
 
-CompoundTag* kc_create_compound_for_binding(kc_button_binding& binding)
+CompoundTag* kc_create_compound_for_axis(kc_axis_binding& binding)
 {
 	CompoundTag* newtag = new CompoundTag();
 
-	newtag->list.push_back(std::make_unique<ShortTag>("Button1", binding.button1));
-	newtag->list.push_back(std::make_unique<ShortTag>("Button2", binding.button2));
-	newtag->list.push_back(std::make_unique<ByteTag>("Type1", binding.type1));
-	newtag->list.push_back(std::make_unique<ByteTag>("Type2", binding.type2));
+	newtag->list.push_back(std::make_unique<ShortTag>("Axis", binding.axis));
+	newtag->list.push_back(std::make_unique<ByteTag>("Invert", binding.invert));
 
 	return newtag;
 }
 
-void kc_read_bindings_from_controlinfo_tag(CompoundTag& tag)
+void kc_axis_from_compound(kc_axis_binding& binding, CompoundTag& tag)
+{
+	binding.axis = nbt_get_integral(tag.find_tag("Axis"), binding.axis);
+	binding.invert = nbt_get_integral(tag.find_tag("Invert"), binding.invert);
+}
+
+CompoundTag* kc_create_compound_for_joystick(kc_joyinfo& joyinfo)
+{
+	CompoundTag* newtag = new CompoundTag();
+
+	newtag->list.push_back(std::make_unique<ByteArrayTag>("GUID", joyinfo.guid, sizeof(joyinfo.guid)));
+
+	ListTag* innertag_p = new ListTag("Bindings");
+
+	for (kc_button_binding& binding : joyinfo.buttons)
+		innertag_p->put_tag(kc_create_compound_for_binding(binding));
+
+	newtag->list.push_back(std::unique_ptr<Tag>(innertag_p));
+
+	innertag_p = new ListTag("Axises");
+
+	for (kc_axis_binding& binding : joyinfo.axises)
+		innertag_p->put_tag(kc_create_compound_for_axis(binding));
+
+	newtag->list.push_back(std::unique_ptr<Tag>(innertag_p));
+
+	return newtag;
+}
+
+void kc_joystick_from_compound(CompoundTag& tag)
+{
+	Tag* tag_p = tag.find_tag("GUID");
+	if (!tag_p || tag_p->GetType() != NBTTag::ByteArray)
+		return;
+	ByteArrayTag* bytearray_p = (ByteArrayTag*)tag_p;
+	if (bytearray_p->array.size() != 16)
+		return;
+
+	kc_joyinfo* found_joystick = nullptr;
+	//Find a joystick that isn't initialized and has this guid
+	for (kc_joyinfo& joystick : current_registered_joysticks)
+	{
+		if (!memcmp(bytearray_p->array.data(), joystick.guid, 16) && !joystick.initialized)
+		{
+			found_joystick = &joystick;
+		}
+	}
+
+	//Didn't find a joystick?
+	if (!found_joystick)
+	{
+		current_registered_joysticks.emplace_back();
+		found_joystick = &current_registered_joysticks[current_registered_joysticks.size() - 1];
+		memcpy(found_joystick->guid, bytearray_p->array.data(), 16);
+	}
+
+	found_joystick->initialized = true;
+	kconfig_reset_joy_buttons(*found_joystick);
+
+	tag_p = tag.find_tag("Bindings");
+	if (tag_p && tag_p->GetType() == NBTTag::List) //If these conditions fail, the 
+	{
+		ListTag* listtag_p = (ListTag*)tag_p;
+		if (listtag_p->get_list_type() == NBTTag::Compound)
+		{
+			int count = std::min(listtag_p->size(), found_joystick->buttons.size());
+			for (int i = 0; i < count; i++)
+				kc_binding_from_compound(found_joystick->buttons[i], (CompoundTag&)*listtag_p->at(i));
+		}
+	}
+
+	tag_p = tag.find_tag("Axises");
+	if (tag_p && tag_p->GetType() == NBTTag::List)
+	{
+		ListTag* listtag_p = (ListTag*)tag_p;
+		if (listtag_p->get_list_type() == NBTTag::Compound)
+		{
+			int count = std::min(listtag_p->size(), found_joystick->axises.size());
+			for (int i = 0; i < count; i++)
+				kc_axis_from_compound(found_joystick->axises[i], (CompoundTag&)*listtag_p->at(i));
+		}
+	}
+}
+
+void kc_read_bindings_from_controlinfo_tag(CompoundTag& compoundtag_p)
 {
 	kconfig_reset_keybinds();
-	Tag* tag_p = tag.find_tag("Keyboard_bindings");
+	Tag* tag_p = compoundtag_p.find_tag("Keyboard_bindings");
 
 	if (tag_p && tag_p->GetType() == NBTTag::List)
 	{
-		ListTag* ltag_p = (ListTag*)tag_p;
-		if (ltag_p->get_list_type() == NBTTag::Compound)
+		ListTag* listtag_p = (ListTag*)tag_p;
+		if (listtag_p->get_list_type() == NBTTag::Compound)
 		{
-			size_t count = std::min((size_t)KC_NUM_CONTROLS, ltag_p->size());
-			for (size_t i = 0; i < ltag_p->size(); i++)
-			{
-				CompoundTag* binding = (CompoundTag*)ltag_p->at(i);
-				kc_binding_from_compound(current_keyboard_bindings[i], *binding);
-			}
+			int count = std::min(listtag_p->size(), current_keyboard_bindings.size());
+			for (int i = 0; i < count; i++)
+				kc_binding_from_compound(current_keyboard_bindings[i], (CompoundTag&)*listtag_p->at(i));
 		}
 	}
+
+	tag_p = compoundtag_p.find_tag("Mouse_buttons");
+
+	if (tag_p && tag_p->GetType() == NBTTag::List)
+	{
+		ListTag* listtag_p = (ListTag*)tag_p;
+		if (listtag_p->get_list_type() == NBTTag::Compound)
+		{
+			int count = std::min(listtag_p->size(), current_mouse_bindings.size());
+			for (int i = 0; i < count; i++)
+				kc_binding_from_compound(current_mouse_bindings[i], (CompoundTag&)*listtag_p->at(i));
+		}
+	}
+
+	tag_p = compoundtag_p.find_tag("Mouse_axises");
+
+	if (tag_p && tag_p->GetType() == NBTTag::List)
+	{
+		ListTag* listtag_p = (ListTag*)tag_p;
+		if (listtag_p->get_list_type() == NBTTag::Compound)
+		{
+			int count = std::min(listtag_p->size(), current_mouse_axises.size());
+			for (int i = 0; i < count; i++)
+				kc_axis_from_compound(current_mouse_axises[i], (CompoundTag&)*listtag_p->at(i));
+		}
+	}
+
+	tag_p = compoundtag_p.find_tag("Joystick_bindings");
+
+	if (tag_p && tag_p->GetType() == NBTTag::List)
+	{
+		ListTag* listtag_p = (ListTag*)tag_p;
+		if (listtag_p->get_list_type() == NBTTag::Compound)
+		{
+			for (int i = 0; i < listtag_p->size(); i++)
+				kc_joystick_from_compound((CompoundTag&)*listtag_p->at(i));
+		}
+	}
+
+	Kconfig_use_mouse = nbt_get_integral(compoundtag_p.find_tag("Mouse_enabled"), 0);
+	Kconfig_use_joystick = nbt_get_integral(compoundtag_p.find_tag("Joystick_enabled"), 0);
+	Kconfig_use_gamepad = nbt_get_integral(compoundtag_p.find_tag("Gamepad_enabled"), 0);
 }
 
 CompoundTag* kc_create_controlinfo_tag()
 {
 	CompoundTag* tag = new CompoundTag("Control_info");
-	tag->list.clear();
 
-	ListTag* tag_p = new ListTag("Keyboard_bindings");
+	std::unique_ptr<ListTag> tag_p = std::make_unique<ListTag>("Keyboard_bindings");
 
 	for (kc_button_binding& binding : current_keyboard_bindings)
 		tag_p->put_tag(kc_create_compound_for_binding(binding));
 
-	tag->list.push_back(std::unique_ptr<Tag>(tag_p));
+	tag->list.push_back(std::move(tag_p));
+
+	std::unique_ptr<ListTag> mousetag_p = std::make_unique<ListTag>("Mouse_buttons");
+
+	for (kc_button_binding& binding : current_mouse_bindings)
+		mousetag_p->put_tag(kc_create_compound_for_binding(binding));
+
+	tag->list.push_back(std::move(mousetag_p));
+
+	std::unique_ptr<ListTag> mouseaxistag_p = std::make_unique<ListTag>("Mouse_axises");
+
+	for (kc_axis_binding& binding : current_mouse_axises)
+		mouseaxistag_p->put_tag(kc_create_compound_for_axis(binding));
+
+	tag->list.push_back(std::move(mouseaxistag_p));
+
+	std::unique_ptr<ListTag> joysticktag_p = std::make_unique<ListTag>("Joystick_bindings");
+
+	for (kc_joyinfo& joystick : current_registered_joysticks)
+		joysticktag_p->put_tag(kc_create_compound_for_joystick(joystick));
+
+	tag->list.push_back(std::move(joysticktag_p));
+
+	std::unique_ptr<ByteTag> bytetag_p = std::make_unique<ByteTag>("Mouse_enabled", Kconfig_use_mouse);
+	tag->list.push_back(std::move(bytetag_p));
+	bytetag_p = std::make_unique<ByteTag>("Joystick_enabled", Kconfig_use_joystick);
+	tag->list.push_back(std::move(bytetag_p));
+	bytetag_p = std::make_unique<ByteTag>("Gamepad_enabled", Kconfig_use_gamepad);
+	tag->list.push_back(std::move(bytetag_p));
 
 	return tag;
 }

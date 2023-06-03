@@ -35,6 +35,30 @@ int	FileFindFirst(const char* search_str, FILEFINDSTRUCT* ffstruct)
 			strncpy(ffstruct->name, find.cAlternateFileName, FF_PATHSIZE);
 		else
 			strncpy(ffstruct->name, find.cFileName, FF_PATHSIZE);
+
+		ffstruct->temp_lfn_safe = false;
+		return 0;
+	}
+}
+
+int	FileFindFirstLFNTemp(const char* search_str, FILEFINDSTRUCT* ffstruct)
+{
+	WIN32_FIND_DATAA find;
+
+	_FindFileHandle = FindFirstFileA((LPSTR)search_str, &find);
+	if (_FindFileHandle == INVALID_HANDLE_VALUE) return 1;
+	else
+	{
+		ffstruct->size = find.nFileSizeLow;
+		if (find.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+			ffstruct->type = FF_TYPE_DIR;
+		else
+			ffstruct->type = FF_TYPE_FILE;
+		
+		strncpy(ffstruct->name, find.cFileName, FF_PATHSIZE);
+		ffstruct->name[FF_PATHSIZE - 1] = '\0';
+
+		ffstruct->temp_lfn_safe = true;
 		return 0;
 	}
 }
@@ -53,7 +77,7 @@ int	FileFindNext(FILEFINDSTRUCT* ffstruct)
 		else
 			ffstruct->type = FF_TYPE_FILE;
 		//Provide shortnames in case of long names, to avoid problems. 
-		if (strlen(find.cAlternateFileName) != 0)
+		if (!ffstruct->temp_lfn_safe && strlen(find.cAlternateFileName) != 0)
 			strncpy(ffstruct->name, find.cAlternateFileName, FF_PATHSIZE);
 		else
 			strncpy(ffstruct->name, find.cFileName, FF_PATHSIZE);
