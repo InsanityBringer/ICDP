@@ -1202,7 +1202,7 @@ void init_cockpit_canvas()
 	}
 
 	//draw the extensions if they exist
-	if (Cockpit_mode == CM_FULL_COCKPIT && cockpit_left_bm)
+	if (Cockpit_mode == CM_FULL_COCKPIT && cockpit_left_bm && canvas_width > ref_bm->bm_w)
 	{
 		gr_bitmapm(extension_center_offset - cockpit_left_bm->bm_w, 0, cockpit_left_bm);
 		gr_bitmapm(extension_center_offset + ref_bm->bm_w, 0, cockpit_right_bm);

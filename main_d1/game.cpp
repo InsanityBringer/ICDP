@@ -166,10 +166,7 @@ char faded_in;
 #endif
 
 #ifndef NDEBUG                          //these only exist if debugging
-
-int Game_double_buffer = 1;     //double buffer by default
 fix fixed_frametime = 0;          //if non-zero, set frametime to this
-
 #endif
 
 int Game_suspended = 0;           //if non-zero, nothing moves but player
@@ -1233,35 +1230,11 @@ extern int gr_bitblt_double;
 //render a frame for the game
 void game_render_frame_mono(void)
 {
-	grs_canvas Screen_3d_window;
-
-	gr_init_sub_canvas(&Screen_3d_window, VR_screen_buffer,
-		VR_render_sub_buffer.cv_bitmap.bm_x, VR_render_sub_buffer.
-		cv_bitmap.bm_y, VR_render_sub_buffer.cv_bitmap.bm_w,
-		VR_render_sub_buffer.cv_bitmap.bm_h);
-
-	if (Game_double_buffer)
-		gr_set_current_canvas(&VR_render_sub_buffer);
-	else 
-	{
-		gr_set_current_canvas(&Screen_3d_window);
-	}
+	gr_set_current_canvas(&VR_render_sub_buffer);
 
 	render_frame(0);
 
 	game_draw_hud_stuff();
-
-	if (Game_double_buffer) //copy to visible screen
-	{
-		if (Game_cockpit_copy_code == NULL) 
-		{
-			gr_bm_ubitblt(VR_render_sub_buffer.cv_w, VR_render_sub_buffer.cv_h, VR_render_sub_buffer.cv_bitmap.bm_x, VR_render_sub_buffer.cv_bitmap.bm_y, 0, 0, &VR_render_sub_buffer.cv_bitmap, &VR_screen_buffer->cv_bitmap);
-		}
-		else 
-		{
-			gr_ibitblt(&VR_render_buffer.cv_bitmap, &VR_screen_buffer->cv_bitmap, Game_cockpit_copy_code);
-		}
-	}
 
 	if (Cockpit_mode == CM_FULL_COCKPIT || Cockpit_mode == CM_STATUS_BAR) 
 	{
@@ -2151,7 +2124,7 @@ void game()
 				longjmp(LeaveGame, 0);
 
 			//[ISB] assumption is that anything calling without renderflag (basically network mode) will already be updating. 
-			plat_present_canvas_no_flip(*VR_screen_buffer, Game_aspect);
+			plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
 			grs_canvas* cockpit_canvas = get_cockpit_canvas();
 			if (cockpit_canvas)
 				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
@@ -3148,11 +3121,6 @@ void ReadControls()
 #ifndef NDEBUG
 		case KEY_DEBUGGED + KEY_F8: speedtest_init(); Speedtest_count = 1;	break;
 		case KEY_DEBUGGED + KEY_F9: speedtest_init(); Speedtest_count = 10;	break;
-
-		case KEY_DEBUGGED + KEY_D:
-			if ((Game_double_buffer = !Game_double_buffer) != 0)
-				init_cockpit();
-			break;
 #endif
 
 #ifdef EDITOR
