@@ -770,6 +770,9 @@ int player_is_visible_from_object(object* objp, vms_vector* pos, fix field_of_vi
 	fix			dot;
 	fvi_query	fq;
 
+	if (ai_notarget)
+		return 0;
+
 	fq.p0 = pos;
 	if ((pos->x != objp->pos.x) || (pos->y != objp->pos.y) || (pos->z != objp->pos.z)) {
 		int	segnum = find_point_seg(pos, objp->segnum);

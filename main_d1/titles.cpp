@@ -110,8 +110,11 @@ int show_title_screen(const char* filename, int allow_keys)
 
 	gr_palette_clear();
 	gr_set_current_canvas(title_canvas);
-	if (gr_palette_fade_in(New_pal, 32, allow_keys))
+	if (gr_palette_fade_canvas_in(*title_canvas, ASPECT_4_3, New_pal, 32, allow_keys))
+	{
+		gr_free_canvas(title_canvas); //I need canvas RAII...
 		return 1;
+	}
 
 	gr_palette_load(New_pal);
 	timer = timer_get_fixed_seconds() + i2f(3);
@@ -137,8 +140,13 @@ int show_title_screen(const char* filename, int allow_keys)
 		plat_present_canvas(*title_canvas, ASPECT_4_3);
 		timer_mark_end(US_70FPS);
 	}
-	if (gr_palette_fade_out(New_pal, 32, allow_keys))
+	if (gr_palette_fade_canvas_out(*title_canvas, ASPECT_4_3, New_pal, 32, allow_keys))
+	{
+		gr_free_canvas(title_canvas);
 		return 1;
+	}
+
+	gr_free_canvas(title_canvas);
 	return 0;
 }
 

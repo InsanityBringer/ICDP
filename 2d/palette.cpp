@@ -332,6 +332,52 @@ int gr_palette_fade_out(uint8_t* pal, int nsteps, int allow_keys)
 	return 0;
 }
 
+int gr_palette_fade_canvas_out(grs_canvas& canv, float aspect, uint8_t* pal, int nsteps, int allow_keys)
+{
+	uint8_t c;
+	int i, j;
+	fix fade_palette[768];
+	fix fade_palette_delta[768];
+	uint8_t fade_palette_raw[768];
+
+	//	allow_keys = allow_keys;
+
+	if (gr_palette_faded_out) return 0;
+
+#ifndef NDEBUG
+	if (grd_fades_disabled)
+	{
+		gr_palette_clear();
+		return 0;
+	}
+#endif
+
+	for (i = 0; i < 768; i++)
+	{
+		fade_palette[i] = i2f(pal[i] + gr_palette_gamma);
+		fade_palette_delta[i] = fade_palette[i] / nsteps;
+	}
+
+	for (j = 0; j < nsteps; j++)
+	{
+		gr_sync_display();
+		plat_do_events();
+		for (i = 0; i < 768; i++)
+		{
+			fade_palette[i] -= fade_palette_delta[i];
+			if (fade_palette[i] < 0)
+				fade_palette[i] = 0;
+			c = (uint8_t)f2i(fade_palette[i]);
+			if (c > 63) c = 63;
+			fade_palette_raw[i] = c;
+		}
+		plat_write_palette(0, 255, &fade_palette_raw[0]);
+		plat_present_canvas(canv, aspect);
+	}
+	gr_palette_faded_out = 1;
+	return 0;
+}
+
 int gr_palette_fade_in(uint8_t* pal, int nsteps, int allow_keys)
 {
 	int i, j;
@@ -377,6 +423,53 @@ int gr_palette_fade_in(uint8_t* pal, int nsteps, int allow_keys)
 #endif
 		//plat_present_canvas(0);
 		plat_do_events();
+	}
+	gr_palette_faded_out = 0;
+	return 0;
+}
+
+int gr_palette_fade_canvas_in(grs_canvas& canv, float aspect, uint8_t* pal, int nsteps, int allow_keys)
+{
+	int i, j;
+	uint8_t c;
+	fix fade_palette[768];
+	fix fade_palette_delta[768];
+	uint8_t fade_palette_raw[768];
+
+//	allow_keys = allow_keys;
+
+	if (!gr_palette_faded_out) return 0;
+
+#ifndef NDEBUG
+	if (grd_fades_disabled)
+	{
+		gr_palette_clear();
+		return 0;
+	}
+#endif
+
+	for (i = 0; i < 768; i++) 
+	{
+		gr_current_pal[i] = pal[i];
+		fade_palette[i] = 0;
+		fade_palette_delta[i] = i2f(pal[i] + gr_palette_gamma) / nsteps;
+	}
+
+	for (j = 0; j < nsteps; j++) 
+	{
+		gr_sync_display();
+		plat_do_events();
+		for (i = 0; i < 768; i++) 
+		{
+			fade_palette[i] += fade_palette_delta[i];
+			if (fade_palette[i] > i2f(pal[i] + gr_palette_gamma))
+				fade_palette[i] = i2f(pal[i] + gr_palette_gamma);
+			c = (uint8_t)f2i(fade_palette[i]);
+			if (c > 63) c = 63;
+			fade_palette_raw[i] = c;
+		}
+		plat_write_palette(0, 255, &fade_palette_raw[0]);
+		plat_present_canvas(canv, aspect);
 	}
 	gr_palette_faded_out = 0;
 	return 0;

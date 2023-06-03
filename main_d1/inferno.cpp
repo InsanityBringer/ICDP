@@ -499,13 +499,17 @@ int D_DescentMain(int argc, const char** argv)
 
 		strcpy(filename, "descent.pcx");
 
-		if ((pcx_error = pcx_read_bitmap(filename, &grd_curcanv->cv_bitmap, grd_curcanv->cv_bitmap.bm_type, title_pal)) == PCX_ERROR_NONE) {
+		grs_canvas* descentcanv = gr_create_canvas(320, 200);
+		if ((pcx_error = pcx_read_bitmap(filename, &descentcanv->cv_bitmap, descentcanv->cv_bitmap.bm_type, title_pal)) == PCX_ERROR_NONE) {
 			gr_palette_clear();
 			//gr_bitmap( 0, 0, &title_bm );
-			gr_palette_fade_in(title_pal, 32, 0);
+			gr_palette_fade_canvas_in(*descentcanv, ASPECT_4_3, title_pal, 32, 0);
 			//free(title_bm.bm_data);
+			gr_free_canvas(descentcanv);
 		}
-		else {
+		else 
+		{
+			gr_free_canvas(descentcanv);
 			gr_close();
 			Error("Couldn't load pcx file '%s', PCX load error: %s\n", filename, pcx_errormsg(pcx_error));
 		}
