@@ -21,6 +21,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/types.h"
 #include "inferno.h"
 #include "2d/gr.h"
+#include "2d/pcx.h"
 #include "cfile/cfile.h"
 #include "platform/mono.h"
 #include "misc/error.h"
@@ -333,10 +334,16 @@ int piggy_init()
 
 	x = 60; y = 189;
 
+	//nonsense
+	uint8_t temp[768];
+	grs_canvas* descentcanv = gr_create_canvas(320, 200);
+	gr_set_current_canvas(descentcanv);
+	pcx_read_bitmap(filename, &descentcanv->cv_bitmap, descentcanv->cv_bitmap.bm_type, temp);
+
 	gr_set_curfont(Gamefonts[GFONT_SMALL]);
 	gr_set_fontcolor(gr_find_closest_color_current(20, 20, 20), -1);
 	gr_printf(0x8000, y - 10, "%s...", TXT_LOADING_DATA);
-	plat_present_canvas(0);
+	plat_present_canvas(*descentcanv, ASPECT_4_3);
 
 	for (i = 0; i < N_bitmaps; i++) 
 	{
@@ -422,6 +429,8 @@ int piggy_init()
 	warn_on_late_cache = true;
 	//	mprintf( (0, "\n (USed %d / %d KB)\n", Piggy_bitmap_cache_next/1024, (size - header_size - sbytes + 16)/1024 ));
 	//	key_getch();
+
+	gr_free_canvas(descentcanv);
 
 	return 0;
 }

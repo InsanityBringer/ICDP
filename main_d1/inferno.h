@@ -22,7 +22,6 @@ extern int Function_mode;			//in game or editor?
 extern int Screen_mode;				//editor screen or game screen?
 extern char Menu_pcx_name[13];
 
-void check_joystick_calibration();
 void show_order_form();
 
 int D_DescentMain(int argc, const char** argv);

@@ -73,7 +73,6 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 #include "platform/mouse.h"
 #include "platform/joy.h"
 #include "newmenu.h"
-#include "desc_id.h"
 #include "config.h"
 #include "joydefs.h"
 #include "multi.h"
@@ -89,68 +88,17 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 #include "vers_id.h"
 #include "platform/platform.h"
 
-static const char desc_id_checksum_str[] = DESC_ID_CHKSUM;
-char desc_id_exit_num = 0;
-
 int Function_mode = FMODE_MENU;		//game or editor?
 int Screen_mode = -1;					//game screen or editor screen?
-
-//--unused-- grs_bitmap Inferno_bitmap_title;
 
 int WVIDEO_running = 0;		//debugger can set to 1 if running
 
 #ifdef EDITOR
 int Inferno_is_800x600_available = 0;
-//[ISB] ugh
 extern int bm_init_use_tbl();
 #endif
 
-int registered_copy = 0;
-char name_copy[sizeof(DESC_ID_STR)];
-
-void check_id_checksum_and_date()
-{
-	const char name[] = DESC_ID_STR;
-	char time_str[] = DESC_DEAD_TIME;
-	int i, found;
-	unsigned long* checksum, test_checksum;
-	time_t current_time, saved_time;
-
-	saved_time = (time_t)strtol(&(time_str[strlen(time_str) - 10]), NULL, 16);
-	if (saved_time == (time_t)0)
-		return;
-
-	strcpy(name_copy, name);
-	registered_copy = 1;
-
-	current_time = time(NULL);
-	if (current_time >= saved_time)
-		desc_id_exit_num = 1;
-
-	test_checksum = 0;
-	for (i = 0; i < (int)strlen(name); i++) 
-	{
-		found = 0;
-		test_checksum += name[i];
-		if (((test_checksum / 2) * 2) != test_checksum)
-			found = 1;
-		test_checksum = test_checksum >> 1;
-		if (found)
-			test_checksum |= 0x80000000;
-	}
-	checksum = (unsigned long*) & (desc_id_checksum_str[0]);
-	if (test_checksum != *checksum)
-		desc_id_exit_num = 2;
-
-	printf("%s %s\n", TXT_REGISTRATION, name);
-}
-
 extern fix fixed_frametime;
-
-#define NEEDED_DOS_MEMORY   			( 300*1024)		// 300 K
-#define NEEDED_LINEAR_MEMORY 			(7680*1024)		// 7.5 MB
-#define LOW_PHYSICAL_MEMORY_CUTOFF	(5*1024*1024)	// 5.0 MB
-#define NEEDED_PHYSICAL_MEMORY		(2000*1024)		// 2000 KB
 
 extern int piggy_low_memory;
 
@@ -231,10 +179,8 @@ int D_DescentMain(int argc, const char** argv)
 	printf("\nDESCENT   %s %s %s\n", VERSION_NAME, __DATE__, __TIME__);
 	printf("%s\n%s\n", TXT_COPYRIGHT, TXT_TRADEMARK);
 
-	check_id_checksum_and_date();
-
-	if (FindArg("-?") || FindArg("-help") || FindArg("?")) {
-
+	if (FindArg("-?") || FindArg("-help") || FindArg("?")) 
+	{
 		printf("%s\n", TXT_COMMAND_LINE_0);
 
 		printf("  -SimulEyes     %s\n",
@@ -500,7 +446,8 @@ int D_DescentMain(int argc, const char** argv)
 		strcpy(filename, "descent.pcx");
 
 		grs_canvas* descentcanv = gr_create_canvas(320, 200);
-		if ((pcx_error = pcx_read_bitmap(filename, &descentcanv->cv_bitmap, descentcanv->cv_bitmap.bm_type, title_pal)) == PCX_ERROR_NONE) {
+		if ((pcx_error = pcx_read_bitmap(filename, &descentcanv->cv_bitmap, descentcanv->cv_bitmap.bm_type, title_pal)) == PCX_ERROR_NONE) 
+		{
 			gr_palette_clear();
 			//gr_bitmap( 0, 0, &title_bm );
 			gr_palette_fade_canvas_in(*descentcanv, ASPECT_4_3, title_pal, 32, 0);
@@ -527,41 +474,31 @@ int D_DescentMain(int argc, const char** argv)
 	if (FindArg("-norun"))
 		return(0);
 
-	mprintf((0, "\nInitializing 3d system..."));
+	mprintf((0, "\nInitializing 3d system...\n"));
 	g3_init();
-	mprintf((0, "\nInitializing texture caching system..."));
+	//mprintf((0, "\nInitializing texture caching system..."));
 	//texmerge_init(10);		// 10 cache bitmaps
-	mprintf((0, "\nRunning game...\n"));
+	mprintf((0, "Running game...\n"));
 	set_screen_mode(SCREEN_MENU);
 
 	init_game();
 	set_detail_level_parameters(Detail_level);
 
 	Players[Player_num].callsign[0] = '\0';
-	if (!Auto_demo) {
+	if (!Auto_demo) 
+	{
 		key_flush();
 		RegisterPlayer();		//get player's name
 	}
 
 	gr_palette_fade_out(title_pal, 32, 0);
 
-	//check for special stamped version
-	if (registered_copy) {
-		nm_messagebox("EVALUATION COPY", 1, "Continue",
-			"This special evaluation copy\n"
-			"of DESCENT has been issued to:\n\n"
-			"%s\n"
-			"\n\n    NOT FOR DISTRIBUTION",
-			name_copy);
-
-		gr_palette_fade_out(gr_palette, 32, 0);
-	}
-
 	//kconfig_load_all();
 
 	Game_mode = GM_GAME_OVER;
 
-	if (Auto_demo) {
+	if (Auto_demo) 
+	{
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 		char demo_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 		get_full_file_path(demo_full_path, "descent.dem", CHOCOLATE_DEMOS_DIR);
@@ -588,7 +525,6 @@ int D_DescentMain(int argc, const char** argv)
 			}
 			else 
 			{
-				check_joystick_calibration();
 				DoMenu();
 #ifdef EDITOR
 				if (Function_mode == FMODE_EDITOR) {
@@ -651,17 +587,12 @@ int D_DescentMain(int argc, const char** argv)
 		return(0);		//presumably successful exit
 }
 
-
-void check_joystick_calibration()
-{
-}
-
 void show_order_form()
 {
 	int pcx_error;
 	uint8_t title_pal[768];
 	char	exit_screen[16];
-
+	
 	grs_canvas* exit_canvas = gr_create_canvas(320, 200);
 	gr_set_current_canvas(exit_canvas);
 	gr_palette_clear();

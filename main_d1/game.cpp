@@ -80,7 +80,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "coindev.h"
 #endif
 #include "multi.h"
-#include "desc_id.h"
 #include "cntrlcen.h"
 #include "2d/pcx.h"
 #include "state.h"
@@ -3177,12 +3176,6 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 				j += i;
 	}
 #endif
-
-	if (desc_id_exit_num) // are we supposed to be checking
-	{
-		if (!(--desc_dead_countdown))  // if so, at zero, then pull the plug
-			Error("Loading overlay -- error number: %d\n", (int)desc_id_exit_num);
-	}
 
 #ifndef RELEASE
 	if (FindArg("-invulnerability"))

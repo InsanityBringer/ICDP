@@ -48,12 +48,8 @@ extern int Player_highest_level;
 //  New game sequencing functions
 //
 
-//[ISB] dear parallax: it's not actually that hard to include a return type, just for the record
 //called once at program startup to get the player's name
 int RegisterPlayer();
-
-//Inputs the player's name, without putting up the background screen
-//void RegisterPlayerSub(int allow_abort_flag); //[ISB] cut
 
 //starts a new game on the given level
 void StartNewGame(int start_level);

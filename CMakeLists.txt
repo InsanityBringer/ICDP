@@ -144,7 +144,6 @@ set(DESCENT1_SOURCES
 	main_d1/controls.h
 	main_d1/credits.cpp
 	main_d1/credits.h
-	main_d1/desc_id.h
 	main_d1/digi.cpp
 	main_d1/dumpmine.cpp
 	main_d1/endlevel.cpp
