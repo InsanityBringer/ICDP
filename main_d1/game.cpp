@@ -76,9 +76,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "joydefs.h"
 #include "kconfig.h"
 #include "platform/mouse.h"
-#ifdef ARCADE
-#include "coindev.h"
-#endif
 #include "multi.h"
 #include "cntrlcen.h"
 #include "2d/pcx.h"
@@ -94,12 +91,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #define	SHOW_EXIT_PATH	1
 #define FINAL_CHEATS 1
-
-#ifdef ARCADE
-#include "arcade.h"
-#else
-#define Arcade_mode 0
-#endif
 
 #ifdef EDITOR
 #include "editor\editor.h"
@@ -152,13 +143,9 @@ int Cockpit_mode = CM_FULL_COCKPIT;		//set game.h for values
 int old_cockpit_mode = -1;
 int force_cockpit_redraw = 0;
 
-int framerate_on = 0;
+bool framerate_on = false;
 
 int PaletteRedAdd, PaletteGreenAdd, PaletteBlueAdd;
-
-//	Toggle_var points at a variable which gets !ed on ctrl-alt-T press.
-int	Dummy_var;
-int* Toggle_var = &Dummy_var;
 
 #ifdef EDITOR
 //flag for whether initial fade-in has been done
@@ -179,7 +166,7 @@ fix	Auto_fire_fusion_cannon_time = 0;
 fix	Fusion_charge = 0;
 fix	Fusion_next_sound_time = 0;
 
-int Debug_spew = 1;
+bool Debug_spew = true;
 int Game_turbo_mode = 0;
 
 int Game_mode = GM_GAME_OVER;
@@ -946,10 +933,6 @@ void calc_frame_time()
 	}
 #endif
 
-#if Arcade_mode
-	FrameTime /= 2;
-#endif
-
 #if defined(TIMER_TEST) && !defined(NDEBUG)
 	stop_count = start_count = 0;
 #endif
@@ -1200,10 +1183,6 @@ void game_draw_hud_stuff()
 
 	}
 
-#ifdef ARCADE
-	arcade_frame_info();
-#endif
-
 	if (framerate_on)
 		show_framerate();
 
@@ -1278,11 +1257,6 @@ void game_render_frame()
 	start_time();
 
 }
-
-#ifdef EDITOR
-void do_photos();
-void level_with_floor();
-#endif
 
 void save_screen_shot(int automap_flag)
 {
@@ -1377,10 +1351,6 @@ void advance_sound()
 		test_sound_num = 0;
 
 }
-
-#ifdef EDITOR
-void test_anim_states();
-#endif
 
 #include "fvi.h"
 
@@ -1806,38 +1776,6 @@ void show_help()
 	}
 }
 
-
-#ifdef ARCADE
-void arcade_frame_info()
-{
-	if (!Arcade_mode) return;
-
-	if (Newdemo_state == ND_STATE_PLAYBACK) {
-		gr_set_curfont(GAME_FONT);    //game_font );
-		gr_set_fontcolor(gr_getcolor(0, 31, 0), -1);
-		gr_printf(0x8000, 5, "Insert Coins to Play");
-		return;
-	}
-
-	if (Arcade_timer > 0) {
-		gr_set_curfont(GAME_FONT);
-		gr_set_fontcolor(gr_getcolor(0, 31, 0), -1);
-		gr_printf(0x8000, 5, "%d seconds left", f2i(Arcade_timer));
-	}
-	else {
-		gr_set_curfont(Gamefonts[GFONT_BIG_1]);    //GAME_FONT );
-		gr_printf(0x8000, 40, "Game Over");
-
-		gr_set_curfont(Gamefonts[GFONT_MEDIUM_2]);    //GAME_FONT );
-		gr_printf(0x8000, 60, "Insert Coins to Continue");
-		gr_printf(0x8000, 75, "%d", f2i(Arcade_timer) + 10);
-	}
-}
-#endif
-
-//temp function until Matt cleans up game sequencing
-extern void temp_reset_stuff_on_level();
-
 //deal with rear view - switch it on, or off, or whatever
 void check_rear_view()
 {
@@ -1906,10 +1844,6 @@ void reset_rear_view(void)
 	if (Cockpit_mode == CM_REAR_VIEW)
 		select_cockpit(old_cockpit_mode);
 }
-
-#ifdef ARCADE
-int keys_override;
-#endif
 
 int Automap_flag;
 int Config_menu_flag;
@@ -2012,10 +1946,6 @@ void game()
 	set_screen_mode(SCREEN_GAME);
 	reset_palette_add();
 
-#ifdef ARCADE
-	keys_override = FindArg("-keys");
-#endif
-
 	set_warn_func(game_show_warning);
 
 	init_cockpit();
@@ -2037,13 +1967,6 @@ void game()
 	fly_init(ConsoleObject);
 
 	Game_suspended = 0;
-
-#ifdef ARCADE
-	if (Arcade_mode) {
-		NewGame(1);
-		newdemo_start_playback(NULL);
-	}
-#endif
 
 	reset_time();
 	FrameTime = 0;			//make first frame zero
@@ -2216,33 +2139,6 @@ void ReadControls()
 	fix key_time;
 	static fix newdemo_single_frame_time;
 
-#ifdef ARCADE
-	if (Arcade_mode) {
-		int coins;
-		if (Newdemo_state != ND_STATE_PLAYBACK) {
-			Arcade_timer -= 2 * FrameTime;
-			if (Arcade_timer < (-F1_0 * 10)) {
-				newdemo_toggle_playback();
-			}
-		}
-		coins = coindev_count(0);
-		if (coins > 0) {
-			if (Newdemo_state == ND_STATE_PLAYBACK) {
-				newdemo_toggle_playback();
-				Arcade_timer = F1_0 * ARCADE_FIRST_SECONDS;		// Two minutes to play...
-				if (coins > 1)
-					Arcade_timer += F1_0 * ARCADE_CONTINUE_SECONDS * (coins - 1);		// Two minutes to play...
-				NewGame(1);
-			}
-			else {
-				if (Arcade_timer < 0)
-					Arcade_timer = 0;
-				Arcade_timer += F1_0 * ARCADE_CONTINUE_SECONDS * coins;		// Two minutes to play...
-			}
-		}
-	}
-#endif
-
 	Player_fired_laser_this_frame = -1;
 
 #ifndef NDEBUG
@@ -2250,26 +2146,17 @@ void ReadControls()
 		speedtest_frame();
 #endif
 
-	if (!Endlevel_sequence && !Player_is_dead) {
+	if (!Endlevel_sequence && !Player_is_dead) 
+	{
 
-#ifdef ARCADE
-		if (Arcade_mode) {
-			if (Arcade_timer > 0)
-				if (Newdemo_state == ND_STATE_PLAYBACK)
-					memset(&Controls, 0, sizeof(control_info));
-				else
-					controls_read_all();		//NOTE LINK TO ABOVE!!!
-		}
-		else
-#endif
-			if ((Newdemo_state == ND_STATE_PLAYBACK)
+		if ((Newdemo_state == ND_STATE_PLAYBACK)
 #ifdef NETWORK
-				|| multi_sending_message || multi_defining_message
+			|| multi_sending_message || multi_defining_message
 #endif
-				) 	// WATCH OUT!!! WEIRD CODE ABOVE!!!
-				memset(&Controls, 0, sizeof(control_info));
-			else
-				controls_read_all();		//NOTE LINK TO ABOVE!!!
+			) 	// WATCH OUT!!! WEIRD CODE ABOVE!!!
+			memset(&Controls, 0, sizeof(control_info));
+		else
+			controls_read_all();		//NOTE LINK TO ABOVE!!!
 
 		check_rear_view();
 
@@ -3050,10 +2937,6 @@ void ReadControls()
 #ifndef NDEBUG
 		case KEY_DEBUGGED + KEY_O: toggle_outline_mode(); break;
 #endif
-		case KEY_DEBUGGED + KEY_T:
-			*Toggle_var = !*Toggle_var;
-			mprintf((0, "Variable at %08x set to %i\n", Toggle_var, *Toggle_var));
-			break;
 		case KEY_DEBUGGED + KEY_L:
 			//if (++Lighting_on >= 2) Lighting_on = 0; break;
 		{
@@ -3232,13 +3115,6 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 		do_special_effects();
 		return;					//skip everything else
 	}
-
-#ifdef ARCADE
-	if (Arcade_mode && (Arcade_timer < 0) && (Newdemo_state != ND_STATE_PLAYBACK)) {
-		memset(&Controls, 0, sizeof(Controls));
-		continue;
-	}
-#endif
 
 	if (Newdemo_state != ND_STATE_PLAYBACK)
 		do_exploding_wall_frame();

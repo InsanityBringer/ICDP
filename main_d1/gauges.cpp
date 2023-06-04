@@ -54,6 +54,9 @@ grs_canvas* cockpit_canvas;
 //This canvas only considers the 4:3 box in the center of the screen to avoid having to tweak all the gauge drawing code
 grs_canvas cockpit_center_canvas;
 
+//Where weapon boxes draw to before being blit to the cockpit canvas
+grs_canvas* gauge_offscreen_canvas;
+
 grs_canvas* hud_canvas;
 //This is a sub canvas of the hud_canvas that the HUD is actually drawn into. This is because cockpits modify the bounds of the viewport, and this needs to match it
 //This isn't a subcanvas of cockpit_canvas since it needs to be cleared each frame. 
@@ -1070,6 +1073,9 @@ void init_gauge_canvases()
 	Canv_SBEnergyGauge = gr_create_canvas(SB_ENERGY_GAUGE_W, SB_ENERGY_GAUGE_H);
 	Canv_RightEnergyGauge = gr_create_canvas(RIGHT_ENERGY_GAUGE_W, RIGHT_ENERGY_GAUGE_H);
 	Canv_NumericalGauge = gr_create_canvas(NUMERICAL_GAUGE_W, NUMERICAL_GAUGE_H);
+
+	if (!gauge_offscreen_canvas)
+		gauge_offscreen_canvas = gr_create_canvas(640, 480); //TODO: Will I ever allow larger cockpit graphics?
 }
 
 void close_gauge_canvases()
@@ -1542,7 +1548,7 @@ int draw_weapon_box(int weapon_type, int weapon_num)
 {
 	int drew_flag = 0;
 
-	gr_set_current_canvas(&VR_render_buffer);
+	gr_set_current_canvas(gauge_offscreen_canvas);
 	gr_set_curfont(GAME_FONT);
 
 	if (weapon_num != old_weapon[weapon_type] && weapon_box_states[weapon_type] == WS_SET)
@@ -1611,7 +1617,7 @@ void draw_weapon_boxes()
 	int drew;
 
 	drew = draw_weapon_box(0, Primary_weapon);
-	if (drew) copy_gauge_box(&gauge_boxes[boxofs + 0], &VR_render_buffer.cv_bitmap);
+	if (drew) copy_gauge_box(&gauge_boxes[boxofs + 0], &gauge_offscreen_canvas->cv_bitmap);
 
 	if (weapon_box_states[0] == WS_SET)
 		if (Players[Player_num].primary_ammo[Primary_weapon] != old_ammo_count[0])
@@ -1630,7 +1636,7 @@ void draw_weapon_boxes()
 	if (!hostage_is_vclip_playing()) 
 	{
 		drew = draw_weapon_box(1, Secondary_weapon);
-		if (drew) copy_gauge_box(&gauge_boxes[boxofs + 1], &VR_render_buffer.cv_bitmap);
+		if (drew) copy_gauge_box(&gauge_boxes[boxofs + 1], &gauge_offscreen_canvas->cv_bitmap);
 
 		if (weapon_box_states[1] == WS_SET)
 			if (Players[Player_num].secondary_ammo[Secondary_weapon] != old_ammo_count[1]) 

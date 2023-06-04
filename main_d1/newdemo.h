@@ -31,7 +31,7 @@ extern int NewdemoFrameCount;
 extern int Newdemo_game_mode;
 
 extern int Newdemo_vcr_state;
-extern int8_t Newdemo_do_interpolate;
+extern bool Newdemo_do_interpolate;
 
 //Does demo start automatically?
 extern int Auto_demo;

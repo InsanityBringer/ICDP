@@ -1434,5 +1434,5 @@ void StartLevel(int random)
 	Auto_fire_fusion_cannon_time = 0;
 	Fusion_charge = 0;
 
-	Robot_firing_enabled = 1;
+	Robot_firing_enabled = true;
 }

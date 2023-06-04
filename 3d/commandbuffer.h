@@ -58,6 +58,13 @@ struct G3CmdDrawSphere
 	fix radius;
 };
 
+struct G3CmdDrawLine
+{
+	G3CmdBase base;
+	g3s_point p1, p2;
+	uint16_t color;
+};
+
 struct G3CmdDrawBitmap
 {
 	G3CmdBase base;

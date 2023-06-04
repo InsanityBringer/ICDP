@@ -25,7 +25,7 @@ void g3_set_special_render(void (*tmap_drawer)(grs_bitmap* bm, int nv, g3s_point
 {
 	//tmap_drawer_ptr = (tmap_drawer) ? tmap_drawer : draw_tmap;
 	//flat_drawer_ptr = (flat_drawer) ? flat_drawer : gr_upoly_tmap;
-	line_drawer_ptr = (line_drawer) ? line_drawer : gr_line;
+	//line_drawer_ptr = (line_drawer) ? line_drawer : gr_line;
 }
 
 void g3_set_lighting_mode(int new_mode)
@@ -48,7 +48,7 @@ int g3_get_interpolation_mode()
 	return g3_global_inst.get_interpolation_mode();
 }
 
-bool G3Drawer::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or)
+bool G3Drawer::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or, int color)
 {
 	bool ret;
 
@@ -59,7 +59,9 @@ bool G3Drawer::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or)
 	{
 		clip_line(&p0, &p1, codes_or);
 
-		ret = draw_line(p0, p1);
+		//ret = draw_line(p0, p1, color);
+		//don't recursively call the line drawer, this will cause recursive clipping. 
+		ret = (bool)gr_line(canv, color, p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);
 	}
 
 	//free temp points
@@ -457,33 +459,39 @@ dbool G3Instance::check_and_draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uv
 }
 
 //draws a line. takes two points.
-bool G3Drawer::draw_line(g3s_point* p0, g3s_point* p1)
+bool G3Drawer::draw_line(g3s_point* p0, g3s_point* p1, int color)
 {
-	/*uint8_t codes_or;
+	g3s_point p0l = *p0; //need to copy points too because of leaky state...
+	g3s_point p1l = *p1;
 
-	if (p0->p3_codes & p1->p3_codes)
+	code_point(&p0l); code_point(&p1l);
+
+	if (!(p0l.p3_flags & PF_PROJECTED))
+		project_point(&p0l);
+
+	if (!(p1l.p3_flags & PF_PROJECTED))
+		project_point(&p1l);
+
+	if (p0l.p3_codes & p1l.p3_codes)
 		return 0;
 
-	codes_or = p0->p3_codes | p1->p3_codes;
+	uint8_t codes_or = p0l.p3_codes | p1l.p3_codes;
 
 	if (codes_or & CC_BEHIND)
-		return must_clip_line(p0, p1, codes_or);
+		return false; //temporary hack because the clipper doesn't handle clip against near.
+		//return must_clip_line(&p0l, &p1l, codes_or, color);
 
-	if (!(p0->p3_flags & PF_PROJECTED))
-		project_point(p0);
+	if (p0l.p3_flags & PF_OVERFLOW)
+		return must_clip_line(&p0l, &p1l , codes_or, color);
 
-	if (p0->p3_flags & PF_OVERFLOW)
-		return must_clip_line(p0, p1, codes_or);
+	if (p1l.p3_flags & PF_OVERFLOW)
+		return must_clip_line(&p0l, &p1l, codes_or, color);
 
+	if (codes_or)
+		return must_clip_line(&p0l, &p1l, codes_or, color);
 
-	if (!(p1->p3_flags & PF_PROJECTED))
-		project_point(p1);
-
-	if (p1->p3_flags & PF_OVERFLOW)
-		return must_clip_line(p0, p1, codes_or);
-
-	return (dbool)(*line_drawer_ptr)(p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);*/
-	return true;
+	//return (dbool)(*line_drawer_ptr)(p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);
+	return (bool)gr_line(canv, color, p0l.p3_sx, p0l.p3_sy, p1l.p3_sx, p1l.p3_sy);
 }
 
 //draws a line. takes two points.  returns true if drew

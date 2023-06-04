@@ -166,7 +166,7 @@ uint8_t G3Drawer::code_point(g3s_point* p)
 	if (p->p3_y < fixmul(p->p3_z, clip_ratios[3]))
 		cc |= CC_OFF_BOT;
 
-	if (p->p3_z < 0)
+	if (p->p3_z <= 0)
 		cc |= CC_BEHIND;
 
 	return p->p3_codes = cc;

@@ -160,7 +160,7 @@ int Newdemo_game_mode;
 int Newdemo_old_cockpit;
 int8_t Newdemo_no_space;
 int8_t Newdemo_at_eof;
-int8_t Newdemo_do_interpolate = 1;
+bool Newdemo_do_interpolate = true;
 int8_t Newdemo_players_cloaked;
 int8_t Newdemo_warning_given = 0;
 int8_t Newdemo_cntrlcen_destroyed = 0;

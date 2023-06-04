@@ -121,6 +121,12 @@ void G3CommandBuffer::cmd_draw_sphere(g3s_point* pnt, fix rad)
 
 void G3CommandBuffer::cmd_draw_line(g3s_point* p0, g3s_point* p1)
 {
+	size_t cmd_size = sizeof(G3CmdDrawLine);
+	G3CmdDrawLine* cmd = (G3CmdDrawLine*)reserve_space(cmd_size);
+	cmd->base.type = G3CmdType::draw_line;
+	cmd->base.length = cmd_size;
+	cmd->p1 = *p0; cmd->p2 = *p1;
+	cmd->color = grd_curcanv->cv_color;
 }
 
 void G3CommandBuffer::cmd_draw_bitmap(g3s_point* pnt, fix width, fix height, grs_bitmap* bm, int orientation)
@@ -256,7 +262,7 @@ dbool G3Instance::draw_line(g3s_point* p0, g3s_point* p1)
 	if (Use_multithread)
 		g3_command_buffer.cmd_draw_line(p0, p1);
 	else
-		drawer.draw_line(p0, p1);
+		drawer.draw_line(p0, p1, grd_curcanv->cv_color);
 	return 0;
 }
 
@@ -336,7 +342,10 @@ void G3Drawer::decode_command_buffer()
 			}
 			break;
 			case G3CmdType::draw_line:
-				//TODO
+			{
+				G3CmdDrawLine* line_p = (G3CmdDrawLine*)cmd_p;
+				draw_line(&line_p->p1, &line_p->p2, line_p->color);
+			}
 				break;
 			case G3CmdType::draw_sphere:
 				//TODO

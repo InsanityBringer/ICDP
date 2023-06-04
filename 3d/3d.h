@@ -126,7 +126,7 @@ class G3Drawer
 	int num_commands_decoded = -1;
 
 	//Private drawing functions
-	bool must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or);
+	bool must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or, int color);
 	bool must_clip_flat_face(int nv, g3s_codes cc, int color);
 	bool must_clip_tmap_face(int nv, g3s_codes cc, grs_bitmap* bm);
 
@@ -167,7 +167,7 @@ public:
 	//radius, but not to the distance from the eye
 	void draw_sphere(g3s_point* pnt, fix rad);
 
-	bool draw_line(g3s_point* p0, g3s_point* p1);
+	bool draw_line(g3s_point* p0, g3s_point* p1, int color);
 
 	void draw_bitmap(g3s_point* pnt, fix w, fix h, grs_bitmap* bm, int orientation);
 

@@ -168,7 +168,7 @@ int8_t	Super_boss_gate_list[] = { 0, 1, 8, 9, 10, 11, 12, 15, 16, 18, 19, 20, 22
 #endif
 
 int	Ai_info_enabled = 0;
-int	Robot_firing_enabled = 1;
+bool	Robot_firing_enabled = true;
 
 extern	int	Ugly_robot_cheat, Ugly_robot_texture, Laser_rapid_fire;
 extern	int8_t	Enable_john_cheat_1, Enable_john_cheat_2, Enable_john_cheat_3, Enable_john_cheat_4;
