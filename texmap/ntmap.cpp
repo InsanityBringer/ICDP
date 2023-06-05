@@ -49,7 +49,7 @@ Texmap::Texmap()
 	write_buffer = nullptr;
 	window_left = window_right = window_top = window_bottom = 0;
 	window_width = window_height = 0;
-
+	Darkening_level = GR_FADE_LEVELS;
 }
 
 // -------------------------------------------------------------------------------------
@@ -932,7 +932,8 @@ void Texmap::DrawTMap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 #endif
 
 	//	If no transparency and seg depth is large, render as flat shaded.
-	if ((Current_seg_depth > Max_linear_depth) && ((bp->bm_flags & 3) == 0)) 
+	//Also draw as flat if the darkening level is set. 
+	if (((Current_seg_depth > Max_linear_depth) && ((bp->bm_flags & 3) == 0)) || Darkening_level < GR_FADE_LEVELS) 
 	{
 		DrawFlat(bp, nverts, vertbuf);
 		return;

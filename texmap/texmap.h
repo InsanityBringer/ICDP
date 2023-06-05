@@ -191,6 +191,11 @@ public:
 	void DrawFlat(int color, int nverts, int* vert); //Color moved directly to the call to avoid modifying gr state. 
 	//Draws a solid polygon with TMap compatible parameters
 	void DrawFlat(grs_bitmap* bp, int nverts, g3s_point** vertbuf);
+
+	void SetDarkening(int level)
+	{
+		Darkening_level = level;
+	}
 };
 
 //[ISB] these remain global state, since all texmapper instances will be using the same values. 

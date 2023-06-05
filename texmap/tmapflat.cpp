@@ -43,11 +43,11 @@ void Texmap::ScanlineFlat(int y, fix xleft, fix xright)
 	if (fx_xright > Window_clip_right)
 		fx_xright = Window_clip_right;
 
-	if (Gr_scanline_darkening_level >= GR_FADE_LEVELS)
+	if (Darkening_level >= GR_FADE_LEVELS)
 		DrawScanlineFlat();
 	else 
 	{
-		tmap_flat_shade_value = Gr_scanline_darkening_level;
+		tmap_flat_shade_value = Darkening_level;
 		DrawScanlineShaded();
 	}
 }

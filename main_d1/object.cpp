@@ -194,10 +194,6 @@ extern fix Max_thrust;
 //used for robot engine glow
 #define MAX_VELOCITY i2f(50)
 
-//function that takes the same parms as draw_tmap, but renders as flat poly
-//we need this to do the cloaked effect
-extern void draw_tmap_flat(grs_bitmap* bm, int nv, g3s_point** vertlist);
-
 //what darkening level to use when cloaked
 #define CLOAKED_FADE_LEVEL		28
 
@@ -286,11 +282,11 @@ void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time
 		draw_polygon_model(&obj->pos, &obj->orient, &obj->rtype.pobj_info.anim_angles[0], obj->rtype.pobj_info.model_num, obj->rtype.pobj_info.subobj_flags, new_light, &new_glow, alt_textures);
 	}
 	else {
-		Gr_scanline_darkening_level = cloak_value;
-		//g3_set_special_render(draw_tmap_flat, NULL, NULL);		//use special flat drawer
+		//Gr_scanline_darkening_level = cloak_value;
+		g3_set_darkening_level(cloak_value);
 		draw_polygon_model(&obj->pos, &obj->orient, &obj->rtype.pobj_info.anim_angles[0], obj->rtype.pobj_info.model_num, obj->rtype.pobj_info.subobj_flags, light, glow, alt_textures);
-		g3_set_special_render(NULL, NULL, NULL);
-		Gr_scanline_darkening_level = GR_FADE_LEVELS;
+		g3_set_darkening_level(GR_FADE_LEVELS);
+		//Gr_scanline_darkening_level = GR_FADE_LEVELS;
 	}
 
 }

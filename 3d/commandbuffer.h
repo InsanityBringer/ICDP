@@ -24,6 +24,7 @@ enum class G3CmdType
 	set_transparency,
 	set_tmap_seg_depth,
 	set_tmap_clip_window,
+	set_darkening_level
 };
 
 struct G3CmdBase
@@ -128,6 +129,8 @@ public:
 	void cmd_set_seg_depth(int depth);
 	//Records a change to the clipping window for the texture mapper
 	void cmd_set_window(int left, int top, int right, int bottom);
+	//Records a change to the darkening level for the texture mapper
+	void cmd_set_darkening(int level);
 
 	void end_recording();
 

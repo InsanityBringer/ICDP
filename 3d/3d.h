@@ -438,6 +438,8 @@ public:
 	void set_segment_depth(int depth);
 	void set_clip_window(int left, int top, int right, int bottom);
 
+	void set_darkening_level(int level);
+
 	//debugging
 	void debug_decode_command_buffer()
 	{
@@ -586,6 +588,10 @@ dbool g3_draw_morphing_model(void* model_ptr, grs_bitmap** model_bitmaps, vms_an
 //this remaps the 15bpp colors for the models into a new palette.  It should
 //be called whenever the palette changes
 void g3_remap_interp_colors(void);
+
+//Sets the darkening level for any future draws.
+//Set level to GR_NUM_FADES to disable
+void g3_set_darkening_level(int level);
 
 // routine to convert little to big endian in polygon model data
 void swap_polygon_model_data(uint8_t* data);

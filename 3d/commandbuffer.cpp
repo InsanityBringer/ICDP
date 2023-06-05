@@ -207,6 +207,18 @@ void G3CommandBuffer::cmd_set_window(int left, int top, int right, int bottom)
 	commit_space();
 }
 
+void G3CommandBuffer::cmd_set_darkening(int level)
+{
+	size_t cmd_size = sizeof(G3CmdVarSet);
+
+	G3CmdVarSet* cmd = (G3CmdVarSet*)reserve_space(cmd_size);
+	cmd->base.type = G3CmdType::set_darkening_level;
+	cmd->base.length = cmd_size;
+	cmd->value = level;
+
+	commit_space();
+}
+
 void G3Instance::set_lighting_mode(int new_mode)
 {
 	if (Use_multithread) 
@@ -273,6 +285,14 @@ int G3Instance::draw_sphere(g3s_point* pnt, fix rad)
 	else
 		drawer.draw_sphere(pnt, rad);
 	return 0;
+}
+
+void G3Instance::set_darkening_level(int level)
+{
+	if (Use_multithread)
+		g3_command_buffer.cmd_set_darkening(level);
+	else
+		drawer.get_texmap_instance().SetDarkening(level);
 }
 
 int checkmuldiv(fix* r, fix a, fix b, fix c);
@@ -378,6 +398,12 @@ void G3Drawer::decode_command_buffer()
 			{
 				G3CmdWindowSet* window_p = (G3CmdWindowSet*)cmd_p;
 				set_tmap_clip_window(window_p->left, window_p->top, window_p->right, window_p->bottom);
+			}
+			break;
+			case G3CmdType::set_darkening_level:
+			{
+				G3CmdVarSet* var_p = (G3CmdVarSet*)cmd_p;
+				texmap_instance.SetDarkening(var_p->value);
 			}
 			break;
 			}

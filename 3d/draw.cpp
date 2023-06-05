@@ -48,6 +48,11 @@ int g3_get_interpolation_mode()
 	return g3_global_inst.get_interpolation_mode();
 }
 
+void g3_set_darkening_level(int level)
+{
+	g3_global_inst.set_darkening_level(level);
+}
+
 bool G3Drawer::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or, int color)
 {
 	bool ret;
