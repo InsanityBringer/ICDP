@@ -157,6 +157,7 @@ struct kc_joyinfo
 	{
 		memset(guid, 0, sizeof(guid));
 		handle = -1;
+		initialized = false;
 	}
 };
 

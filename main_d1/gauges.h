@@ -31,7 +31,12 @@ extern void close_gauge_canvases();
 
 void render_gauges(void);
 void init_gauges(void);
+//Initializes the canvas that the cockpit and hud will be drawn to. Call gauge_set_hud_proportions first to set the bounds of the HUD.
 void init_cockpit_canvas(void);
+
+//Sets the fractions of the screen's total height where the top and bottom of the HUD should be drawn.
+//If fullwidth is false, this will fit a 4:3 box in the center of the HUD. Otherwise it will fit the entire width
+void gauge_set_hud_proportions(float top, float bottom, bool fullwidth);
 
 grs_canvas* get_cockpit_canvas();
 grs_canvas* get_hud_canvas();

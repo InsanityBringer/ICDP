@@ -67,6 +67,9 @@ grs_bitmap* cockpit_left_bm, * cockpit_right_bm;
 //In hud_canvas, this is the X offset of where the cockpit bitmap was drawn. 
 int extension_center_offset;
 
+float hud_top_proportion = 0, hud_bottom_proportion = 1;
+bool hud_fullwidth = true;
+
 //bitmap numbers for gauges
 
 #define GAUGE_SHIELDS			0		//0..9, in decreasing order (100%,90%...0%)
@@ -1149,6 +1152,13 @@ void init_gauge_extra_bitmaps()
 	}
 }
 
+void gauge_set_hud_proportions(float top, float bottom, bool fullwidth)
+{
+	hud_top_proportion = top;
+	hud_bottom_proportion = bottom;
+	hud_fullwidth = fullwidth;
+}
+
 void init_cockpit_canvas()
 {
 	if (cockpit_canvas)
@@ -1196,25 +1206,27 @@ void init_cockpit_canvas()
 	gr_set_current_canvas(hud_canvas);
 	gr_clear_canvas(255);
 	gr_set_current_canvas(cockpit_canvas);
-	gr_clear_canvas(255);
+	gr_clear_canvas(Cockpit_mode == CM_REAR_VIEW ? 0 : 255); //Black out extra pixels for the rear view since there aren't any extensions yet
 
 	//draw the base graphic
 	if (ref_bm)
 	{
-		int y_offset = Cockpit_mode == CM_STATUS_BAR ? 200 - ref_bm->bm_w : 0;
-		gr_bitmapm(extension_center_offset, y_offset, ref_bm);
+		int y_offset = Cockpit_mode == CM_STATUS_BAR ? 200 - ref_bm->bm_h : 0;
+		gr_bitmap(extension_center_offset, y_offset, ref_bm);
 
-		gr_init_sub_canvas(&cockpit_center_canvas, cockpit_canvas, extension_center_offset, 0, ref_bm->bm_w, ref_bm->bm_h);
+		gr_init_sub_canvas(&cockpit_center_canvas, cockpit_canvas, extension_center_offset, 0, ref_bm->bm_w, 200);
 	}
 
 	//draw the extensions if they exist
 	if (Cockpit_mode == CM_FULL_COCKPIT && cockpit_left_bm && canvas_width > ref_bm->bm_w)
 	{
-		gr_bitmapm(extension_center_offset - cockpit_left_bm->bm_w, 0, cockpit_left_bm);
-		gr_bitmapm(extension_center_offset + ref_bm->bm_w, 0, cockpit_right_bm);
+		gr_bitmap(extension_center_offset - cockpit_left_bm->bm_w, 0, cockpit_left_bm);
+		gr_bitmap(extension_center_offset + ref_bm->bm_w, 0, cockpit_right_bm);
 	}
 
-	gr_init_sub_canvas(&hud_draw_canvas, hud_canvas, extension_center_offset, 0, 320, 133);
+	int hud_y_offset = 200 * hud_top_proportion;
+	int hud_height = (int)(200 * hud_bottom_proportion) - hud_y_offset;
+	gr_init_sub_canvas(&hud_draw_canvas, hud_canvas, hud_fullwidth ? 0 : extension_center_offset, hud_y_offset, hud_fullwidth ? canvas_width : 320, hud_height);
 
 	gr_set_current_canvas(oldcanv);
 }
@@ -1357,7 +1369,7 @@ void draw_player_ship(int cloak_state, int old_cloak_state, int x, int y)
 		}
 	}
 
-	gr_set_current_canvas(&VR_render_buffer);
+	gr_set_current_canvas(gauge_offscreen_canvas);
 	gr_ubitmap(x, y, bm);
 
 	Gr_scanline_darkening_level = cloak_fade_value;
@@ -1365,7 +1377,7 @@ void draw_player_ship(int cloak_state, int old_cloak_state, int x, int y)
 	Gr_scanline_darkening_level = GR_FADE_LEVELS;
 
 	gr_set_current_canvas(&cockpit_center_canvas);
-	gr_bm_ubitbltm(bm->bm_w, bm->bm_h, x, y, x, y, &VR_render_buffer.cv_bitmap, &grd_curcanv->cv_bitmap);
+	gr_bm_ubitbltm(bm->bm_w, bm->bm_h, x, y, x, y, &gauge_offscreen_canvas->cv_bitmap, &grd_curcanv->cv_bitmap);
 }
 
 #define INV_FRAME_TIME	(f1_0/10)		//how long for each frame
@@ -1811,8 +1823,8 @@ void show_reticle(int force_big_one)
 	laser_ammo = player_has_weapon(Primary_weapon, 0);
 	missile_ammo = player_has_weapon(Secondary_weapon, 1);
 
-	primary_bm_num = (laser_ready && laser_ammo == HAS_ALL);
-	secondary_bm_num = (missile_ready && missile_ammo == HAS_ALL);
+	primary_bm_num = (laser_ready && laser_ammo == HAS_ALL) ? 1 : 0;
+	secondary_bm_num = (missile_ready && missile_ammo == HAS_ALL) ? 1 : 0;
 
 	if (primary_bm_num && Primary_weapon == LASER_INDEX && (Players[Player_num].flags & PLAYER_FLAGS_QUAD_LASERS))
 		primary_bm_num++;

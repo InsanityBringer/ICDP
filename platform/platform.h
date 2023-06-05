@@ -65,6 +65,7 @@ constexpr float ASPECT_4_3 = 3.f / 4.f;
 constexpr float ASPECT_5_4 = 4.f / 5.f;
 constexpr float ASPECT_16_9 = 9.f / 16.f;
 constexpr float ASPECT_16_10 = 10.f / 16.f;
+constexpr float ASPECT_21_9 = 9.f / 21.f;
 
 //I have no idea how this is going to work... attempt to wait on a VBL if possible.
 void plat_wait_for_vbl();

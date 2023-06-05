@@ -343,7 +343,7 @@ void update_cockpits(int force_redraw)
 		fill_background(x, y, w, h, x, y);
 		break;
 	case CM_LETTERBOX:
-		gr_set_current_canvas(VR_screen_buffer);
+		gr_set_current_canvas(&VR_render_buffer);
 		gr_clear_canvas(BM_XRGB(0, 0, 0));
 		break;
 	}
@@ -399,8 +399,12 @@ void init_cockpit()
 		//Game_cockpit_copy_code = gr_ibitblt_create_mask(bm, minx, miny, maxx - minx + 1, maxy - miny + 1, VR_offscreen_buffer->cv_bitmap.bm_rowsize);
 
 		//Scale the mins and maxes so that they are relative to the current resolution
-		miny = (int)(((double)miny / bm->bm_h) * VR_render_height);
-		maxy = (int)(((double)maxy / bm->bm_h) * VR_render_height);
+		float top_frac = (float)miny / bm->bm_h;
+		float bottom_frac = (float)(maxy + 1) / bm->bm_h;
+		gauge_set_hud_proportions(top_frac, bottom_frac, false);
+
+		miny = (int)(top_frac * VR_render_height);
+		maxy = (int)(bottom_frac * VR_render_height);
 
 		//clamp for safety
 		if (miny < 0)
@@ -417,6 +421,7 @@ void init_cockpit()
 		break;
 	}
 	case CM_FULL_SCREEN:
+		gauge_set_hud_proportions(0, 1, true);
 		game_init_render_sub_buffers(0, 0, VR_render_width, VR_render_height);
 		break;
 
@@ -424,16 +429,22 @@ void init_cockpit()
 	{
 		int x, y;
 
-		if (Game_window_h > max_window_h) 
+		/*if (Game_window_h > max_window_h) 
 		{
 			Game_window_w = VR_render_width;
 			Game_window_h = max_window_h;
 		}
 
 		x = (VR_render_width - Game_window_w) / 2;
-		y = (max_window_h - Game_window_h) / 2;
+		y = (max_window_h - Game_window_h) / 2;*/
 
-		game_init_render_sub_buffers(x, y, Game_window_w, Game_window_h);
+		grs_bitmap* bm = get_cockpit_bitmap(CM_STATUS_BAR);
+		float proportion = (200 - bm->bm_h) / 200.f;
+
+		int height = proportion * VR_render_height;
+
+		gauge_set_hud_proportions(0, proportion, true);
+		game_init_render_sub_buffers(0, 0, VR_render_width, height);
 		break;
 	}
 	case CM_LETTERBOX: 
@@ -441,9 +452,11 @@ void init_cockpit()
 		int x, y, w, h;
 
 		x = 0; w = VR_render_width;
-		h = LETTERBOX_HEIGHT;
+		float proportion = ((200 - LETTERBOX_HEIGHT) / 2) / (float)200;
+		h = (int)((float)LETTERBOX_HEIGHT / 200 * VR_render_height);
 		y = (VR_render_height - h) / 2;
 
+		gauge_set_hud_proportions(proportion, 1 - proportion, true);
 		game_init_render_sub_buffers(x, y, w, h);
 		break;
 	}
@@ -528,8 +541,9 @@ void grow_window()
 		Game_window_h = VR_render_height;
 		select_cockpit(CM_FULL_SCREEN);
 	}
-	else {
-		int x, y;
+	else 
+	{
+		/*int x, y;
 
 		Game_window_w += WINDOW_W_DELTA;
 		Game_window_h += WINDOW_H_DELTA;
@@ -546,7 +560,7 @@ void grow_window()
 		x = (VR_render_width - Game_window_w) / 2;
 		y = (max_window_h - Game_window_h) / 2;
 
-		game_init_render_sub_buffers(x, y, Game_window_w, Game_window_h);
+		game_init_render_sub_buffers(x, y, Game_window_w, Game_window_h);*/
 	}
 
 	HUD_clear_messages();	//	@mk, 11/11/94
@@ -625,7 +639,7 @@ void shrink_window()
 	if (Cockpit_mode != CM_STATUS_BAR)
 		return;
 
-	if (Game_window_w > WINDOW_MIN_W) 
+	/*if (Game_window_w > WINDOW_MIN_W) 
 	{
 		int x, y;
 
@@ -641,7 +655,7 @@ void shrink_window()
 		fill_background(x, y, Game_window_w, Game_window_h, WINDOW_W_DELTA / 2, WINDOW_H_DELTA / 2);
 
 		game_init_render_sub_buffers(x, y, Game_window_w, Game_window_h);
-	}
+	}*/
 
 	HUD_clear_messages();
 
