@@ -172,6 +172,14 @@ int D_DescentMain(int argc, const char** argv)
 	if (FindArg("-verbose"))
 		Inferno_verbose = 1;
 
+	char hog_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
+#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+	get_full_file_path(hog_filename, "descent.hog", CHOCOLATE_SYSTEM_FILE_DIR);
+#else
+	strcpy(hog_filename, "descent.hog");
+#endif
+	cfile_add_hogfile(hog_filename);
+
 	load_text(621);
 
 	//	set_exit_message("\n\n%s", TXT_THANKS);

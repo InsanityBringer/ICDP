@@ -19,6 +19,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <stdarg.h>
 #include <errno.h>
 #include <string.h>
+#include <vector>
+#include <stdexcept>
 
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
@@ -28,55 +30,110 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "fix/fix.h"
 #include "vecmat/vecmat.h"
 
-typedef struct hogfile
+struct hogfile
 {
 	char	name[13];
 	int	offset;
 	int 	length;
-} hogfile;
+};
 
-#define MAX_HOGFILES 250
-
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-#define HOG_FILENAME_MAX CHOCOLATE_MAX_FILE_PATH_SIZE
-#else
-#define HOG_FILENAME_MAX 64
-#endif
-
-hogfile HogFiles[MAX_HOGFILES];
-char Hogfile_initialized = 0;
-int Num_hogfiles = 0;
-
-hogfile AltHogFiles[MAX_HOGFILES];
-char AltHogfile_initialized = 0;
-int AltNum_hogfiles = 0;
-char HogFilename[HOG_FILENAME_MAX];
-char AltHogFilename[HOG_FILENAME_MAX];
-
-char AltHogDir[HOG_FILENAME_MAX];
-char AltHogdir_initialized = 0;
-
-void cfile_use_alternate_hogdir(const char* path)
+class hogarchive
 {
-	if (path)
+	std::string archivename;
+	std::vector<hogfile> hogfiles;
+public:
+	hogarchive(const char* filename) : archivename(filename)
 	{
-		strncpy(AltHogDir, path, HOG_FILENAME_MAX-1);
-		AltHogdir_initialized = 1;
-	}
-	else 
-	{
-		AltHogdir_initialized = 0;
-	}
-}
+		FILE* fp = fopen(filename, "rb");
 
-//extern int descent_critical_error;
+		if (fp)
+		{
+			char id[4];
+			fread(id, 3, 1, fp);
+			id[3] = '\0'; 
+
+			if (strncmp(id, "DHF", 3))
+			{
+				fclose(fp);
+				throw std::runtime_error("HOG archive has bad signature");
+			}
+
+			while (1)
+			{
+				hogfile file = {};
+
+				int i = fread(file.name, 13, 1, fp);
+				if (i != 1) //got all of them..
+				{
+					fclose(fp);
+					return;
+				}
+
+				file.length = file_read_int(fp);
+				if (file.length < 0)
+					Warning("Hogfile length < 0");
+				file.offset = ftell(fp);
+				hogfiles.push_back(file);
+
+				// Skip over
+				i = fseek(fp, file.length, SEEK_CUR);
+			}
+		}
+	}
+
+	size_t num_files() const
+	{
+		return hogfiles.size();
+	}
+
+	CFILE* open(const char* filename)
+	{
+		//As the filesystem becomes more complex, this probably will have to stop being a linear search
+		for (auto it = hogfiles.begin(); it < hogfiles.end(); it++)
+		{
+			if (!_stricmp(it->name, filename))
+			{
+				FILE* fp = fopen(archivename.c_str(), "rb");
+
+				fseek(fp, it->offset, SEEK_SET);
+				CFILE* cfile = (CFILE*)malloc(sizeof(CFILE));
+				if (cfile == NULL)
+					return NULL;
+
+				cfile->file = fp;
+				cfile->size = it->length;
+				cfile->lib_offset = it->offset;
+				cfile->raw_position = 0;
+				return cfile;
+			}
+		}
+
+		return nullptr;
+	}
+
+	bool exists(const char* filename)
+	{
+		//As the filesystem becomes more complex, this probably will have to stop being a linear search
+		for (auto it = hogfiles.begin(); it < hogfiles.end(); it++)
+		{
+			if (!_stricmp(it->name, filename))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+};
+
+std::vector<hogarchive> hogarchives;
+std::vector<hogarchive> alternate_hogarchives;
 
 FILE* cfile_get_filehandle(const char* filename, const char* mode)
 {
-	FILE* fp;
-	char temp[HOG_FILENAME_MAX * 2];
+	//char temp[CHOCOLATE_MAX_FILE_PATH_SIZE];
 
-	fp = fopen(filename, mode);
+	FILE* fp = fopen(filename, mode);
 
 #ifndef _WINDOWS
 	if (!fp)
@@ -95,156 +152,92 @@ FILE* cfile_get_filehandle(const char* filename, const char* mode)
 	}
 #endif
 
-	if ((fp == NULL) && (AltHogdir_initialized)) 
+	//TODO: I need to be able to merge directories into the cfile filesystem
+	//but this system isn't particlarly clean. 
+	/*if ((fp == NULL) && (AltHogdir_initialized)) 
 	{
 		strncpy(temp, AltHogDir, HOG_FILENAME_MAX);
 		strncat(temp, AltHogDir, HOG_FILENAME_MAX);
 		fp = fopen(temp, mode);
-	}
+	}*/
 
 	return fp;
 }
 
-int cfile_init_hogfile(const char* fname, hogfile* hog_files, int* nfiles)
+bool cfile_add_hogfile(const char* hogname)
 {
-	char id[4];
-	FILE* fp;
-	int i, len;
+	hogarchive archive(hogname);
+	if (archive.num_files() == 0) //either didn't load or no files
+		return false;
 
-	*nfiles = 0;
+	hogarchives.push_back(std::move(archive));
 
-	fp = cfile_get_filehandle(fname, "rb");
-	if (fp == NULL)
-	{
-		Warning("cfile_init_hogfile: Can't open hogfile: %s\n", fname);
-		return 0;
-	}
-
-	fread(id, 3, 1, fp);
-	id[3] = '\0'; //[ISB] solve compiler warning
-	if (strncmp(id, "DHF", 3)) 
-	{
-		fclose(fp);
-		return 0;
-	}
-
-	while (1)
-	{
-		if (*nfiles >= MAX_HOGFILES)
-		{
-			Warning("ERROR: HOGFILE IS LIMITED TO %d FILES\n", MAX_HOGFILES);
-			fclose(fp);
-			exit(1);
-		}
-		i = fread(hog_files[*nfiles].name, 13, 1, fp);
-		if (i != 1) 
-		{
-			fclose(fp);
-			return 1;
-		}
-		i = fread(&len, 4, 1, fp);
-		if (i != 1) 
-		{
-			fclose(fp);
-			return 0;
-		}
-		hog_files[*nfiles].length = (len);
-		if (hog_files[*nfiles].length < 0)
-			Warning("Hogfile length < 0");
-		hog_files[*nfiles].offset = ftell(fp);
-		*nfiles = (*nfiles) + 1;
-		// Skip over
-		i = fseek(fp, (len), SEEK_CUR);
-	}
-	return 0;
+	return true;
 }
 
-//Specify the name of the hogfile.  Returns 1 if hogfile found & had files
-int cfile_init(const char* hogname)
+bool cfile_libfile_exists(const char* name)
 {
-	Assert(Hogfile_initialized == 0);
-
-	if (cfile_init_hogfile(hogname, HogFiles, &Num_hogfiles)) 
+	//Search alternate archives first
+	for (int i = alternate_hogarchives.size() - 1; i >= 0; i--)
 	{
-		strcpy(HogFilename, hogname);
-		Hogfile_initialized = 1;
-		return 1;
+		if (alternate_hogarchives[i].exists(name))
+			return true;
 	}
-	else
-		return 0;	//not loaded!
+
+	//Search core archives second, so that data can be overridden by alternate archives
+	for (int i = hogarchives.size() - 1; i >= 0; i--)
+	{
+		if (hogarchives[i].exists(name))
+			return true;
+	}
+
+	return false;
 }
 
-FILE* cfile_find_libfile(const char* name, int* length)
+CFILE* cfile_find_libfile(const char* name)
 {
-	FILE* fp;
-	int i;
-
-	if (AltHogfile_initialized) 
+	CFILE* fp;
+	//Search alternate archives first
+	//Search is done in reverse so that later loaded hogfiles (for addons, presumably) take priority over lower priority ones (like the mission hog itself)
+	for (int i = alternate_hogarchives.size() - 1; i >= 0; i--)
 	{
-		for (i = 0; i < AltNum_hogfiles; i++) 
-		{
-			if (!_stricmp(AltHogFiles[i].name, name))
-			{
-				fp = cfile_get_filehandle(AltHogFilename, "rb");
-				if (fp == NULL) return NULL;
-				fseek(fp, AltHogFiles[i].offset, SEEK_SET);
-				*length = AltHogFiles[i].length;
-				return fp;
-			}
-		}
-	}
-
-#ifndef BUILD_DESCENT2 //must call cfile_init in Descent 2. Descent 1 can run without a hogfile if you really wanted. 
-	if (!Hogfile_initialized) 
-	{
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-		get_full_file_path(HogFilename, "descent.hog", CHOCOLATE_SYSTEM_FILE_DIR);
-		cfile_init_hogfile(HogFilename, HogFiles, &Num_hogfiles);
-		Hogfile_initialized = 1;
-#else
-		cfile_init_hogfile("descent.hog", HogFiles, &Num_hogfiles);
-		strcpy(HogFilename, "descent.hog");
-		Hogfile_initialized = 1;
-#endif
-	}
-#endif
-
-	for (i = 0; i < Num_hogfiles; i++) 
-	{
-		if (!_stricmp(HogFiles[i].name, name))
-		{
-			fp = cfile_get_filehandle(HogFilename, "rb");
-			if (fp == NULL) return NULL;
-			fseek(fp, HogFiles[i].offset, SEEK_SET);
-			*length = HogFiles[i].length;
+		fp = alternate_hogarchives[i].open(name);
+		if (fp) //found it?
 			return fp;
-		}
 	}
-	return NULL;
+
+	//Search core archives second, so that data can be overridden by alternate archives
+	for (int i = hogarchives.size() - 1; i >= 0; i--)
+	{
+		fp = hogarchives[i].open(name);
+		if (fp) //found it?
+			return fp;
+	}
+	return nullptr;
 }
 
-int cfile_use_alternate_hogfile(const char* name)
+bool cfile_use_alternate_hogfile(const char* name)
 {
 	if (name)
 	{
-		strncpy(AltHogFilename, name, HOG_FILENAME_MAX-1);
-		cfile_init_hogfile(AltHogFilename, AltHogFiles, &AltNum_hogfiles);
-		AltHogfile_initialized = 1;
-		return (AltNum_hogfiles > 0);
+		hogarchive archive(name);
+		if (archive.num_files() == 0)
+			return false;
+
+		alternate_hogarchives.push_back(std::move(archive));
+		return true;
 	}
 	else 
 	{
-		AltHogfile_initialized = 0;
-		return 1;
+		alternate_hogarchives.clear();
+		return true;
 	}
 }
 
 int cfexist(const char* filename)
 {
-	int length;
 	FILE* fp;
 
-	//[ISB] descent 2 code for release
 	if (filename[0] != '\x01')
 		fp = cfile_get_filehandle(filename, "rb");		// Check for non-hog file first...
 	else 
@@ -256,13 +249,11 @@ int cfexist(const char* filename)
 	if (fp) 
 	{
 		fclose(fp);
-		return 1;
+		return 1; // file found in filesystem
 	}
 
-	fp = cfile_find_libfile(filename, &length);
-	if (fp)
+	if (cfile_libfile_exists(filename))
 	{
-		fclose(fp);
 		return 2;		// file found in hog
 	}
 
@@ -272,33 +263,13 @@ int cfexist(const char* filename)
 
 CFILE* cfopen(const char* filename, const char* mode)
 {
-	int length;
 	FILE* fp;
-	CFILE* cfile;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	char new_filename[CHOCOLATE_MAX_FILE_PATH_SIZE], * p;
-#else
-	char new_filename[256], * p;
-#endif
 
 	if (_stricmp(mode, "rb")) 
 	{
 		Warning("CFILES CAN ONLY BE OPENED WITH RB\n");
 		exit(1);
 	}
-
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	memset(new_filename, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
-	strncpy(new_filename, filename, CHOCOLATE_MAX_FILE_PATH_SIZE - 1);
-#else
-	memset(new_filename, 0, 256);
-	strncpy(new_filename, filename, 255);
-#endif
-	while ((p = strchr(new_filename, 13)))
-		* p = '\0';
-
-	while ((p = strchr(new_filename, 10)))
-		* p = '\0';
 
 	//[ISB] descent 2 code for handling '\x01'
 	if (filename[0] != '\x01')
@@ -310,26 +281,14 @@ CFILE* cfopen(const char* filename, const char* mode)
 		fp = NULL;		//don't look in dir, only in hogfile
 		filename++;
 	}
+
 	if (!fp) 
 	{
-		fp = cfile_find_libfile(filename, &length);
-		if (!fp)
-			return NULL;		// No file found
-		cfile = (CFILE*)malloc(sizeof(CFILE));
-		if (cfile == NULL) 
-		{
-			fclose(fp);
-			return NULL;
-		}
-		cfile->file = fp;
-		cfile->size = length;
-		cfile->lib_offset = ftell(fp);
-		cfile->raw_position = 0;
-		return cfile;
+		return cfile_find_libfile(filename);
 	}
 	else
 	{
-		cfile = (CFILE*)malloc(sizeof(CFILE));
+		CFILE* cfile = (CFILE*)malloc(sizeof(CFILE));
 		if (cfile == NULL) 
 		{
 			fclose(fp);

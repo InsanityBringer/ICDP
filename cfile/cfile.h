@@ -26,8 +26,7 @@ typedef struct CFILE
 	int				raw_position;
 } CFILE;
 
-//Specify the name of the hogfile.  Returns 1 if hogfile found & had files
-int cfile_init(const char* hogname);
+bool cfile_add_hogfile(const char* hogname);
 
 CFILE* cfopen(const char* filename, const char* mode);
 int cfilelength(CFILE* fp);							// Returns actual size of file...
@@ -61,7 +60,7 @@ void cfile_get_string(char* buffer, int count, CFILE* fp);
 
 // Allows files to be gotten from an alternate hog file.
 // Passing NULL disables this.
-int cfile_use_alternate_hogfile(const char* name);
+bool cfile_use_alternate_hogfile(const char* name);
 
 void cfile_read_vector(vms_vector *vec, CFILE* fp);
 void cfile_read_angvec(vms_angvec *vec, CFILE* fp);
