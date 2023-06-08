@@ -175,16 +175,12 @@ void do_megawow_powerup(int quantity)
 	Players[Player_num].primary_weapon_flags = 0xff ^ (HAS_PLASMA_FLAG | HAS_FUSION_FLAG);
 	Players[Player_num].secondary_weapon_flags = 0xff ^ (HAS_SMART_FLAG | HAS_MEGA_FLAG);
 #endif
-	for (i = 0; i < 3; i++)
-		Players[Player_num].primary_ammo[i] = 200;
+	Players[Player_num].primary_ammo[VULCAN_INDEX] = VULCAN_AMMO_MAX;
 
 	for (i = 0; i < 3; i++)
 		Players[Player_num].secondary_ammo[i] = quantity;
 
 #ifndef SHAREWARE
-	for (i = 3; i < 5; i++)
-		Players[Player_num].primary_ammo[i] = 200;
-
 	for (i = 3; i < 5; i++)
 		Players[Player_num].secondary_ammo[i] = quantity / 5;
 #endif

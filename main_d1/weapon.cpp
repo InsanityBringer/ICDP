@@ -449,7 +449,7 @@ int pick_up_ammo(int class_flag, int weapon_index, int ammo_count)
 		Players[Player_num].primary_ammo[weapon_index] = Primary_ammo_max[weapon_index];
 
 	if (Players[Player_num].primary_weapon_flags & (1 << weapon_index) && weapon_index > Primary_weapon && old_ammo == 0)
-		select_weapon(weapon_index, 0, 0, 1);
+		primary_pickup_autoselect(weapon_index);
 
 	return 1;
 }
