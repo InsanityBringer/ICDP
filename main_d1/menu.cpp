@@ -726,12 +726,6 @@ void do_sound_menu()
 	}
 }
 
-void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
-{
-	nitems = nitems;
-	*last_key = *last_key;
-}
-
 //this change was made in DESCENT.TEX, but since we're not including that
 //file in the v1.1 update, we're making the change in the code here also
 #ifdef SHAREWARE
@@ -740,6 +734,71 @@ void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 #endif
 
 void do_video_menu();
+
+void gameplay_options_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
+{
+	//this is a good idea, but the menu doesn't redraw in this case, so it doesn't work well. 
+	/*if (citem == 1)
+	{
+		if (*last_key == KEY_RIGHT)
+		{
+			Primary_autoselect_mode--; if (Primary_autoselect_mode < 0) Primary_autoselect_mode = AS_NUM_MODES - 1;
+		}
+		else if (*last_key == KEY_LEFT)
+			Primary_autoselect_mode = (Primary_autoselect_mode + 1) % AS_NUM_MODES;
+	}
+	else if (citem == 3)
+	{
+		if (*last_key == KEY_RIGHT)
+		{
+			Secondary_autoselect_mode--; if (Secondary_autoselect_mode < 0) Secondary_autoselect_mode = AS_NUM_MODES - 1;
+		}
+		else if (*last_key == KEY_LEFT)
+			Secondary_autoselect_mode = (Secondary_autoselect_mode + 1) % AS_NUM_MODES;
+	}*/
+}
+
+void do_gameplay_options_menu()
+{
+	static const char* Autoselect_mode_names[] =
+	{
+		"Always",
+		"Never",
+		"When not firing"
+	};
+
+	newmenu_item m[5];
+	int i = 0;
+
+	do
+	{
+		m[0].type = NM_TYPE_CHECK; m[0].text = (char*)"Ship auto-leveling"; m[0].value = Auto_leveling_on;
+		m[1].type = NM_TYPE_MENU; m[1].text = (char*)"Primary autoselect on pickup:";
+		m[2].type = NM_TYPE_TEXT; m[2].text = (char*)Autoselect_mode_names[Primary_autoselect_mode];
+		m[3].type = NM_TYPE_MENU; m[3].text = (char*)"Secondary autoselect on pickup:";
+		m[4].type = NM_TYPE_TEXT; m[4].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode];
+
+		i = newmenu_do1(nullptr, "GAME OPTIONS", 5, m, gameplay_options_menuset, i);
+
+		switch (i)
+		{
+		case 1:
+			Primary_autoselect_mode = (Primary_autoselect_mode + 1) % AS_NUM_MODES;
+			break;
+		case 3:
+			Secondary_autoselect_mode = (Secondary_autoselect_mode + 1) % AS_NUM_MODES;
+			break;
+		}
+
+		Auto_leveling_on = m[0].value;
+	} while (i > -1);
+}
+
+void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
+{
+	nitems = nitems;
+	*last_key = *last_key;
+}
 
 void do_options_menu()
 {
@@ -754,7 +813,7 @@ void do_options_menu()
 		m[3].type = NM_TYPE_MENU; m[3].text = TXT_CONTROLS_;
 		m[4].type = NM_TYPE_MENU; m[4].text = TXT_DETAIL_LEVELS;
 		m[5].type = NM_TYPE_TEXT; m[5].text = (char*)"";
-		m[6].type = NM_TYPE_CHECK; m[6].text = (char*)"Ship auto-leveling"; m[6].value = Auto_leveling_on;
+		m[6].type = NM_TYPE_MENU; m[6].text = (char*)"GAMEPLAY OPTIONS...";
 
 		i = newmenu_do1(NULL, TXT_OPTIONS, 7, m, joydef_menuset, i);
 
@@ -772,9 +831,10 @@ void do_options_menu()
 		case 4: 
 			do_detail_level_menu();	
 			break;
+		case 6:
+			do_gameplay_options_menu();
+			break;
 		}
-
-		Auto_leveling_on = m[6].value;
 	} while (i > -1);
 
 	write_player_file();

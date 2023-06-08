@@ -105,6 +105,7 @@ typedef struct saved_game
 saved_game saved_games[N_SAVE_SLOTS];
 
 int Default_leveling_on = 1;
+int Primary_autoselect_mode, Secondary_autoselect_mode;
 
 int D_LoadInfoHeader(FILE* fp, save_info* info)
 {
@@ -289,6 +290,8 @@ RetrySelection:
 	Player_default_difficulty = 1;
 	Auto_leveling_on = Default_leveling_on = 1;
 	Config_joystick_sensitivity = 8;
+	Primary_autoselect_mode = AS_ALWAYS;
+	Secondary_autoselect_mode = AS_ALWAYS;
 
 	// Default taunt macros
 #ifdef NETWORK
@@ -368,6 +371,8 @@ int read_player_file()
 		//Read loose toggles
 		Player_default_difficulty = nbt_get_integral(roottag_p->find_tag("Default_difficulty_level"), 1);
 		Default_leveling_on = nbt_get_integral(roottag_p->find_tag("Auto_leveling"), 1);
+		Primary_autoselect_mode = nbt_get_integral(roottag_p->find_tag("Primary_autoselect_mode"), AS_ALWAYS);
+		Secondary_autoselect_mode = nbt_get_integral(roottag_p->find_tag("Secondary_autoselect_mode"), AS_ALWAYS);
 
 		find_gameinfo_for_current_game();
 	}
@@ -449,6 +454,8 @@ int write_player_file()
 	//Toggles are currently loose tags, but there may not be any particular reason to group them up. 
 	rootTag.list.push_back(std::make_unique<ByteTag>("Default_difficulty_level", Player_default_difficulty));
 	rootTag.list.push_back(std::make_unique<ByteTag>("Auto_leveling", Auto_leveling_on));
+	rootTag.list.push_back(std::make_unique<ByteTag>("Primary_autoselect_mode", Primary_autoselect_mode));
+	rootTag.list.push_back(std::make_unique<ByteTag>("Secondary_autoselect_mode", Secondary_autoselect_mode));
 
 	//Structure is generated, so now serialize it.
 	int errno_ret = WriteConfigFile();

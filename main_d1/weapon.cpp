@@ -22,6 +22,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "powerup.h"
 #include "newdemo.h"
 #include "multi.h"
+#include "playsave.h"
+#include "kconfig.h"
 
 //	Note, only Vulcan cannon requires ammo.
 //uint8_t	Default_primary_ammo_level[MAX_PRIMARY_WEAPONS] = {255, 0, 255, 255, 255};
@@ -333,6 +335,17 @@ void show_weapon_status(void)
 
 #endif
 
+void secondary_pickup_autoselect(int new_index)
+{
+	if (Secondary_autoselect_mode == AS_NEVER)
+		return;
+
+	else if (Secondary_autoselect_mode == AS_NOT_FIRING && Controls.fire_secondary_state)
+		return;
+
+	select_weapon(new_index, 1, 0, 1);
+}
+
 //	---------------------------------------------------------------------
 //called when one of these weapons is picked up
 //when you pick up a secondary, you always get the weapon & ammo for it
@@ -360,7 +373,7 @@ int pick_up_secondary(int weapon_index, int count)
 	//if you pick up a homing, and you're currently using concussion,
 	//and you had no homings before, then upgrade
 	if ((Secondary_weapon < weapon_index) && (weapon_index != PROXIMITY_INDEX)) //  && (Players[Player_num].secondary_ammo[weapon_index] == count))
-		select_weapon(weapon_index, 1, 0, 1);
+		secondary_pickup_autoselect(weapon_index);
 
 	//if you pick up a concussion, and you've got homing (or smart or mega) selected but are out,
 	//then select concussion
@@ -382,6 +395,17 @@ int pick_up_secondary(int weapon_index, int count)
 	return 1;
 }
 
+void primary_pickup_autoselect(int new_index)
+{
+	if (Primary_autoselect_mode == AS_NEVER)
+		return;
+
+	else if (Primary_autoselect_mode == AS_NOT_FIRING && Controls.fire_primary_state)
+		return;
+
+	select_weapon(new_index, 0, 0, 1);
+}
+
 //called when a primary weapon is picked up
 //returns true if actually picked up
 int pick_up_primary(int weapon_index)
@@ -398,7 +422,7 @@ int pick_up_primary(int weapon_index)
 	Players[Player_num].primary_weapon_flags |= flag;
 
 	if (!(old_flags & flag) && weapon_index > Primary_weapon)
-		select_weapon(weapon_index, 0, 0, 1);
+		primary_pickup_autoselect(weapon_index);
 
 	PALETTE_FLASH_ADD(7, 14, 21);
 	HUD_init_message("%s!", PRIMARY_WEAPON_NAMES(weapon_index));

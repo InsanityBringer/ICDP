@@ -18,16 +18,16 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 extern int Default_leveling_on;
 
+constexpr int AS_ALWAYS = 0;
+constexpr int AS_NEVER = 1;
+constexpr int AS_NOT_FIRING = 2;
+constexpr int AS_NUM_MODES = 3;
+extern int Primary_autoselect_mode, Secondary_autoselect_mode;
+
 //fills in a list of pointers to strings describing saved games
 //returns the number of non-empty slots
 //returns -1 if this is a new player
 int get_game_list(char* game_text[N_SAVE_SLOTS]);
-
-//returns errno (0 == no error)
-int save_player_game(int slot_num, const char* text);
-
-//returns errno (0 == no error)
-int load_player_game(int slot_num);
 
 //update the player's highest level.  returns errno (0 == no error)
 int update_player_file();
