@@ -13,6 +13,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
+#include <string>
 #include "misc/types.h"
 
  //Returns a checksum of a block of memory.
@@ -29,6 +30,7 @@ void netmisc_encode_int32(uint8_t* ptr, int* offset, int v);
 void netmisc_encode_shortpos(uint8_t* ptr, int* offset, shortpos* v);
 void netmisc_encode_vector(uint8_t* ptr, int* offset, vms_vector* vec);
 void netmisc_encode_matrix(uint8_t* ptr, int* offset, vms_matrix* mat);
+void netmisc_encode_string(uint8_t * ptr, int* offset, int buffer_size, std::string & str); 
 
 //Functions for extracting values from a block of memory, as encoded by the above functions.
 void netmisc_decode_int8(uint8_t* ptr, int* offset, uint8_t* v);
@@ -37,6 +39,8 @@ void netmisc_decode_int32(uint8_t* ptr, int* offset, int* v);
 void netmisc_decode_shortpos(uint8_t* ptr, int* offset, shortpos* v);
 void netmisc_decode_vector(uint8_t* ptr, int* offset, vms_vector* vec);
 void netmisc_decode_matrix(uint8_t* ptr, int* offset, vms_matrix* mat);
+//Packet length parameter is used to validate that the string can be safely decoded. 
+std::string netmisc_decode_string(uint8_t* ptr, int* offset, int packet_length);
 
 //Game-specific functions for encoding packet structures.
 void netmisc_encode_netgameinfo(uint8_t* ptr, int* offset, netgame_info* info);
@@ -46,7 +50,7 @@ void netmisc_encode_endlevel_info(uint8_t* ptr, int* offset, endlevel_info* info
 void netmisc_encode_object(uint8_t* ptr, int* offset, object* objp);
 
 //Game-specific functions for decoding packet structures.
-void netmisc_decode_netgameinfo(uint8_t * ptr, int* offset, netgame_info * info);
+void netmisc_decode_netgameinfo(uint8_t * ptr, int* offset, int buffer_size, netgame_info * info);
 void netmisc_decode_sequence_packet(uint8_t* ptr, int* offset, sequence_packet* info);
 void netmisc_decode_frame_info(uint8_t* ptr, int* offset, frame_info* info);
 void netmisc_decode_endlevel_info(uint8_t* ptr, int* offset, endlevel_info* info);

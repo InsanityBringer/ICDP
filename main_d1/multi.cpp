@@ -2816,7 +2816,7 @@ void multi_restore_game(uint8_t slot, uint32_t id)
 	}
 
 	memcpy(Players[Player_num].callsign, saved_player.callsign, CALLSIGN_LEN + 1);
-	memcpy(Players[Player_num].net_address, saved_player.net_address, 6);
+	memcpy(Players[Player_num].net_address, saved_player.net_address, 4);
 	Players[Player_num].connected = saved_player.connected;
 	Players[Player_num].n_packets_got = saved_player.n_packets_got;
 	Players[Player_num].n_packets_sent = saved_player.n_packets_sent;
@@ -2875,6 +2875,19 @@ void use_netplayer_stats(player* ps, netplayer_stats* pd)
 	ps->hostages_rescued_total = pd->hostages_rescued_total;	// Total number of hostages rescued.
 	ps->hostages_total = pd->hostages_total;					// Total number of hostages.
 	ps->hostages_on_board = pd->hostages_on_board;			//	Number of hostages on ship.
+}
+
+std::string multi_generate_config_string()
+{
+	std::string config_string;
+
+	if (Current_mission_num != 0) //If mission isn't the built in one, encode the filename
+	{
+		config_string.append("mission=");
+		config_string.append(Current_mission_filename);
+	}
+
+	return config_string;
 }
 
 #endif

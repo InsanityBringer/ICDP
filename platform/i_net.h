@@ -56,8 +56,7 @@ extern void NetSendBroadcastPacket(uint8_t* data, int datasize);
 extern void NetSendPacket(uint8_t* data, int datasize, uint8_t* address, uint8_t* immediate_address);
 extern void NetSendInternetworkPacket(uint8_t* data, int datasize, uint8_t* address);
 
-//[ISB] changed to fit aligned size of network information structure. God, this is going to be an adenture...
-#define IPX_MAX_DATA_SIZE (1024)
+#define IPX_MAX_DATA_SIZE (2048)
 
 extern void ipx_read_user_file(char* filename);
 extern void ipx_read_network_file(char* filename);

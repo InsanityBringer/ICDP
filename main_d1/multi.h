@@ -22,18 +22,14 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #ifdef NETWORK
 
+#include <string>
 #include "misc/types.h"
  // Defines
 #include "gameseq.h"
 #include "main_shared/piggy.h"
 
 // What version of the multiplayer protocol is this?
-
-#ifdef SHAREWARE
-#define MULTI_PROTO_VERSION 	1
-#else
 #define MULTI_PROTO_VERSION	3
-#endif
 
 // How many simultaneous network players do we support?
 
@@ -62,7 +58,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define MULTI_CONSISTENCY		20
 #define MULTI_DECLOAK			21
 #define MULTI_MENU_CHOICE		22
-#ifndef SHAREWARE
 #define MULTI_ROBOT_POSITION	23
 #define MULTI_ROBOT_EXPLODE	24
 #define MULTI_ROBOT_RELEASE	25
@@ -73,7 +68,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define MULTI_BOSS_ACTIONS		30
 #define MULTI_CREATE_ROBOT_POWERUPS	31
 #define MULTI_HOSTAGE_DOOR		32
-#endif
 
 #define MULTI_SAVE_GAME			33
 #define MULTI_RESTORE_GAME		34
@@ -81,17 +75,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define MULTI_REQ_PLAYER		35		// Someone requests my player structure
 #define MULTI_SEND_PLAYER		36		// Sending someone my player structure
 
-#ifndef SHAREWARE
 #define MULTI_MAX_TYPE			36
-#else
-#define MULTI_MAX_TYPE			22
-#endif
-
-#ifdef SHAREWARE
-#define MAX_NET_CREATE_OBJECTS 19 
-#else
 #define MAX_NET_CREATE_OBJECTS 20
-#endif
 
 #define MAX_MULTI_MESSAGE_LEN 90
 
@@ -222,7 +207,7 @@ typedef struct netplayer_info
 	uint32_t	identifier; //TODO: This is a hack. Each node gets a random identifier, since on the internet using IP addresses to check uniqueness gets weird on the client. Can collide!
 } netplayer_info;
 
-typedef struct netgame_info 
+struct netgame_info
 {
 	uint8_t					type;
 	uint8_t					protocol_version;
@@ -243,7 +228,6 @@ typedef struct netgame_info
 	short					team_kills[2];
 	short					killed[MAX_PLAYERS];
 	short					player_kills[MAX_PLAYERS];
-#ifndef SHAREWARE
 	fix					level_time;
 	int					control_invul_time;
 	int 					monitor_vector;
@@ -251,12 +235,53 @@ typedef struct netgame_info
 	uint8_t					player_flags[MAX_PLAYERS];
 	char					mission_name[9];
 	char					mission_title[MISSION_NAME_LEN + 1];
-#endif
-} netgame_info;
+
+	std::string				config_string; //Decoded from another packet
+
+	void clear()
+	{
+		type = 0;
+		protocol_version = 0;
+		memset(game_name, 0, sizeof(game_name));
+		memset(team_name, 0, sizeof(team_name));
+		gamemode = 0;
+		difficulty = 0;
+		game_status = 0;
+		numplayers = 0;
+		max_numplayers = 0;
+		game_flags = 0;
+		memset(players, 0, sizeof(players));
+		memset(locations, 0, sizeof(locations));
+		memset(kills, 0, sizeof(kills));
+		levelnum = 0;
+		team_vector = 0;
+		segments_checksum = 0;
+		memset(team_kills, 0, sizeof(team_kills));
+		memset(killed, 0, sizeof(killed));
+		memset(player_kills, 0, sizeof(player_kills));
+		level_time = 0;
+		control_invul_time = 0;
+		memset(player_score, 0, sizeof(player_score));
+		memset(player_flags, 0, sizeof(player_flags));
+		memset(mission_name, 0, sizeof(mission_name));
+		memset(mission_title, 0, sizeof(mission_title));
+
+		config_string.clear();
+	}
+
+	netgame_info()
+	{
+		clear();
+	}
+};
 
 extern struct netgame_info Netgame;
 
 int network_i_am_master(void);
 void change_playernum_to(int new_pnum);
+
+//Gets a configuration string for the current game mode. This will be sent to all players.
+//This simple keyvalue string will be parsed by all nodes to get information about current loaded missions and game settings
+std::string multi_generate_config_string();
 
 #endif

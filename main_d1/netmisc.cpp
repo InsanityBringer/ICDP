@@ -19,7 +19,9 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "multi.h"
 #include "network.h"
 #include "misc/types.h"
+#include "misc/error.h"
 #include "platform/mono.h"
+#include "platform/i_net.h"
 #include "object.h"
 #include "netmisc.h"
 
@@ -105,6 +107,20 @@ void netmisc_encode_angvec(uint8_t* ptr, int* offset, vms_angvec* vec)
 	netmisc_encode_int16(ptr, offset, vec->h);
 }
 
+void netmisc_encode_string(uint8_t* ptr, int* offset, int buffer_size, std::string& str)
+{
+	int size = str.size();
+	if (size + 2 + *offset > buffer_size)
+		Error("netmisc_encode_string: String too long to encode, increase max packet size.");
+
+	netmisc_encode_int16(ptr, offset, (unsigned short)size);
+
+	for (int i = 0; i < size; i++)
+	{
+		ptr[*offset] = str[i]; offset++;
+	}
+}
+
 void netmisc_decode_int8(uint8_t* ptr, int* offset, uint8_t* v)
 {
 	*v = ptr[*offset];
@@ -165,6 +181,23 @@ void netmisc_decode_angvec(uint8_t* ptr, int* offset, vms_angvec* vec)
 	netmisc_decode_int16(ptr, offset, &vec->h);
 }
 
+std::string netmisc_decode_string(uint8_t* ptr, int* offset, int packet_length)
+{
+	unsigned short size;
+	netmisc_decode_int16(ptr, offset, (short*)&size);
+	if (size + *offset > packet_length)
+		Error("netmisc_decode_string: decoding a string larger than the packet data recieved.");
+
+	std::string str;
+	str.resize(size);
+	for (int i = 0; i < size; i++)
+	{
+		uint8_t c;
+		netmisc_decode_int8(ptr, offset, &c);
+		str[i] = c;
+	}
+}
+
 void netmisc_encode_netplayer_info(uint8_t* ptr, int* offset, netplayer_info* info)
 {
 	netmisc_encode_buffer(ptr, offset, info->callsign, CALLSIGN_LEN + 1);
@@ -214,6 +247,9 @@ void netmisc_encode_netgameinfo(uint8_t* ptr, int* offset, netgame_info* info)
 	netmisc_encode_buffer(ptr, offset, info->player_flags, MAX_PLAYERS);
 	netmisc_encode_buffer(ptr, offset, info->mission_name, 9);
 	netmisc_encode_buffer(ptr, offset, info->mission_title, MISSION_NAME_LEN+1);
+
+	//Make the config string be part of the gameinfo
+	netmisc_encode_string(ptr, offset, IPX_MAX_DATA_SIZE, info->config_string);
 }
 
 void netmisc_encode_sequence_packet(uint8_t* ptr, int* offset, sequence_packet* info)
@@ -389,7 +425,7 @@ void netmisc_decode_netplayer_info(uint8_t* ptr, int* offset, netplayer_info* in
 	netmisc_decode_int32(ptr, offset, (int*)&info->identifier);
 }
 
-void netmisc_decode_netgameinfo(uint8_t* ptr, int* offset, netgame_info* info)
+void netmisc_decode_netgameinfo(uint8_t* ptr, int* offset, int buffer_size, netgame_info* info)
 {
 	int i, j;
 	netmisc_decode_int8(ptr, offset, &info->type);
@@ -429,6 +465,7 @@ void netmisc_decode_netgameinfo(uint8_t* ptr, int* offset, netgame_info* info)
 	netmisc_decode_buffer(ptr, offset, info->player_flags, MAX_PLAYERS);
 	netmisc_decode_buffer(ptr, offset, info->mission_name, 9);
 	netmisc_decode_buffer(ptr, offset, info->mission_title, MISSION_NAME_LEN + 1);
+	info->config_string = netmisc_decode_string(ptr, offset, buffer_size);
 }
 
 void netmisc_decode_sequence_packet(uint8_t* ptr, int* offset, sequence_packet* info)

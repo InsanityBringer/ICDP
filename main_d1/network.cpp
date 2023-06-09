@@ -411,7 +411,6 @@ int can_join_netgame(netgame_info* game)
 
 	for (i = 0; i < num_players; i++)
 		if ((!_stricmp(Players[Player_num].callsign, game->players[i].callsign)) &&
-			//(!memcmp(My_Seq.player.node, game->players[i].node, 4)) &&
 			(!memcmp(&My_Seq.player.identifier, &game->players[i].identifier, sizeof(game->players[i].identifier))))
 			break;
 
@@ -1200,7 +1199,7 @@ void network_send_game_info(sequence_packet* their)
 	// Send game info to someone who requested it
 	int i, len = 0;
 	char old_type, old_status;
-	uint8_t buf[1024];
+	uint8_t buf[IPX_MAX_DATA_SIZE];
 
 	mprintf((0, "Sending game info.\n"));
 
@@ -1271,8 +1270,7 @@ void network_process_gameinfo(uint8_t* data)
 	uint8_t origin_address[4];
 	int connected_to = -1;
 
-	//newgame = (netgame_info*)data;
-	netmisc_decode_netgameinfo(data, &len, &newgame);
+	netmisc_decode_netgameinfo(data, &len, IPX_MAX_DATA_SIZE, &newgame);
 
 	Network_games_changed = 1;
 
@@ -1302,7 +1300,8 @@ void network_process_gameinfo(uint8_t* data)
 		mprintf((0, "Too many netgames.\n"));
 		return;
 	}
-	memcpy(&Active_games[i], &newgame, sizeof(netgame_info));
+
+	Active_games[i] = newgame; //need to use copy constructor for the config string
 	if (i == num_active_games)
 		num_active_games++;
 
@@ -1310,7 +1309,8 @@ void network_process_gameinfo(uint8_t* data)
 	{
 		// Delete this game
 		for (j = i; j < num_active_games - 1; j++)
-			memcpy(&Active_games[j], &Active_games[j + 1], sizeof(netgame_info));
+			Active_games[j] = Active_games[j + 1];
+			//memcpy(&Active_games[j], &Active_games[j + 1], sizeof(netgame_info));
 		num_active_games--;
 	}
 }
@@ -1408,7 +1408,7 @@ void network_process_packet(uint8_t* data, int length)
 		{
 			int len = 0;
 			netgame_info syncinfo;
-			netmisc_decode_netgameinfo(data, &len, &syncinfo);
+			netmisc_decode_netgameinfo(data, &len, IPX_MAX_DATA_SIZE, &syncinfo);
 			network_read_sync_packet(&syncinfo);
 		}
 		break;
@@ -1750,28 +1750,26 @@ int opt_mode;
 
 void network_game_param_poll(int nitems, newmenu_item* menus, int* key, int citem)
 {
-#ifdef SHAREWARE
-	return;
-#else
-#ifndef ROCKWELL_CODE
-	if (menus[opt_mode + 2].value && !menus[opt_mode + 6].value) {
+	if (menus[opt_mode + 2].value && !menus[opt_mode + 6].value) 
+	{
 		menus[opt_mode + 6].value = 1;
 		menus[opt_mode + 6].redraw = 1;
 	}
-	if (menus[opt_mode + 4].value) {
-		if (!menus[opt_mode + 7].value) {
+	if (menus[opt_mode + 4].value) 
+	{
+		if (!menus[opt_mode + 7].value) 
+		{
 			menus[opt_mode + 7].value = 1;
 			menus[opt_mode + 7].redraw = 1;
 		}
 	}
-#endif
-	if (last_cinvul != menus[opt_cinvul].value) {
+
+	if (last_cinvul != menus[opt_cinvul].value) 
+	{
 		sprintf(menus[opt_cinvul].text, "%s: %d %s", TXT_REACTOR_LIFE, menus[opt_cinvul].value * 5, TXT_MINUTES_ABBREV);
 		last_cinvul = menus[opt_cinvul].value;
 		menus[opt_cinvul].redraw = 1;
 	}
-
-#endif
 }
 
 int network_get_game_params(char* game_name, int* mode, int* game_flags, int* level)
@@ -1786,7 +1784,6 @@ int network_get_game_params(char* game_name, int* mode, int* game_flags, int* le
 
 	char buf[256];
 
-#ifndef SHAREWARE
 	int new_mission_num;
 	int anarchy_only;
 
@@ -1798,7 +1795,6 @@ int network_get_game_params(char* game_name, int* mode, int* game_flags, int* le
 	strcpy(Netgame.mission_name, Mission_list[new_mission_num].filename);
 	strcpy(Netgame.mission_title, Mission_list[new_mission_num].mission_name);
 	Netgame.control_invul_time = control_invul_time;
-#endif
 
 	snprintf(buf, 255, "%s\nHosting on port %d", TXT_NETGAME_SETUP, NetGetCurrentPort());
 	buf[255] = '\0';
@@ -1825,32 +1821,20 @@ int network_get_game_params(char* game_name, int* mode, int* game_flags, int* le
 	opt_level = opt;
 	m[opt].type = NM_TYPE_INPUT; m[opt].text = slevel; m[opt].text_len = 4; opt++;
 
-#ifdef ROCKWELL_CODE	
-	opt_mode = 0;
-#else
 	opt_mode = opt;
 	m[opt].type = NM_TYPE_TEXT; m[opt].text = TXT_MODE; opt++;
 	m[opt].type = NM_TYPE_RADIO; m[opt].text = TXT_ANARCHY; m[opt].value = 1; m[opt].group = 0; opt++;
 	m[opt].type = NM_TYPE_RADIO; m[opt].text = TXT_TEAM_ANARCHY; m[opt].value = 0; m[opt].group = 0; opt++;
 	m[opt].type = NM_TYPE_RADIO; m[opt].text = TXT_ANARCHY_W_ROBOTS; m[opt].value = 0; m[opt].group = 0; opt++;
 	m[opt].type = NM_TYPE_RADIO; m[opt].text = TXT_COOPERATIVE; m[opt].value = 0; m[opt].group = 0; opt++;
-#endif
 	m[opt].type = NM_TYPE_TEXT; m[opt].text = TXT_OPTIONS; opt++;
 
 	opt_closed = opt;
 	m[opt].type = NM_TYPE_CHECK; m[opt].text = TXT_CLOSED_GAME; m[opt].value = 0; opt++;
-#ifndef SHAREWARE
-	//	m[opt].type = NM_TYPE_CHECK; m[opt].text = TXT_SHOW_IDS; m[opt].value=0; opt++;
 	m[opt].type = NM_TYPE_CHECK; m[opt].text = TXT_SHOW_ON_MAP; m[opt].value = 0; opt++;
-#endif
 
 	opt_difficulty = opt;
 	m[opt].type = NM_TYPE_SLIDER; m[opt].value = Player_default_difficulty; m[opt].text = TXT_DIFFICULTY; m[opt].min_value = 0; m[opt].max_value = (NDL - 1); opt++;
-
-	//	m[opt].type = NM_TYPE_TEXT; m[opt].text = "Reactor Invulnerability (mins)"; opt++;
-	//	opt_cinvul = opt;
-	//	sprintf( srinvul, "%d", control_invul_time );
-	//	m[opt].type = NM_TYPE_INPUT; m[opt].text = srinvul; m[opt].text_len=2; opt++;
 
 	opt_cinvul = opt;
 	sprintf(srinvul, "%s: %d %s", TXT_REACTOR_LIFE, 5 * control_invul_time, TXT_MINUTES_ABBREV);
@@ -1886,9 +1870,7 @@ menu:
 			sprintf(slevel, "1");
 			goto menu;
 		}
-#ifdef ROCKWELL_CODE	
-		* mode = NETGAME_COOPERATIVE;
-#else
+
 		if (m[opt_mode + 1].value)
 			* mode = NETGAME_ANARCHY;
 		else if (m[opt_mode + 2].value) {
@@ -1906,16 +1888,11 @@ menu:
 		else if (m[opt_mode + 4].value)
 			* mode = NETGAME_COOPERATIVE;
 		else Int3(); // Invalid mode -- see Rob
-#endif	// ifdef ROCKWELL
 
 		if (m[opt_closed].value)
 			* game_flags |= NETGAME_FLAG_CLOSED;
-#ifndef SHAREWARE
-		//		if (m[opt_closed+1].value)
-		//			*game_flags |= NETGAME_FLAG_SHOW_ID;
 		if (m[opt_closed + 1].value)
 			* game_flags |= NETGAME_FLAG_SHOW_MAP;
-#endif
 
 		Difficulty_level = m[opt_difficulty].value;
 
@@ -1923,6 +1900,7 @@ menu:
 		control_invul_time = m[opt_cinvul].value;
 		Netgame.control_invul_time = control_invul_time * 5 * F1_0 * 60;
 	}
+	Netgame.config_string = multi_generate_config_string();
 	return i;
 }
 
@@ -2440,9 +2418,9 @@ void restart_net_searching(newmenu_item* m)
 	N_players = 0;
 	num_active_games = 0;
 
-	memset(Active_games, 0, sizeof(netgame_info) * MAX_ACTIVE_NETGAMES);
-
-	for (i = 0; i < MAX_ACTIVE_NETGAMES; i++) {
+	for (i = 0; i < MAX_ACTIVE_NETGAMES; i++) 
+	{
+		Active_games[i].clear();
 		sprintf(m[(2 * i) + 1].text, "%d.                                       ", i + 1);
 		sprintf(m[(2 * i) + 2].text, " \n");
 		m[(2 * i) + 1].redraw = 1;
@@ -2743,7 +2721,8 @@ void network_join_game()
 	num_active_games = 0;
 
 	memset(m, 0, sizeof(newmenu_item) * (MAX_ACTIVE_NETGAMES * 2));
-	memset(Active_games, 0, sizeof(netgame_info) * MAX_ACTIVE_NETGAMES);
+	for (i = 0; i < 4; i++)
+		Active_games[i].clear();
 
 	m[0].text = menu_text[0];
 	m[0].type = NM_TYPE_TEXT;
@@ -2816,7 +2795,7 @@ remenu:
 
 	// Choice is valid, prepare to join in
 
-	memcpy(&Netgame, &Active_games[choice], sizeof(netgame_info));
+	Netgame = Active_games[choice];
 	Difficulty_level = Netgame.difficulty;
 	MaxNumNetPlayers = Netgame.max_numplayers;
 	change_playernum_to(1);
@@ -2834,8 +2813,6 @@ void network_join_game_at(uint8_t* address)
 	char menu_text[(MAX_ACTIVE_NETGAMES * 2) + 1][70];
 	fix start_time;
 
-	newmenu_item m[((MAX_ACTIVE_NETGAMES) * 2) + 1];
-
 	if (!Network_active)
 	{
 		nm_messagebox(NULL, 1, TXT_OK, TXT_IPX_NOT_FOUND);
@@ -2852,8 +2829,8 @@ void network_join_game_at(uint8_t* address)
 
 	num_active_games = 0;
 
-	memset(m, 0, sizeof(newmenu_item) * (MAX_ACTIVE_NETGAMES * 2));
-	memset(Active_games, 0, sizeof(netgame_info) * MAX_ACTIVE_NETGAMES);
+	for (i = 0; i < 4; i++)
+		Active_games[i].clear();
 
 	network_send_game_info_request_to(address);
 	start_time = timer_get_fixed_seconds();
@@ -2888,14 +2865,12 @@ void network_join_game_at(uint8_t* address)
 	{
 		nm_messagebox(TXT_SORRY, 1, TXT_OK, TXT_NET_GAME_BETWEEN2);
 		return;
-		//goto remenu;
 	}
 
 	if (Active_games[0].protocol_version != MULTI_PROTO_VERSION)
 	{
 		nm_messagebox(TXT_SORRY, 1, TXT_OK, TXT_VERSION_MISMATCH);
 		return;
-		//goto remenu;
 	}
 
 #ifndef SHAREWARE
@@ -2906,7 +2881,6 @@ void network_join_game_at(uint8_t* address)
 		{
 			nm_messagebox(NULL, 1, TXT_OK, TXT_MISSION_NOT_FOUND);
 			return;
-			//goto remenu;
 		}
 	}
 #endif
@@ -2922,7 +2896,7 @@ void network_join_game_at(uint8_t* address)
 
 	// Choice is valid, prepare to join in
 
-	memcpy(&Netgame, &Active_games[0], sizeof(netgame_info));
+	Netgame = Active_games[0];
 	Difficulty_level = Netgame.difficulty;
 	MaxNumNetPlayers = Netgame.max_numplayers;
 	change_playernum_to(1);
