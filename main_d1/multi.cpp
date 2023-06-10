@@ -2516,6 +2516,9 @@ multi_send_hostage_door_status(int wallnum)
 }
 #endif
 
+int Multi_num_extra_primaries;
+int Multi_num_extra_secondaries;
+
 void
 multi_prep_level(void)
 {
@@ -2877,15 +2880,29 @@ void use_netplayer_stats(player* ps, netplayer_stats* pd)
 	ps->hostages_on_board = pd->hostages_on_board;			//	Number of hostages on ship.
 }
 
+void multi_append_config_string(std::string& str, char& separator, std::string_view keyname, std::string value)
+{
+	if (separator)
+		str.push_back(separator);
+	str.append(keyname);
+	str.push_back('=');
+	str.append(value);
+	separator = ' ';
+}
+
 std::string multi_generate_config_string()
 {
 	std::string config_string;
+	char separator = '\0';
 
 	if (Current_mission_num != 0) //If mission isn't the built in one, encode the filename
-	{
-		config_string.append("mission=");
-		config_string.append(Current_mission_filename);
-	}
+		multi_append_config_string(config_string, separator, "mission", Current_mission_filename);
+
+	if (Multi_num_extra_primaries != 0) //Append extra weapons
+		multi_append_config_string(config_string, separator, "extra_prim", std::to_string(Multi_num_extra_primaries));
+
+	if (Multi_num_extra_secondaries != 0)
+		multi_append_config_string(config_string, separator, "extra_sec", std::to_string(Multi_num_extra_secondaries));
 
 	return config_string;
 }

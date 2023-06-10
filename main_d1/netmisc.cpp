@@ -117,7 +117,7 @@ void netmisc_encode_string(uint8_t* ptr, int* offset, int buffer_size, std::stri
 
 	for (int i = 0; i < size; i++)
 	{
-		ptr[*offset] = str[i]; offset++;
+		ptr[*offset] = str[i]; (*offset)++;
 	}
 }
 

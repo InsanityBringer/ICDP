@@ -1747,6 +1747,69 @@ void network_start_poll(int nitems, newmenu_item* menus, int* key, int citem)
 int opt_cinvul;
 int last_cinvul = 0;
 int opt_mode;
+int opt_extra_primaries;
+int opt_extra_secondaries;
+
+//placeholder
+int last_num_extra_primaries;
+int last_num_extra_secondaries;
+
+void network_extra_game_param_poll(int nitems, newmenu_item* menus, int* key, int citem)
+{
+	if (last_cinvul != menus[opt_cinvul].value)
+	{
+		sprintf(menus[opt_cinvul].text, "%s: %d %s", TXT_REACTOR_LIFE, menus[opt_cinvul].value * 5, TXT_MINUTES_ABBREV);
+		last_cinvul = menus[opt_cinvul].value;
+		menus[opt_cinvul].redraw = 1;
+	}
+
+	if (last_num_extra_primaries != menus[opt_extra_primaries].value)
+	{
+		sprintf(menus[opt_extra_primaries].text, "%s: %d", "Extra primaries", menus[opt_extra_primaries].value);
+		last_num_extra_primaries = menus[opt_extra_primaries].value;
+		menus[opt_extra_primaries].redraw = 1;
+	}
+
+	if (last_num_extra_secondaries != menus[opt_extra_secondaries].value)
+	{
+		sprintf(menus[opt_extra_secondaries].text, "%s: %d", "Extra secondaries", menus[opt_extra_secondaries].value);
+		last_num_extra_secondaries = menus[opt_extra_secondaries].value;
+		menus[opt_extra_secondaries].redraw = 1;
+	}
+}
+
+void network_more_game_options()
+{
+	newmenu_item m[16];
+	int i = 0;
+	int opt = 0;
+	char srinvul[32];
+	char primary_buf[32], secondary_buf[32];
+
+	opt_cinvul = opt;
+	sprintf(srinvul, "%s: %d %s", TXT_REACTOR_LIFE, 5 * control_invul_time, TXT_MINUTES_ABBREV);
+	last_cinvul = control_invul_time;
+	m[opt].type = NM_TYPE_SLIDER; m[opt].value = control_invul_time; m[opt].text = srinvul; m[opt].min_value = 0; m[opt].max_value = 15; opt++;
+
+	opt_extra_primaries = opt;
+	sprintf(primary_buf, "%s: %d", "Extra primaries", Multi_num_extra_primaries);
+	last_num_extra_primaries = Multi_num_extra_primaries;
+	m[opt].type = NM_TYPE_SLIDER; m[opt].value = Multi_num_extra_primaries; m[opt].text = primary_buf; m[opt].min_value = 0; m[opt].max_value = 4; opt++;
+
+	opt_extra_secondaries = opt;
+	sprintf(secondary_buf, "%s: %d", "Extra secondaries", Multi_num_extra_secondaries);
+	last_num_extra_secondaries = Multi_num_extra_secondaries;
+	m[opt].type = NM_TYPE_SLIDER; m[opt].value = Multi_num_extra_secondaries; m[opt].text = secondary_buf; m[opt].min_value = 0; m[opt].max_value = 4; opt++;
+
+	while (i != -1)
+	{
+		i = newmenu_do1(nullptr, "Game options", opt, m, network_extra_game_param_poll, i);
+
+		control_invul_time = m[opt_cinvul].value;
+		Multi_num_extra_primaries = m[opt_extra_primaries].value;
+		Multi_num_extra_secondaries = m[opt_extra_secondaries].value;
+	}
+}
 
 void network_game_param_poll(int nitems, newmenu_item* menus, int* key, int citem)
 {
@@ -1763,29 +1826,24 @@ void network_game_param_poll(int nitems, newmenu_item* menus, int* key, int cite
 			menus[opt_mode + 7].redraw = 1;
 		}
 	}
-
-	if (last_cinvul != menus[opt_cinvul].value) 
-	{
-		sprintf(menus[opt_cinvul].text, "%s: %d %s", TXT_REACTOR_LIFE, menus[opt_cinvul].value * 5, TXT_MINUTES_ABBREV);
-		last_cinvul = menus[opt_cinvul].value;
-		menus[opt_cinvul].redraw = 1;
-	}
 }
 
 int network_get_game_params(char* game_name, int* mode, int* game_flags, int* level)
 {
 	int i;
-	int opt, opt_name, opt_level, opt_closed, opt_difficulty;
+	int opt, opt_name, opt_level, opt_closed, opt_difficulty, opt_more;
 	newmenu_item m[16];
 	char name[NETGAME_NAME_LEN + 1];
 	char slevel[5];
 	char level_text[32];
-	char srinvul[32];
 
 	char buf[256];
 
 	int new_mission_num;
 	int anarchy_only;
+
+	Multi_num_extra_primaries = 0;
+	Multi_num_extra_secondaries = 0;
 
 	new_mission_num = multi_choose_mission(&anarchy_only);
 
@@ -1836,10 +1894,8 @@ int network_get_game_params(char* game_name, int* mode, int* game_flags, int* le
 	opt_difficulty = opt;
 	m[opt].type = NM_TYPE_SLIDER; m[opt].value = Player_default_difficulty; m[opt].text = TXT_DIFFICULTY; m[opt].min_value = 0; m[opt].max_value = (NDL - 1); opt++;
 
-	opt_cinvul = opt;
-	sprintf(srinvul, "%s: %d %s", TXT_REACTOR_LIFE, 5 * control_invul_time, TXT_MINUTES_ABBREV);
-	last_cinvul = control_invul_time;
-	m[opt].type = NM_TYPE_SLIDER; m[opt].value = control_invul_time; m[opt].text = srinvul; m[opt].min_value = 0; m[opt].max_value = 15; opt++;
+	opt_more = opt;
+	m[opt].type = NM_TYPE_MENU; m[opt].text = (char*)"More options..."; opt++;
 
 	Assert(opt <= 16);
 
@@ -1857,6 +1913,12 @@ menu:
 			}
 
 		strcpy(game_name, name);
+
+		if (i == opt_more)
+		{
+			network_more_game_options();
+			goto menu;
+		}
 
 
 		if (!_strnicmp(slevel, "s", 1))
@@ -1897,7 +1959,6 @@ menu:
 		Difficulty_level = m[opt_difficulty].value;
 
 		//control_invul_time = atoi( srinvul )*60*F1_0;
-		control_invul_time = m[opt_cinvul].value;
 		Netgame.control_invul_time = control_invul_time * 5 * F1_0 * 60;
 	}
 	Netgame.config_string = multi_generate_config_string();
