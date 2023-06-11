@@ -66,14 +66,7 @@ int plat_init()
 		Error("Error initalizing SDL: %s\n", SDL_GetError());
 		return res;
 	}
-	//Ensure a library capable of modern functions is available. 
-	/*res = SDL_GL_LoadLibrary(NULL);
-	if (res)
-	{
-		Error("I_Init(): Cannot load default OpenGL library: %s\n", SDL_GetError());
-		return res;
-	}*/
-	plat_read_chocolate_cfg();
+
 	return 0;
 }
 

@@ -311,7 +311,7 @@ public:
 	//Frame setup functions
 
 	//start the frame
-	void start_frame();
+	void start_frame(float desired_aspect = 1);
 	//start the frame by copying the frame data from another instance (including the view position and matrix)
 	//This must be called after start_frame is called for inst, but before any instances are started.
 	void start_frame_from_inst(G3Instance& inst);
@@ -463,7 +463,7 @@ void g3_close(void);
 //Frame setup functions:
 
 //start the frame
-void g3_start_frame(void);
+void g3_start_frame(float desired_aspect = 1);
 
 //set view from x,y,z & p,b,h, zoom.  Must call one of g3_set_view_*() 
 void g3_set_view_angles(vms_vector* view_pos, vms_angvec* view_orient, fix zoom);

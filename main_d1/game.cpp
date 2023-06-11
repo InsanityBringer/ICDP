@@ -90,13 +90,13 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 //#define TEST_TIMER	1		//if this is set, do checking on timer
 
 #define	SHOW_EXIT_PATH	1
-#define FINAL_CHEATS 1
 
 #ifdef EDITOR
 #include "editor\editor.h"
 #endif
 
 float Game_aspect = 3.f / 4.f;
+float Game_render_aspect = 1.0f;
 
 int	speedtest_on = 0;
 
@@ -117,6 +117,8 @@ int stop_count, start_count;
 int time_stopped, time_started;
 #endif
 
+//Configuration keys for 
+
 uint8_t* Game_cockpit_copy_code = NULL;
 
 uint8_t new_cheats[] = { KEY_B ^ 0xaa, KEY_B ^ 0xaa, KEY_B ^ 0xaa, KEY_F ^ 0xaa, KEY_A ^ 0xaa,
@@ -127,15 +129,20 @@ uint8_t new_cheats[] = { KEY_B ^ 0xaa, KEY_B ^ 0xaa, KEY_B ^ 0xaa, KEY_F ^ 0xaa,
 							KEY_N ^ 0xaa, KEY_D ^ 0xaa, KEY_X ^ 0xaa, KEY_X ^ 0xaa, KEY_A ^ 0xaa };
 
 int			VR_screen_mode = 0;
-int			VR_render_width = 0;
+int			VR_render_width = 0; //recycling these as config keys too.. 
 int			VR_render_height = 0;
 int			VR_render_mode = VR_NONE;
 int			VR_compatible_menus = 0;
 grs_canvas* VR_offscreen_buffer = NULL;		// The offscreen data buffer
 grs_canvas	VR_render_buffer;
-grs_canvas	VR_render_sub_buffer;			//  Two sub buffers for left/right eyes.
+grs_canvas	VR_render_sub_buffer;
 grs_canvas*	VR_screen_buffer;
 grs_canvas	VR_editor_canvas;						//  The canvas that the editor writes to.
+
+//Configuration keys for rendering
+int cfg_render_width = 320, cfg_render_height = 200;
+int cfg_aspect_ratio = GAMEASPECT_AUTO;
+int Game_aspect_mode = GAMEASPECT_AUTO;
 
 int Debug_pause = 0;				//John's debugging pause system
 
@@ -364,19 +371,10 @@ void init_cockpit()
 	int minx, maxx, miny, maxy;
 
 	//Initialize the on-screen canvases
-	/*if (VR_render_width != 320 || VR_render_height != 200)
-	{
-		Cockpit_mode = CM_FULL_SCREEN;
-	}*/
-
 	if (Screen_mode == SCREEN_EDITOR)
 		Cockpit_mode = CM_FULL_SCREEN;
 
 	gr_set_curfont(GAME_FONT);
-
-	if (Game_cockpit_copy_code)
-		free(Game_cockpit_copy_code);
-	Game_cockpit_copy_code = NULL;
 
 	switch (Cockpit_mode) 
 	{
@@ -396,7 +394,6 @@ void init_cockpit()
 		
 		if (Cockpit_mode == CM_REAR_VIEW)
 			printf("%d %d %d %d\n", minx, miny, maxx, maxy);
-		//Game_cockpit_copy_code = gr_ibitblt_create_mask(bm, minx, miny, maxx - minx + 1, maxy - miny + 1, VR_offscreen_buffer->cv_bitmap.bm_rowsize);
 
 		//Scale the mins and maxes so that they are relative to the current resolution
 		float top_frac = (float)miny / bm->bm_h;
@@ -670,22 +667,58 @@ void game_init_render_sub_buffers(int x, int y, int w, int h)
 // Sets up the canvases we will be rendering to
 void game_init_render_buffers(int screen_mode, int render_w, int render_h, int compatible_menus)
 {
-	if (!VR_offscreen_buffer) 
+	if (VR_offscreen_buffer)
+		gr_free_canvas(VR_offscreen_buffer);
+
+	Game_aspect_mode = cfg_aspect_ratio;
+
+	VR_screen_mode = screen_mode;
+	VR_render_width = render_w;
+	VR_render_height = render_h;
+	VR_compatible_menus = compatible_menus;
+
+	Game_window_w = render_w;
+	Game_window_h = render_h;
+
+	VR_offscreen_buffer = gr_create_canvas(render_w, render_h);
+
+	gr_init_sub_canvas(&VR_render_buffer, VR_offscreen_buffer, 0, 0, render_w, render_h);
+
+	game_init_render_sub_buffers(0, 0, render_w, render_h);
+
+	float screen_aspect = (float)VR_render_height / VR_render_width;
+
+	//Pick the game aspect ratio. If it's automatic, this is simply calculated from the render resolution.
+	switch (Game_aspect_mode)
 	{
-		VR_screen_mode = screen_mode;
-		VR_render_width = render_w;
-		VR_render_height = render_h;
-		VR_compatible_menus = compatible_menus;
-
-		Game_window_w = render_w;
-		Game_window_h = render_h;
-
-		VR_offscreen_buffer = gr_create_canvas(render_w, render_h);
-
-		gr_init_sub_canvas(&VR_render_buffer, VR_offscreen_buffer, 0, 0, render_w, render_h);
-
-		game_init_render_sub_buffers(0, 0, render_w, render_h);
+	case GAMEASPECT_AUTO:
+		//320x200 and 640x400 are treated as ASPECT_4_3 by default. 
+		if ((VR_render_width == 320 && VR_render_height == 200) || (VR_render_width == 640 && VR_render_height == 400))
+			Game_aspect = ASPECT_4_3;
+		else
+			Game_aspect = screen_aspect;
+		break;
+	case GAMEASPECT_4_3:
+		Game_aspect = ASPECT_4_3;
+		break;
+	case GAMEASPECT_5_4:
+		Game_aspect = ASPECT_5_4;
+		break;
+	case GAMEASPECT_16_10:
+		Game_aspect = ASPECT_16_10;
+		break;
+	case GAMEASPECT_16_9:
+		Game_aspect = ASPECT_16_9;
+		break;
+	case GAMEASPECT_21_9:
+		Game_aspect = ASPECT_21_9;
+		break;
+	default:
+		Error("game_init_render_buffers: Bad aspect ratio setting.");
 	}
+
+	//Calculate the desired aspect ratio for rendering. If the screen's aspect ratio is equal to the desired aspect ratio, this is 1.0
+	Game_render_aspect = Game_aspect / screen_aspect;
 }
 
 //called to change the screen mode. Parameter sm is the new mode, one of
@@ -900,8 +933,6 @@ void calc_frame_time()
 		mprintf((1, "Bad FrameTime - value = %x\n", FrameTime));
 		if (FrameTime == 0)
 			Int3();	//	Call Mike or Matt or John!  Your interrupts are probably trashed!
-//		if ( !dpmi_virtual_memory )
-//			Int3();		//Get MATT if hit this!
 	}
 #endif
 
@@ -1106,6 +1137,9 @@ extern fix Cruise_speed;
 
 void game_draw_hud_stuff()
 {
+	grs_canvas* save = grd_curcanv;
+	gr_set_current_canvas(get_hud_render_canvas());
+	gr_clear_canvas(255); //HUD is now on its own canvas, so it needs to be cleared before drawing
 
 #ifndef NDEBUG
 	if (Debug_pause)
@@ -1214,6 +1248,8 @@ void game_draw_hud_stuff()
 
 	if (Player_is_dead)
 		player_dead_message();
+
+	gr_set_current_canvas(save);
 }
 
 extern int gr_bitblt_dest_step_shift;
@@ -1864,16 +1900,11 @@ int Config_menu_flag;
 
 jmp_buf LeaveGame;
 
-#ifndef FINAL_CHEATS
-uint8_t cheat_enable_keys[] = { KEY_G,KEY_A,KEY_B,KEY_B,KEY_A,KEY_G,KEY_A,KEY_B,KEY_B,KEY_A,KEY_H,KEY_E,KEY_Y };
-#endif
-
 int8_t	Enable_john_cheat_1, Enable_john_cheat_2, Enable_john_cheat_3, Enable_john_cheat_4;
 
 int cheat_enable_index;
 #define CHEAT_ENABLE_LENGTH (sizeof(cheat_enable_keys) / sizeof(*cheat_enable_keys))
 
-#ifdef FINAL_CHEATS
 uint8_t cheat_enable_keys[] = { KEY_G,KEY_A,KEY_B,KEY_B,KEY_A,KEY_G,KEY_A,KEY_B,KEY_B,KEY_A,KEY_H,KEY_E,KEY_Y };
 
 uint8_t cheat_wowie[] = { KEY_S,KEY_C,KEY_O,KEY_U,KEY_R,KEY_G,KEY_E };
@@ -1919,8 +1950,6 @@ int cheat_newlife_index;
 int cheat_exitpath_index;
 int cheat_robotpause_index;
 
-#endif
-
 int Cheats_enabled = 0;
 
 extern int Laser_rapid_fire, Ugly_robot_cheat;
@@ -1951,11 +1980,8 @@ void game()
 	Endlevel_sequence = 0;
 
 	cheat_enable_index = 0;
-
-#ifdef FINAL_CHEATS
 	cheat_wowie_index = cheat_allkeys_index = cheat_invuln_index = cheat_cloak_index = cheat_shield_index = cheat_warp_index = cheat_astral_index = 0;
 	cheat_turbomode_index = cheat_wowie2_index = 0;
-#endif
 
 	set_screen_mode(SCREEN_GAME);
 	reset_palette_add();
@@ -2004,6 +2030,13 @@ void game()
 			// GAME LOOP!
 			Automap_flag = 0;
 			Config_menu_flag = 0;
+
+			//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
+			if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
+			{
+				game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
+				init_cockpit(); last_drawn_cockpit = -1;
+			}
 
 			startTime = timer_get_us();
 
@@ -2274,7 +2307,6 @@ void ReadControls()
 
 		john_cheat_func_2(key);
 
-#ifdef FINAL_CHEATS
 		if (Cheats_enabled) 
 		{
 			if (!(Game_mode & GM_MULTI) && key == cheat_wowie[cheat_wowie_index]) 
@@ -2509,7 +2541,6 @@ void ReadControls()
 
 
 		}
-#endif
 
 		john_cheat_func_3(key);
 
@@ -2658,83 +2689,6 @@ void ReadControls()
 			break;
 		}
 
-
-#ifndef FINAL_CHEATS
-		//Here are the "legal" cheats
-		if (Cheats_enabled && !(Game_mode & GM_MULTI))
-			switch (key) {
-			case KEY_ALTED + KEY_1: {
-				int i;
-
-				HUD_init_message(TXT_WOWIE_ZOWIE);
-
-#ifndef SHAREWARE
-				Players[Player_num].primary_weapon_flags = 0xff;
-				Players[Player_num].secondary_weapon_flags = 0xff;
-#else
-				Players[Player_num].primary_weapon_flags = 0xff ^ (HAS_PLASMA_FLAG | HAS_FUSION_FLAG);
-				Players[Player_num].secondary_weapon_flags = 0xff ^ (HAS_SMART_FLAG | HAS_MEGA_FLAG);
-#endif
-
-				for (i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-					Players[Player_num].primary_ammo[i] = Primary_ammo_max[i];
-
-				for (i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-					Players[Player_num].secondary_ammo[i] = Secondary_ammo_max[i];
-
-				if (Newdemo_state == ND_STATE_RECORDING)
-					newdemo_record_laser_level(Players[Player_num].laser_level, MAX_LASER_LEVEL);
-
-				Players[Player_num].energy = MAX_ENERGY;
-				Players[Player_num].laser_level = MAX_LASER_LEVEL;
-				Players[Player_num].flags |= PLAYER_FLAGS_QUAD_LASERS;
-				update_laser_weapon_info();
-
-				break;
-			}
-
-			case KEY_ALTED + KEY_2:
-				HUD_init_message(TXT_ALL_KEYS);
-				Players[Player_num].flags |= PLAYER_FLAGS_BLUE_KEY | PLAYER_FLAGS_RED_KEY | PLAYER_FLAGS_GOLD_KEY;
-				break;
-
-			case KEY_ALTED + KEY_3:
-				Players[Player_num].flags ^= PLAYER_FLAGS_INVULNERABLE;
-				HUD_init_message("%s %s!", TXT_INVULNERABILITY, (Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE) ? TXT_ON : TXT_OFF);
-				Players[Player_num].invulnerable_time = GameTime + i2f(1000);
-				break;
-
-			case KEY_ALTED + KEY_4:
-				Players[Player_num].flags ^= PLAYER_FLAGS_CLOAKED;
-				HUD_init_message("%s %s!", TXT_CLOAK, (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) ? TXT_ON : TXT_OFF);
-				if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) {
-					ai_do_cloak_stuff();
-					Players[Player_num].cloak_time = GameTime;
-				}
-				break;
-
-			case KEY_ALTED + KEY_5:
-				HUD_init_message(TXT_FULL_SHIELDS);
-				Players[Player_num].shields = MAX_SHIELDS;
-				break;
-
-			case KEY_ALTED + KEY_6: {
-				newmenu_item m;
-				char text[10] = "";
-				int new_level_num;
-				int item;
-				m.type = NM_TYPE_INPUT; m.text_len = 10; m.text = text;
-				item = newmenu_do(NULL, TXT_WARP_TO_LEVEL, 1, &m, NULL);
-				if (item != -1) {
-					new_level_num = atoi(m.text);
-					if (new_level_num != 0 && new_level_num >= 0 && new_level_num <= LAST_LEVEL)
-						StartNewLevel(new_level_num);
-				}
-				break;
-
-			}
-			}
-#endif
 #ifdef RESTORE_AFTERBURNER
 		Players[Player_num].flags &= ~PLAYER_FLAGS_AFTERBURNER;	//	Turn off, keypress might turn it on.
 #endif

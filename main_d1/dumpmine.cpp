@@ -540,10 +540,11 @@ void write_game_text_file(const char* filename)
 
 	my_file = fopen(my_filename, "wt");
 
-	if (!my_file) {
+	if (!my_file) 
+	{
 		char  ErrorMessage[200];
 
-		sprintf(ErrorMessage, "ERROR: Unable to open output file %s\n", my_file);
+		sprintf(ErrorMessage, "ERROR: Unable to open output file %s\n", my_filename);
 		stop_time();
 		gr_palette_load(gr_palette);
 		nm_messagebox(NULL, 1, "Ok", ErrorMessage);
@@ -617,7 +618,7 @@ void write_game_text_file(const char* filename)
 // -- }
 
 //	-----------------------------------------------------------------------------
-void determine_used_textures_level(int load_level_flag, int shareware_flag, int level_num, int* tmap_buf, int* wall_buf, int8_t* level_tmap_buf, int max_tmap)
+void determine_used_textures_level(bool load_level_flag, bool shareware_flag, int level_num, int* tmap_buf, int* wall_buf, int8_t* level_tmap_buf, int max_tmap)
 {
 	int	segnum, sidenum;
 	int	i, j;
@@ -874,7 +875,7 @@ void dump_used_textures_level(FILE* my_file, int level_num)
 		perm_wall_buf[i] = 0;
 	}
 
-	determine_used_textures_level(0, 1, level_num, temp_tmap_buf, temp_wall_buf, level_tmap_buf, MAX_TEXTURES);
+	determine_used_textures_level(false, true, level_num, temp_tmap_buf, temp_wall_buf, level_tmap_buf, MAX_TEXTURES);
 	// -- 	determine_used_textures_robots(temp_tmap_buf);
 	fprintf(my_file, "\nTextures used in [%s]\n", Gamesave_current_filename);
 	say_used_tmaps(my_file, temp_tmap_buf);
@@ -917,7 +918,7 @@ void dump_used_textures_all(void)
 	}
 
 	for (i = 0; i < NUM_SHAREWARE_LEVELS; i++) {
-		determine_used_textures_level(1, 1, i, temp_tmap_buf, temp_wall_buf, level_tmap_buf, MAX_TEXTURES);
+		determine_used_textures_level(true, true, i, temp_tmap_buf, temp_wall_buf, level_tmap_buf, MAX_TEXTURES);
 		fprintf(my_file, "\nTextures used in [%s]\n", Shareware_level_names[i]);
 		say_used_tmaps(my_file, temp_tmap_buf);
 		merge_buffers(perm_tmap_buf, temp_tmap_buf, MAX_TEXTURES);
@@ -937,7 +938,7 @@ void dump_used_textures_all(void)
 	say_unused_walls(my_file, perm_wall_buf);
 
 	for (i = 0; i < NUM_REGISTERED_LEVELS; i++) {
-		determine_used_textures_level(1, 0, i, temp_tmap_buf, temp_wall_buf, level_tmap_buf, MAX_TEXTURES);
+		determine_used_textures_level(true, false, i, temp_tmap_buf, temp_wall_buf, level_tmap_buf, MAX_TEXTURES);
 		fprintf(my_file, "\nTextures used in [%s]\n", Registered_level_names[i]);
 		say_used_tmaps(my_file, temp_tmap_buf);
 		merge_buffers(perm_tmap_buf, temp_tmap_buf, MAX_TEXTURES);

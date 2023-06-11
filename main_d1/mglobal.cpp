@@ -48,32 +48,25 @@ char	Side_opposite[MAX_SIDES_PER_SEGMENT] = { WRIGHT, WBOTTOM, WLEFT, WTOP, WFRO
 
 #define TOLOWER(c) ((((c)>='A') && ((c)<='Z'))?((c)+('a'-'A')):(c))
 
-#ifdef PASSWORD
-#define encrypt(a,b,c,d)	a ^ TOLOWER((((int) PASSWORD)>>24)&255), \
-									b ^ TOLOWER((((int) PASSWORD)>>16)&255), \
-									c ^ TOLOWER((((int) PASSWORD)>>8)&255), \
-									d ^ TOLOWER((((int) PASSWORD))&255)
-#else
-#define encrypt(a,b,c,d) a,b,c,d
-#endif
-
-int8_t Side_to_verts[MAX_SIDES_PER_SEGMENT][4] = {
-			encrypt(7,6,2,3),			// left
-			encrypt(0,4,7,3),			// top
-			encrypt(0,1,5,4),			// right
-			encrypt(2,6,5,1),			// bottom
-			encrypt(4,5,6,7),			// back
-			encrypt(3,2,1,0),			// front
+int8_t Side_to_verts[MAX_SIDES_PER_SEGMENT][4] = 
+{
+			7,6,2,3,			// left
+			0,4,7,3,			// top
+			0,1,5,4,			// right
+			2,6,5,1,			// bottom
+			4,5,6,7,			// back
+			3,2,1,0,			// front
 };
 
 //	Note, this MUST be the same as Side_to_verts, it is an int for speed reasons.
-int Side_to_verts_int[MAX_SIDES_PER_SEGMENT][4] = {
-			encrypt(7,6,2,3),			// left
-			encrypt(0,4,7,3),			// top
-			encrypt(0,1,5,4),			// right
-			encrypt(2,6,5,1),			// bottom
-			encrypt(4,5,6,7),			// back
-			encrypt(3,2,1,0),			// front
+int Side_to_verts_int[MAX_SIDES_PER_SEGMENT][4] = 
+{
+			7,6,2,3,			// left
+			0,4,7,3,			// top
+			0,1,5,4,			// right
+			2,6,5,1,			// bottom
+			4,5,6,7,			// back
+			3,2,1,0,			// front
 };
 
 // Texture map stuff

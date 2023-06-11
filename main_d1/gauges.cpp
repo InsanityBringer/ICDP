@@ -1241,6 +1241,11 @@ grs_canvas* get_hud_canvas()
 	return hud_canvas;
 }
 
+grs_canvas* get_hud_render_canvas()
+{
+	return &hud_draw_canvas;
+}
+
 void draw_energy_bar(int energy)
 {
 	int not_energy;
@@ -2062,9 +2067,6 @@ void hud_show_kill_list()
 //draw all the things on the HUD
 void draw_hud()
 {
-	grs_canvas* save = grd_curcanv;
-	gr_set_current_canvas(&hud_draw_canvas);
-	gr_clear_canvas(255);
 	//	Show score so long as not in rearview
 	if (!Rear_view && Cockpit_mode != CM_REAR_VIEW && Cockpit_mode != CM_STATUS_BAR) 
 	{
@@ -2126,7 +2128,6 @@ void draw_hud()
 		else
 			gr_printf(0x8000, grd_curcanv->cv_h - 10, TXT_REAR_VIEW);
 	}
-	gr_set_current_canvas(save);
 }
 
 //print out some player statistics

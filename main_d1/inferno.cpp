@@ -91,8 +91,6 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 int Function_mode = FMODE_MENU;		//game or editor?
 int Screen_mode = -1;					//game screen or editor screen?
 
-int WVIDEO_running = 0;		//debugger can set to 1 if running
-
 #ifdef EDITOR
 int Inferno_is_800x600_available = 0;
 extern int bm_init_use_tbl();
@@ -101,34 +99,6 @@ extern int bm_init_use_tbl();
 extern fix fixed_frametime;
 
 extern int piggy_low_memory;
-
-void mem_int_to_string(int number, char* dest)
-{
-	int i, l, c;
-	char buffer[20], * p;
-
-	sprintf(buffer, "%d", number);
-
-	l = strlen(buffer);
-	if (l <= 3) {
-		// Don't bother with less than 3 digits
-		sprintf(dest, "%d", number);
-		return;
-	}
-
-	c = 0;
-	p = dest;
-	for (i = l - 1; i >= 0; i--) {
-		if (c == 3) {
-			*p++ = ',';
-			c = 0;
-		}
-		c++;
-		*p++ = buffer[i];
-	}
-	*p++ = '\0';
-	_strrev(dest);
-}
 
 int Inferno_verbose = 0;
 
@@ -189,58 +159,12 @@ int D_DescentMain(int argc, const char** argv)
 
 	if (FindArg("-?") || FindArg("-help") || FindArg("?")) 
 	{
-		printf("%s\n", TXT_COMMAND_LINE_0);
-
-		printf("  -SimulEyes     %s\n",
-			"Enables StereoGraphics SimulEyes VR stereo display");
-
-		printf("  -Iglasses      %s\n", TXT_IGLASSES);
-		printf("  -VioTrack <n>  %s n\n", TXT_VIOTRACK);
-		printf("  -3dmaxLo       %s\n", TXT_KASAN);
-		printf("                 %s\n", TXT_KASAN_2);
-		printf("  -3dmaxHi       %s\n", TXT_3DMAX);
-		printf("%s\n", TXT_COMMAND_LINE_1);
-		printf("%s\n", TXT_COMMAND_LINE_2);
-		printf("%s\n", TXT_COMMAND_LINE_3);
-		printf("%s\n", TXT_COMMAND_LINE_4);
-		printf("%s\n", TXT_COMMAND_LINE_5);
-		printf("%s\n", TXT_COMMAND_LINE_6);
-		printf("%s\n", TXT_COMMAND_LINE_7);
-		printf("%s\n", TXT_COMMAND_LINE_8);
-		printf("%s\n", TXT_COMMAND_LINE_9);
-		printf("%s\n", TXT_COMMAND_LINE_10);
-		printf("%s\n", TXT_COMMAND_LINE_11);
-		printf("%s\n", TXT_COMMAND_LINE_12);
-		printf("%s\n", TXT_COMMAND_LINE_13);
-		printf("%s\n", TXT_COMMAND_LINE_14);
-		printf("%s\n", TXT_COMMAND_LINE_15);
-		printf("%s\n", TXT_COMMAND_LINE_16);
-		printf("%s\n", TXT_COMMAND_LINE_17);
-		printf("%s\n", TXT_COMMAND_LINE_18);
-		printf("  -DynamicSockets %s\n", TXT_SOCKET);
-		printf("  -NoFileCheck    %s\n", TXT_NOFILECHECK);
-		printf("  -GamePort       %s\n", "Use Colorado Spectrum's Notebook Gameport");
-		printf("  -NoDoubleBuffer %s\n", "Use only one page of video memory");
-		printf("  -LCDBios        %s\n", "Enables LCDBIOS for using LCD shutter glasses");
-		printf("  -JoyNice        %s\n", "Joystick poller allows interrupts to occur");
+		printf("this is very out of date new help forthcoming maybe\n");
 		set_exit_message("");
 		return(0);
 	}
 
 	printf("\n%s\n", TXT_HELP);
-
-#ifdef PASSWORD
-	if ((t = FindArg("-pswd")) != 0) {
-		int	n;
-		int8_t* pp = Side_to_verts;
-		int ch;
-		for (n = 0; n < 6; n++)
-			for (ch = 0; ch < strlen(Args[t + 1]); ch++)
-				* pp++ ^= Args[t + 1][ch];
-	}
-	else
-		Error("Invalid processor");		//missing password
-#endif
 
 	if (FindArg("-autodemo"))
 		Auto_demo = 1;
@@ -361,69 +285,14 @@ int D_DescentMain(int argc, const char** argv)
 #endif
 
 	{
-		int screen_width = 320;
-		int screen_height = 200;
-		int screen_compatible = 1;
-
-		if (FindArg("-320x240")) 
-		{
-			if (Inferno_verbose) printf("Using 320x240 ModeX...\n");
-			screen_width = 320;
-			screen_height = 240;
-			screen_compatible = 0;
-		}
-
-		if (FindArg("-320x400")) 
-		{
-			if (Inferno_verbose) printf("Using 320x400 ModeX...\n");
-			screen_width = 320;
-			screen_height = 400;
-			screen_compatible = 0;
-		}
-
-		if (FindArg("-640x400"))
-		{
-			if (Inferno_verbose) printf("Using 640x400 VESA...\n");
-			screen_width = 640;
-			screen_height = 400;
-			screen_compatible = 0;
-		}
-
-		if (FindArg("-640x480")) 
-		{
-			if (Inferno_verbose) printf("Using 640x480 VESA...\n");
-			screen_width = 640;
-			screen_height = 480;
-			screen_compatible = 0;
-		}
-
-		if (FindArg("-1920x1080"))
-		{
-			if (Inferno_verbose) printf("Using 1920x1080...\n");
-			screen_width = 1920;
-			screen_height = 1080;
-			screen_compatible = 0;
-			Game_aspect = ASPECT_16_9;
-		}
-		if (FindArg("-320x100")) 
-		{
-			if (Inferno_verbose) printf("Using 320x100 VGA...\n");
-			screen_width = 320;
-			screen_height = 100;
-			screen_compatible = 0;
-		}
+		int screen_width = cfg_render_width;
+		int screen_height = cfg_render_height;
+		int screen_compatible = 0;
 
 		game_init_render_buffers(0, screen_width, screen_height, screen_compatible);
 	}
 
 #ifdef NETWORK
-	//	i = FindArg( "-rinvul" );
-	//	if (i > 0) {
-	//		int mins = atoi(Args[i+1]);
-	//		if (mins > 314)
-	//			mins = 314;
-	// 	control_invul_time = mins/5;
-	//	}
 	control_invul_time = 0;
 #endif
 
@@ -576,14 +445,12 @@ int D_DescentMain(int argc, const char** argv)
 
 	WriteConfigFile();
 
-#ifndef ROCKWELL_CODE
 #ifndef RELEASE
 	if (!FindArg("-notitles"))
 #endif
 		//NOTE LINK TO ABOVE!!
 #ifndef EDITOR
 		show_order_form();
-#endif
 #endif
 
 #ifndef NDEBUG

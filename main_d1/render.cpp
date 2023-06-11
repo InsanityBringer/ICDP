@@ -1305,7 +1305,7 @@ void render_frame(fix eye_offset)
 		}
 	}
 
-	g3_start_frame();
+	g3_start_frame(Game_render_aspect);
 
 	Viewer_eye = Viewer->pos;
 

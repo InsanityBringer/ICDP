@@ -735,38 +735,43 @@ void do_sound_menu()
 
 void do_video_menu();
 
+static const char* Autoselect_mode_names[] =
+{
+	"Always",
+	"Never",
+	"When not firing"
+};
+
 void gameplay_options_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 {
-	//this is a good idea, but the menu doesn't redraw in this case, so it doesn't work well. 
-	/*if (citem == 1)
+	if (citem == 1)
 	{
-		if (*last_key == KEY_RIGHT)
+		if (*last_key == KEY_LEFT)
 		{
 			Primary_autoselect_mode--; if (Primary_autoselect_mode < 0) Primary_autoselect_mode = AS_NUM_MODES - 1;
 		}
-		else if (*last_key == KEY_LEFT)
+		else if (*last_key == KEY_RIGHT)
 			Primary_autoselect_mode = (Primary_autoselect_mode + 1) % AS_NUM_MODES;
+
+		items[citem + 1].text = (char*)Autoselect_mode_names[Primary_autoselect_mode];
+		items[citem + 1].redraw = true;
 	}
 	else if (citem == 3)
 	{
-		if (*last_key == KEY_RIGHT)
+		if (*last_key == KEY_LEFT)
 		{
 			Secondary_autoselect_mode--; if (Secondary_autoselect_mode < 0) Secondary_autoselect_mode = AS_NUM_MODES - 1;
 		}
-		else if (*last_key == KEY_LEFT)
+		else if (*last_key == KEY_RIGHT)
 			Secondary_autoselect_mode = (Secondary_autoselect_mode + 1) % AS_NUM_MODES;
-	}*/
+
+		items[citem + 1].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode];
+		items[citem + 1].redraw = true;
+	}
 }
 
 void do_gameplay_options_menu()
 {
-	static const char* Autoselect_mode_names[] =
-	{
-		"Always",
-		"Never",
-		"When not firing"
-	};
-
 	newmenu_item m[5];
 	int i = 0;
 
@@ -953,9 +958,8 @@ const char* vsync_text = "VSYNC";
 const char* aspect_text = "ASPECT RATIO";
 
 const char* vsync_status[] = { "OFF", "ON", "ADAPTIVE" };
-const char* aspect_status[] = { "AUTO", "4:3", "5:4", "16:9", "16:10" };
+const char* aspect_status[] = { "AUTO", "4:3", "5:4", "16:10", "16:9", "21:9" };
 
-int temp_aspect_ratio = 1;
 
 void video_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 {
@@ -968,7 +972,14 @@ void video_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 	}
 	else if (citem == 7)
 	{
-		snprintf(items[7].text, 64, "%s: %s", aspect_text, aspect_status[temp_aspect_ratio]);
+		if (*last_key == KEY_LEFT)
+		{
+			cfg_aspect_ratio--; if (cfg_aspect_ratio < 0) cfg_aspect_ratio = GAMEASPECT_COUNT - 1;
+		}
+		else if (*last_key == KEY_RIGHT)
+			cfg_aspect_ratio = (cfg_aspect_ratio + 1) % GAMEASPECT_COUNT;
+
+		snprintf(items[7].text, 64, "%s: %s", aspect_text, aspect_status[cfg_aspect_ratio]);
 		items[7].text[63] = '\0';
 
 		items[7].redraw = true;
@@ -991,12 +1002,12 @@ void do_video_menu()
 	snprintf(window_res_string, 64, "%dx%d", WindowWidth, WindowHeight);
 	window_res_string[63] = '\0';
 
-	snprintf(render_res_string, 64, "%dx%d", VR_render_width, VR_render_height);
+	snprintf(render_res_string, 64, "%dx%d", cfg_render_width, cfg_render_height);
 	render_res_string[63] = '\0';
 
 	snprintf(vsync_buffer, 64, "%s: %s", vsync_text, vsync_status[SwapInterval]);
 	vsync_buffer[63] = '\0';
-	snprintf(aspect_buffer, 64, "%s: %s", aspect_text, aspect_status[temp_aspect_ratio]);
+	snprintf(aspect_buffer, 64, "%s: %s", aspect_text, aspect_status[cfg_aspect_ratio]);
 	aspect_buffer[63] = '\0';
 	m[0].type = NM_TYPE_MENU; m[0].text = (char*)select_window_res_text;
 	m[1].type = NM_TYPE_INPUT; m[1].text = window_res_string; m[1].text_len = 63;
@@ -1020,7 +1031,7 @@ void do_video_menu()
 
 		else if (i == 7)
 		{
-			temp_aspect_ratio = (temp_aspect_ratio + 1) % 5;
+			cfg_aspect_ratio = (cfg_aspect_ratio + 1) % GAMEASPECT_COUNT;
 		}
 
 
@@ -1047,6 +1058,30 @@ void do_video_menu()
 		{
 			WindowWidth = new_width;
 			WindowHeight = new_height;
+		}
+
+		*x_ptr = 'x';
+	}
+
+	x_ptr = strchr(render_res_string, 'x');
+	if (!x_ptr)
+		x_ptr = strchr(render_res_string, 'X');
+	if (!x_ptr)
+		x_ptr = strchr(render_res_string, '*');
+
+	if (!x_ptr)
+		nm_messagebox(NULL, 1, TXT_OK, "Can't read render size");
+	else
+	{
+		*x_ptr = '\0';
+		int new_width = atoi(render_res_string);
+		int new_height = atoi(x_ptr + 1);
+		if (new_width < 320 || new_height < 200)
+			nm_messagebox(NULL, 1, TXT_OK, "Render size is invalid");
+		else
+		{
+			cfg_render_width = new_width;
+			cfg_render_height = new_height;
 		}
 
 		*x_ptr = 'x';

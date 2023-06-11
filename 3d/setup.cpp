@@ -185,21 +185,16 @@ void G3Instance::dispatch_render_threads()
 	}
 }
 
-//TODO: Fixed pixel ratio!
-fix g3_aspect = F1_0;
-
 //start the frame
-void G3Instance::start_frame()
+void G3Instance::start_frame(float desired_aspect)
 {
-	fix s;
-
 	//set int w,h & fixed-point w,h/2
 	Canv_w2 = (Canvas_width = grd_curcanv->cv_bitmap.bm_w) << 15;
 	Canv_h2 = (Canvas_height = grd_curcanv->cv_bitmap.bm_h) << 15;
 
 	//compute aspect ratio for this canvas
-
-	s = fixmuldiv(g3_aspect, Canvas_height, Canvas_width);
+	fix g3_aspect = fl2f(desired_aspect);
+	fix s = fixmuldiv(g3_aspect, Canvas_height, Canvas_width);
 
 	//Buffer clear for debugging purposes. 
 	//memset(grd_curcanv->cv_bitmap.bm_data, 0xC0, grd_curcanv->cv_bitmap.bm_rowsize * grd_curcanv->cv_bitmap.bm_h);
@@ -286,9 +281,9 @@ void G3Instance::end_frame()
 }
 
 //start the frame
-void g3_start_frame(void)
+void g3_start_frame(float desired_aspect)
 {
-	g3_global_inst.start_frame();
+	g3_global_inst.start_frame(desired_aspect);
 }
 
 //this doesn't do anything, but is here for completeness

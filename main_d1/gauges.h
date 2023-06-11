@@ -40,6 +40,7 @@ void gauge_set_hud_proportions(float top, float bottom, bool fullwidth);
 
 grs_canvas* get_cockpit_canvas();
 grs_canvas* get_hud_canvas();
+grs_canvas* get_hud_render_canvas();
 
 //Helper function to get the bitmap for the current cockpit mode and screen resolution. 
 //returns null if no bitmap for this mode, pointer to the bitmap otherwise

@@ -56,6 +56,8 @@ extern int ft_preference;
 #define	NUM_DETAIL_LEVELS	6
 
 extern float Game_aspect;
+//The difference of the viewport's aspect ratio vs the box it is expected to fit. Used to keep rendering square. 
+extern float Game_render_aspect;
 
 extern int Game_mode;
 
@@ -193,6 +195,17 @@ extern grs_canvas* VR_offscreen_buffer;		// The offscreen data buffer
 extern grs_canvas	VR_render_buffer;					//  Two offscreen buffers for left/right eyes.
 extern grs_canvas	VR_render_sub_buffer;			//  Two sub buffers for left/right eyes.
 extern grs_canvas*	VR_screen_buffer;
+
+extern int cfg_render_width, cfg_render_height;
+extern int cfg_aspect_ratio;
+
+constexpr int GAMEASPECT_AUTO = 0;
+constexpr int GAMEASPECT_4_3 = 1;
+constexpr int GAMEASPECT_5_4 = 2;
+constexpr int GAMEASPECT_16_10 = 3;
+constexpr int GAMEASPECT_16_9 = 4;
+constexpr int GAMEASPECT_21_9 = 5;
+constexpr int GAMEASPECT_COUNT = 6;
 
 void game_init_render_buffers(int screen_mode, int render_max_w, int render_max_h, int compatible_menus);
 
