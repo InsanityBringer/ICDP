@@ -959,7 +959,21 @@ int temp_aspect_ratio = 1;
 
 void video_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 {
-	if (citem == 9)
+	if (citem == 3)
+	{
+		snprintf(items[3].text, 64, "%s: %s", vsync_text, vsync_status[SwapInterval]);
+		items[3].text[63] = '\0';
+
+		items[3].redraw = true;
+	}
+	else if (citem == 7)
+	{
+		snprintf(items[7].text, 64, "%s: %s", aspect_text, aspect_status[temp_aspect_ratio]);
+		items[7].text[63] = '\0';
+
+		items[7].redraw = true;
+	}
+	else if (citem == 9)
 	{
 		gr_palette_set_gamma(items[9].value);
 	}
@@ -979,24 +993,24 @@ void do_video_menu()
 
 	snprintf(render_res_string, 64, "%dx%d", VR_render_width, VR_render_height);
 	render_res_string[63] = '\0';
+
+	snprintf(vsync_buffer, 64, "%s: %s", vsync_text, vsync_status[SwapInterval]);
+	vsync_buffer[63] = '\0';
+	snprintf(aspect_buffer, 64, "%s: %s", aspect_text, aspect_status[temp_aspect_ratio]);
+	aspect_buffer[63] = '\0';
+	m[0].type = NM_TYPE_MENU; m[0].text = (char*)select_window_res_text;
+	m[1].type = NM_TYPE_INPUT; m[1].text = window_res_string; m[1].text_len = 63;
+	m[2].type = NM_TYPE_CHECK; m[2].text = (char*)fullscreen_text; m[2].value = Fullscreen;
+	m[3].type = NM_TYPE_MENU; m[3].text = (char*)vsync_buffer;
+	m[4].type = NM_TYPE_TEXT; m[4].text = (char*)"";
+	m[5].type = NM_TYPE_MENU; m[5].text = (char*)select_render_res_text;
+	m[6].type = NM_TYPE_INPUT; m[6].text = render_res_string; m[6].text_len = 63;
+	m[7].type = NM_TYPE_MENU; m[7].text = (char*)aspect_buffer;
+	m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
+	m[9].type = NM_TYPE_SLIDER; m[9].text = TXT_BRIGHTNESS; m[9].value = gr_palette_get_gamma(); m[9].min_value = 0; m[9].max_value = 8;
 	
 	do
 	{
-		snprintf(vsync_buffer, 64, "%s: %s", vsync_text, vsync_status[SwapInterval]);
-		vsync_buffer[63] = '\0';
-		snprintf(aspect_buffer, 64, "%s: %s", aspect_text, aspect_status[temp_aspect_ratio]);
-		aspect_buffer[63] = '\0';
-		m[0].type = NM_TYPE_MENU; m[0].text = (char*)select_window_res_text;
-		m[1].type = NM_TYPE_INPUT; m[1].text = window_res_string; m[1].text_len = 63;
-		m[2].type = NM_TYPE_CHECK; m[2].text = (char*)fullscreen_text; m[2].value = Fullscreen;
-		m[3].type = NM_TYPE_MENU; m[3].text = (char*)vsync_buffer;
-		m[4].type = NM_TYPE_TEXT; m[4].text = (char*)"";
-		m[5].type = NM_TYPE_MENU; m[5].text = (char*)select_render_res_text;
-		m[6].type = NM_TYPE_INPUT; m[6].text = render_res_string; m[6].text_len = 63;
-		m[7].type = NM_TYPE_MENU; m[7].text = (char*)aspect_buffer;
-		m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
-		m[9].type = NM_TYPE_SLIDER; m[9].text = TXT_BRIGHTNESS; m[9].value = gr_palette_get_gamma(); m[9].min_value = 0; m[9].max_value = 8;
-
 		i = newmenu_do1(NULL, "VIDEO OPTIONS", 10, m, video_menuset, i);
 
 		if (i == 3)
