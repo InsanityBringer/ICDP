@@ -26,7 +26,6 @@ SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <io.h>
 #include <filesystem>
 #include <wchar.h>
 
@@ -64,7 +63,9 @@ void add_file(const char* filename, FILE* file)
 	strncpy(filenamebuf, filename, FILENAME_LEN);
 #endif
 
-	int length = _filelength(_fileno(file));
+	fseek(file, 0, SEEK_END);
+	int length = ftell(file);
+	fseek(file, 0, SEEK_SET);
 
 	char* buffer = (char*)malloc(length);
 	if (!buffer)
