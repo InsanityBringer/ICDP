@@ -724,6 +724,8 @@ if (MSVC)
 	add_definitions(-D_CRT_SECURE_NO_WARNINGS=1) # Suppress warning about insecure strxxx functions
 endif()
 
+add_subdirectory(tools)
+
 if (APPLE)
 	set(ChocolateDescentIcon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Descent1.icns")
 	#set(ChocolateDescent2Icon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Descent2.icns")
