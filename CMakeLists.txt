@@ -10,6 +10,27 @@ set(NETWORK OFF CACHE BOOL "Build with UDP networking enabled.")
 set(DESCENT1_TEXMAP_IN_DESCENT2 OFF CACHE BOOL "Swaps Descent 1's texture mapper into Descent 2.")
 set(DESCENT2_TEXMAP_IN_DESCENT1 OFF CACHE BOOL "Swaps Descent 2's texture mapper into Descent 1. ")
 
+function(add_hog_file HOG_NAME HOG_SRC_DIR)
+	string( REPLACE "." "_" HOG_TARGET ${HOG_NAME} )
+	
+	#message(${HOG_SRC_DIR})
+	
+	#Iterate all the files in the hog source dir, for usage in a target.
+	file(GLOB_RECURSE HOG_SOURCES ${HOG_SRC_DIR}/*)
+	
+	#Create the command that actually invokes hogdir to build the hogfile.
+	add_custom_command( OUTPUT ${CMAKE_BINARY_DIR}/${HOG_NAME}
+		COMMAND hogdir ${CMAKE_BINARY_DIR}/${HOG_NAME} ${HOG_SRC_DIR}
+		DEPENDS hogdir )
+		
+	#Create the target that uses this command to build the hogfile.
+	#From GZDoom: Touch the hogdir binary to ensure that this rule always rebuilds
+	add_custom_target( ${HOG_TARGET} ALL
+		COMMAND ${CMAKE_COMMAND} -E touch $<TARGET_FILE:hogdir>
+		DEPENDS ${CMAKE_BINARY_DIR}/${HOG_NAME}
+		SOURCES ${HOG_SOURCES})
+endfunction()
+
 set(SHARED_SOURCES
 	2d/bitblt.cpp
 	2d/bitmap.cpp
@@ -725,6 +746,7 @@ if (MSVC)
 endif()
 
 add_subdirectory(tools)
+add_subdirectory(hogfiles)
 
 if (APPLE)
 	set(ChocolateDescentIcon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Descent1.icns")
