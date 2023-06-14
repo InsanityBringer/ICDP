@@ -182,7 +182,7 @@ void draw_automap()
 
 	gr_clear_canvas(0);
 
-	g3_start_frame();
+	g3_start_frame(ASPECT_4_3);
 	render_start_frame();
 
 	vm_vec_scale_add(&viewer_position, &view_target, &ViewMatrix.fvec, -ViewDist);

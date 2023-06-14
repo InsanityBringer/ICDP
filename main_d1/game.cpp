@@ -362,8 +362,6 @@ void update_cockpits(int force_redraw)
 
 }
 
-grs_canvas* cockpitCanvas = NULL;
-
 //initialize the various canvases on the game screen
 //called every time the screen mode or cockpit changes
 void init_cockpit()
