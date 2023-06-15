@@ -218,6 +218,7 @@ void G3Instance::start_frame(float desired_aspect)
 
 	g3_command_buffer.start_recording();
 	//Use_multithread = false; //debugging
+	drawer.set_clip_bounds(0, 0, Canvas_width, Canvas_height);
 	if (Use_multithread)
 	{
 		dispatch_render_threads();

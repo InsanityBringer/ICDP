@@ -308,3 +308,20 @@ int gr_line(grs_canvas* canvas, int color, fix a1, fix b1, fix a2, fix b2)
 
 	return clipped;
 }
+
+int gr_line_explicit_clip(grs_canvas* canvas, int color, fix a1, fix b1, fix a2, fix b2, int minx, int miny, int maxx, int maxy)
+{
+	int x1, y1, x2, y2;
+	int clipped = 0;
+
+	x1 = i2f(minx);
+	y1 = i2f(miny);
+	x2 = i2f(maxx);
+	y2 = i2f(maxy);
+
+	CLIPLINE(a1, b1, a2, b2, x1, y1, x2, y2, return 2, clipped = 1, FSCALE);
+
+	gr_uline(canvas, color, a1, b1, a2, b2);
+
+	return clipped;
+}

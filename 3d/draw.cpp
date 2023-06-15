@@ -53,6 +53,8 @@ void g3_set_darkening_level(int level)
 	g3_global_inst.set_darkening_level(level);
 }
 
+int gr_line_explicit_clip(grs_canvas* canvas, int color, fix a1, fix b1, fix a2, fix b2, int minx, int miny, int maxx, int maxy);
+
 bool G3Drawer::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or, int color)
 {
 	bool ret;
@@ -66,7 +68,7 @@ bool G3Drawer::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or, in
 
 		//ret = draw_line(p0, p1, color);
 		//don't recursively call the line drawer, this will cause recursive clipping. 
-		ret = (bool)gr_line(canv, color, p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);
+		ret = (bool)gr_line_explicit_clip(canv, color, p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy, window_left, window_top, window_right, window_bottom);
 	}
 
 	//free temp points
@@ -469,13 +471,7 @@ bool G3Drawer::draw_line(g3s_point* p0, g3s_point* p1, int color)
 	g3s_point p0l = *p0; //need to copy points too because of leaky state...
 	g3s_point p1l = *p1;
 
-	code_point(&p0l); code_point(&p1l);
-
-	if (!(p0l.p3_flags & PF_PROJECTED))
-		project_point(&p0l);
-
-	if (!(p1l.p3_flags & PF_PROJECTED))
-		project_point(&p1l);
+	//code_point(&p0l); code_point(&p1l);
 
 	if (p0l.p3_codes & p1l.p3_codes)
 		return 0;
@@ -486,17 +482,23 @@ bool G3Drawer::draw_line(g3s_point* p0, g3s_point* p1, int color)
 		return false; //temporary hack because the clipper doesn't handle clip against near.
 		//return must_clip_line(&p0l, &p1l, codes_or, color);
 
+	if (!(p0l.p3_flags & PF_PROJECTED))
+		project_point(&p0l);
+
 	if (p0l.p3_flags & PF_OVERFLOW)
 		return must_clip_line(&p0l, &p1l , codes_or, color);
+
+	if (!(p1l.p3_flags & PF_PROJECTED))
+		project_point(&p1l);
 
 	if (p1l.p3_flags & PF_OVERFLOW)
 		return must_clip_line(&p0l, &p1l, codes_or, color);
 
-	if (codes_or)
-		return must_clip_line(&p0l, &p1l, codes_or, color);
+	//if (codes_or)
+	//	return must_clip_line(&p0l, &p1l, codes_or, color);
 
 	//return (dbool)(*line_drawer_ptr)(p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);
-	return (bool)gr_line(canv, color, p0l.p3_sx, p0l.p3_sy, p1l.p3_sx, p1l.p3_sy);
+	return (bool)gr_line_explicit_clip(canv, color, p0l.p3_sx, p0l.p3_sy, p1l.p3_sx, p1l.p3_sy, window_left, window_top, window_right, window_bottom);
 }
 
 //draws a line. takes two points.  returns true if drew

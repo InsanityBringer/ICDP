@@ -25,10 +25,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "playsave.h"
 #include "kconfig.h"
 
-//	Note, only Vulcan cannon requires ammo.
-//uint8_t	Default_primary_ammo_level[MAX_PRIMARY_WEAPONS] = {255, 0, 255, 255, 255};
-//uint8_t	Default_secondary_ammo_level[MAX_SECONDARY_WEAPONS] = {3, 0, 0, 0, 0};
-
 //	Convert primary weapons to indices in Weapon_info array.
 uint8_t Primary_weapon_to_weapon_info[MAX_PRIMARY_WEAPONS] = { 0, 11, 12, 13, 14 };
 uint8_t Secondary_weapon_to_weapon_info[MAX_SECONDARY_WEAPONS] = { 8, 15, 16, 17, 18 };
@@ -39,38 +35,6 @@ uint8_t Secondary_ammo_max[MAX_SECONDARY_WEAPONS] = { 20, 10, 10, 5, 5 };
 weapon_info Weapon_info[MAX_WEAPON_TYPES];
 int	N_weapon_types = 0;
 int8_t	Primary_weapon, Secondary_weapon;
-
-//char	*Primary_weapon_names[MAX_PRIMARY_WEAPONS] = {
-//	"Laser Cannon",
-//	"Vulcan Cannon",
-//	"Spreadfire Cannon",
-//	"Plasma Cannon",
-//	"Fusion Cannon"
-//};
-
-//char	*Secondary_weapon_names[MAX_SECONDARY_WEAPONS] = {
-//	"Concussion Missile",
-//	"Homing Missile",
-//	"Proximity Bomb",
-//	"Smart Missile",
-//	"Mega Missile"
-//};
-
-//char	*Primary_weapon_names_short[MAX_PRIMARY_WEAPONS] = {
-//	"Laser",
-//	"Vulcan",
-//	"Spread",
-//	"Plasma",
-//	"Fusion"
-//};
-
-//char	*Secondary_weapon_names_short[MAX_SECONDARY_WEAPONS] = {
-//	"Concsn\nMissile",
-//	"Homing\nMissile",
-//	"Proxim.\nBomb",
-//	"Smart\nMissile",
-//	"Mega\nMissile"
-//};
 
 //	------------------------------------------------------------------------------------
 //	Return:

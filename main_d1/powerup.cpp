@@ -115,34 +115,6 @@ void draw_powerup(object* obj)
 
 }
 
-//void mprintf_powerup_info(void)
-//{
-//	int		i;
-//mprintf((0, "Powerup: %s\n", text));
-//for (i=0; i<5; i++) {
-//	char	has_text[12];
-//
-//	if (Players[Player_num].primary_weapon_flags & (1 << i))
-//		strcpy(has_text,"PRESENT");
-//	else
-//		strcpy(has_text,"NOPE   ");
-//	has_text[8] = 0;
-//
-//	mprintf((0, "Weapon %i = %s, ammo = %6i, name = %s\n", i, has_text, Players[Player_num].primary_ammo[i], Primary_weapon_names[i]));
-//}
-//
-//for (i=0; i<5; i++) {
-//	char	has_text[12];
-//
-//	if (Players[Player_num].secondary_weapon_flags & (1 << i))
-//		strcpy(has_text,"PRESENT");
-//	else
-//		strcpy(has_text,"NOPE   ");
-//
-//	mprintf((0, "Weapon %i = %s, ammo = %6i, name = %s\n", i, has_text, Players[Player_num].secondary_ammo[i], Secondary_weapon_names[i]));
-//}
-//}
-
 void powerup_basic(int redadd, int greenadd, int blueadd, int score, const char* format, ...)
 {
 	char		text[120];
@@ -162,7 +134,6 @@ void powerup_basic(int redadd, int greenadd, int blueadd, int score, const char*
 
 }
 
-//#ifndef RELEASE
 //	Give the megawow powerup!
 void do_megawow_powerup(int quantity)
 {
@@ -196,7 +167,6 @@ void do_megawow_powerup(int quantity)
 	update_laser_weapon_info();
 
 }
-//#endif
 
 int pick_up_energy(void)
 {
