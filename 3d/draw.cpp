@@ -449,7 +449,7 @@ bool G3Drawer::must_clip_line(g3s_point* p0, g3s_point* p1, uint8_t codes_or, in
 	{
 		clip_line(&p0, &p1, codes_or);
 
-		ret = draw_line_hack(p0, p1, color);
+		ret = draw_line_direct(p0, p1, color);
 		//don't recursively call the line drawer, this will cause recursive clipping. 
 		//ret = (bool)gr_line_explicit_clip(canv, color, p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy, window_left, window_top, window_right - 1, window_bottom - 1);
 	}
@@ -471,7 +471,7 @@ bool G3Drawer::draw_line(g3s_point* p0, g3s_point* p1, int color)
 	g3s_point p0l = *p0; //need to copy points too because of leaky state...
 	g3s_point p1l = *p1;
 
-	//code_point(&p0l); code_point(&p1l);
+	code_point(&p0l); code_point(&p1l);
 
 	if (p0l.p3_codes & p1l.p3_codes)
 		return 0;
@@ -479,7 +479,6 @@ bool G3Drawer::draw_line(g3s_point* p0, g3s_point* p1, int color)
 	uint8_t codes_or = p0l.p3_codes | p1l.p3_codes;
 
 	if (codes_or & CC_BEHIND)
-		//return false; //temporary hack because the clipper doesn't handle clip against near.
 		return must_clip_line(&p0l, &p1l, codes_or, color);
 
 	if (!(p0l.p3_flags & PF_PROJECTED))
@@ -494,14 +493,10 @@ bool G3Drawer::draw_line(g3s_point* p0, g3s_point* p1, int color)
 	if (p1l.p3_flags & PF_OVERFLOW)
 		return must_clip_line(&p0l, &p1l, codes_or, color);
 
-	//if (codes_or)
-	//	return must_clip_line(&p0l, &p1l, codes_or, color);
-
-	//return (dbool)(*line_drawer_ptr)(p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);
 	return (bool)gr_line_explicit_clip(canv, color, p0l.p3_sx, p0l.p3_sy, p1l.p3_sx, p1l.p3_sy, window_left, window_top, window_right, window_bottom);
 }
 
-bool G3Drawer::draw_line_hack(g3s_point* p0, g3s_point* p1, int color)
+bool G3Drawer::draw_line_direct(g3s_point* p0, g3s_point* p1, int color)
 {
 	if (p0->p3_codes & p1->p3_codes)
 		return 0;
@@ -524,10 +519,6 @@ bool G3Drawer::draw_line_hack(g3s_point* p0, g3s_point* p1, int color)
 	if (p1->p3_flags & PF_OVERFLOW)
 		return must_clip_line(p0, p1, codes_or, color);
 
-	//if (codes_or)
-	//	return must_clip_line(&p0l, &p1l, codes_or, color);
-
-	//return (dbool)(*line_drawer_ptr)(p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy);
 	return (bool)gr_line_explicit_clip(canv, color, p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy, window_left, window_top, window_right, window_bottom);
 }
 

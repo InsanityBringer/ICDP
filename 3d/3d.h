@@ -168,7 +168,8 @@ public:
 	void draw_sphere(g3s_point* pnt, fix rad);
 
 	bool draw_line(g3s_point* p0, g3s_point* p1, int color);
-	bool draw_line_hack(g3s_point* p0, g3s_point* p1, int color);
+	//Draws a line with exactly the points specified. They are not copied or recoded. 
+	bool draw_line_direct(g3s_point* p0, g3s_point* p1, int color);
 
 	void draw_bitmap(g3s_point* pnt, fix w, fix h, grs_bitmap* bm, int orientation);
 
