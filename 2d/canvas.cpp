@@ -18,6 +18,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #endif
 
 #include <stdio.h>
+#include <string.h>
 #include "mem/mem.h"
 #include "misc/error.h"
 #include "2d/gr.h"
@@ -38,6 +39,10 @@ grs_canvas* gr_create_canvas(int w, int h)
 
 	newvar = (grs_canvas*)malloc(sizeof(grs_canvas));
 	data = (unsigned char*)malloc(w * h * sizeof(unsigned char));
+
+	//This is needed at the moment, since all drawing happens on malloced canvases. 
+	//Use the same color as the MSVC debug runtime's fill
+	memset(data, 0xCD, w * h * sizeof(unsigned char));
 
 	newvar->cv_bitmap.bm_x = 0;
 	newvar->cv_bitmap.bm_y = 0;

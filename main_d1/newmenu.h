@@ -14,6 +14,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #pragma once
 
 #include "misc/types.h"
+#include "2d/gr.h"
 
 #define NM_TYPE_MENU  	0		// A menu item... when enter is hit on this, newmenu_do returns this item number
 #define NM_TYPE_INPUT 	1		// An input box... fills the text field in, and you need to fill in text_len field.
@@ -129,3 +130,6 @@ extern int newmenu_listbox(const char* title, int nitems, char* items[], int all
 extern int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abort_flag, int default_item, int (*listbox_callback)(int* citem, int* nitems, char* items[], int* keypress));
 
 extern int newmenu_filelist(const char* title, const char* filespace, char* filename);
+
+//Gets the currently visible canvas for the menu system, or nullptr if no menu is active. 
+extern grs_canvas* nm_get_top_canvas();

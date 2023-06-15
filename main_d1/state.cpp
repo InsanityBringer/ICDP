@@ -105,7 +105,7 @@ void state_callback(int nitems, newmenu_item* items, int* last_key, int citem)
 	{
 		if (sc_bmp[citem - 1]) 
 		{
-			gr_set_current_canvas(VR_screen_buffer);
+			gr_set_current_canvas(nm_get_top_canvas());
 			gr_bitmap((grd_curcanv->cv_bitmap.bm_w - THUMBNAIL_W) / 2, items[0].y - 5, sc_bmp[citem - 1]);
 		}
 	}

@@ -20,6 +20,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <string_view>
 #include <vector>
 #include <span>
+#include <stack>
 
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
@@ -81,6 +82,16 @@ grs_bitmap nm_background;
 #define MAX_TEXT_WIDTH 	200				// How many pixels wide a input box can be
 
 extern void gr_bm_bitblt(int w, int h, int dx, int dy, int sx, int sy, grs_bitmap * src, grs_bitmap * dest);
+
+std::stack<grs_canvas*> menu_canvas_stack;
+
+grs_canvas* nm_get_top_canvas()
+{
+	if (menu_canvas_stack.empty())
+		return nullptr;
+
+	return menu_canvas_stack.top();
+}
 
 void newmenu_close(void) 
 {
@@ -479,6 +490,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 		return -1;
 
 	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
+	menu_canvas_stack.push(menu_canvas);
 
 	set_screen_mode(SCREEN_MENU);
 	plat_set_mouse_relative_mode(0);
@@ -1107,6 +1119,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 	if (time_stopped)
 		start_time();
 
+	menu_canvas_stack.pop();
 	gr_free_canvas(menu_canvas);
 
 	//NO_SOUND_PAUSE	if ( sound_stopped )
@@ -1310,6 +1323,7 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	keyd_repeat = 1;
 
 	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
+	menu_canvas_stack.push(menu_canvas);
 
 #if !defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	if (!_strfcmp(filespec, "*.nplt"))
@@ -1633,6 +1647,7 @@ ExitFileMenu:
 		gr_bm_bitblt(320, 200, 0, 0, 0, 0, &(VR_offscreen_buffer->cv_bitmap), &(grd_curcanv->cv_bitmap));
 	}
 
+	menu_canvas_stack.pop();
 	gr_free_canvas(menu_canvas);
 
 	return exit_value;
@@ -1676,6 +1691,7 @@ int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abo
 	keyd_repeat = 1;
 
 	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
+	menu_canvas_stack.push(menu_canvas);
 
 	set_screen_mode(SCREEN_MENU);
 	gr_set_current_canvas(menu_canvas);
@@ -1882,6 +1898,7 @@ int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abo
 
 	gr_bm_bitblt(320, 200, 0, 0, 0, 0, &(VR_offscreen_buffer->cv_bitmap), &(grd_curcanv->cv_bitmap));
 
+	menu_canvas_stack.pop();
 	gr_free_canvas(menu_canvas);
 
 	return citem;

@@ -90,3 +90,7 @@ void ai_path_set_orient_and_vel(object* objp, vms_vector* goal_point);
 
 //[ISB] net stuff
 extern void ai_multi_send_robot_position(int objnum, int force);
+
+//[ISB] cheat stuff
+extern bool ai_notarget;
+extern bool ai_noawareness;

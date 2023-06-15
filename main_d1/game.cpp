@@ -2980,6 +2980,11 @@ void ReadControls()
 			break;
 #endif
 
+		case KEY_DEBUGGED + KEY_N:
+			ai_noawareness = !ai_noawareness;
+			ai_notarget = !ai_notarget;
+			break;
+
 #endif		//#ifndef RELEASE
 
 		default:        break;
@@ -3002,8 +3007,6 @@ extern	int	Do_appearance_effect;
 
 void GameLoop(int RenderFlag, int ReadControlsFlag)
 {
-	static int desc_dead_countdown = 100;   /*  used if player shouldn't be playing */
-
 	//[ISB] Put the game in relative mouse mode, except if ReadControls isn't set
 	//as this prevents releasing mouse capture in the menus in multiplayer.
 	plat_set_mouse_relative_mode(ReadControlsFlag);
