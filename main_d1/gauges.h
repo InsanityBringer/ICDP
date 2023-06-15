@@ -49,7 +49,10 @@ grs_bitmap* get_cockpit_bitmap(int cockpit_mode);
 
 // Call to flash a message on the HUD
 extern void HUD_render_message_frame();
+//HUD_init_message will assume a message level of MSG_DEFAULT_LEVEL, which should always be MSG_NOREDUNDANT
 extern void HUD_init_message(const char* format, ...);
+//min_level is the lowest message level a player can have to see this message.
+extern void HUD_init_message_leveled(int min_level, const char* format, ...);
 extern void HUD_clear_messages();
 
 #define gauge_message HUD_init_message

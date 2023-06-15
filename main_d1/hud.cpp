@@ -31,6 +31,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "arcade.h"
 #include "screens.h"
 #include "stringtable.h"
+#include "playsave.h"
 
 int hud_first = 0;
 int hud_last = 0;
@@ -159,12 +160,14 @@ void HUD_render_message_frame()
 	gr_set_curfont(GAME_FONT);
 }
 
-void HUD_init_message(const char* format, ...)
+void vHUD_init_message(int min_level, const char* format, va_list args)
 {
-	va_list args;
 	int temp;
 	char* message = NULL;
 	char* last_message = NULL;
+
+	if (min_level < Player_message_level)
+		return;
 
 	if ((hud_last < 0) || (hud_last >= HUD_MAX_NUM))
 	{
@@ -172,13 +175,14 @@ void HUD_init_message(const char* format, ...)
 		return; //[ISB] int3 could fall thorugh
 	}
 
-	va_start(args, format);
+	//va_start(args, format);
 	message = &HUD_messages[hud_last][0];
-	vsprintf(message, format, args);
-	va_end(args);
+	vsnprintf(message, 155, format, args);
+	message[154] = '\0';
+	//va_end(args);
 	//		mprintf((0, "Hud_message: [%s]\n", message));
 
-	if (HUD_nmessages > 0) 
+	if (HUD_nmessages > 0)
 	{
 		if (hud_last == 0)
 			last_message = &HUD_messages[HUD_MAX_NUM - 1][0];
@@ -208,6 +212,22 @@ void HUD_init_message(const char* format, ...)
 		newdemo_record_hud_message(message);
 	HUD_message_timer = F1_0 * 3;		// 1 second per 5 characters
 	HUD_nmessages++;
+}
+
+void HUD_init_message(const char* format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	vHUD_init_message(MSG_NOREDUNDANT, format, args);
+	va_end(args);
+}
+
+void HUD_init_message_leveled(int min_level, const char* format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	vHUD_init_message(min_level, format, args);
+	va_end(args);
 }
 
 

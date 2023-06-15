@@ -1187,7 +1187,7 @@ multi_do_message(uint8_t* buf)
 	if (((colon = strrchr((char*)buf + loc, ':')) == NULL) || (colon - (char*)(buf + loc) < 1) || (colon - (char*)(buf + loc) > CALLSIGN_LEN))
 	{
 		digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
-		HUD_init_message("%s %s '%s'", Players[buf[1]].callsign, TXT_SAYS, buf + loc);
+		HUD_init_message_leveled(MSG_ONLYPLAYER, "%s %s '%s'", Players[buf[1]].callsign, TXT_SAYS, buf + loc);
 	}
 	else
 	{
@@ -1195,7 +1195,7 @@ multi_do_message(uint8_t* buf)
 			((Game_mode & GM_TEAM) && ((get_team(Player_num) == atoi((char*)buf + loc) - 1) || !_strnicmp(Netgame.team_name[get_team(Player_num)], (char*)buf + loc, colon - (char*)(buf + loc)))))
 		{
 			digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
-			HUD_init_message("%s %s '%s'", Players[buf[1]].callsign, TXT_TELLS_YOU, (colon + 1));
+			HUD_init_message_leveled(MSG_ONLYPLAYER, "%s %s '%s'", Players[buf[1]].callsign, TXT_TELLS_YOU, (colon + 1));
 		}
 	}
 }

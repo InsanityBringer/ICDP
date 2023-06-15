@@ -24,6 +24,14 @@ constexpr int AS_NOT_FIRING = 2;
 constexpr int AS_NUM_MODES = 3;
 extern int Primary_autoselect_mode, Secondary_autoselect_mode;
 
+constexpr int MSG_ALL = 0;
+constexpr int MSG_NOREDUNDANT = 1;
+constexpr int MSG_ONLYPLAYER = 2;
+constexpr int MSG_NUM_MODES = 3;
+
+constexpr int MSG_DEFAULT_LEVEL = MSG_NOREDUNDANT;
+extern int Player_message_level;
+
 //fills in a list of pointers to strings describing saved games
 //returns the number of non-empty slots
 //returns -1 if this is a new player

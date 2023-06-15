@@ -107,42 +107,7 @@ saved_game saved_games[N_SAVE_SLOTS];
 int Default_leveling_on = 1;
 int Primary_autoselect_mode, Secondary_autoselect_mode;
 
-int D_LoadInfoHeader(FILE* fp, save_info* info)
-{
-	info->id = file_read_int(fp);
-	info->saved_game_version = file_read_short(fp);
-	info->player_struct_version = file_read_short(fp);
-	info->n_highest_levels = file_read_int(fp);
-	info->default_difficulty_level = file_read_int(fp);
-	info->default_leveling_on = file_read_int(fp);
-
-	return 1;
-}
-
-int D_WriteInfoHeader(FILE* fp, save_info* info)
-{
-	file_write_int(fp, info->id);
-	file_write_short(fp, info->saved_game_version);
-	file_write_short(fp, info->player_struct_version);
-	file_write_int(fp, info->n_highest_levels);
-	file_write_int(fp, info->default_difficulty_level);
-	file_write_int(fp, info->default_leveling_on);
-	return 1;
-}
-
-int D_LoadHighestLevel(FILE* fp, hli* info)
-{
-	fread(&info->shortname[0], sizeof(char), 9, fp);
-	info->level_num = file_read_int(fp);
-	return 1;
-}
-
-int D_WriteHighestLevel(FILE* fp, hli* info)
-{
-	fwrite(&info->shortname[0], sizeof(char), 9, fp);
-	file_write_int(fp, info->level_num);
-	return 1;
-}
+int Player_message_level = MSG_ALL;
 
 pilot_gameinfo generate_gameinfo_for_current_game()
 {
@@ -373,6 +338,12 @@ int read_player_file()
 		Default_leveling_on = nbt_get_integral(roottag_p->find_tag("Auto_leveling"), 1);
 		Primary_autoselect_mode = nbt_get_integral(roottag_p->find_tag("Primary_autoselect_mode"), AS_ALWAYS);
 		Secondary_autoselect_mode = nbt_get_integral(roottag_p->find_tag("Secondary_autoselect_mode"), AS_ALWAYS);
+		Player_message_level = nbt_get_integral(roottag_p->find_tag("Player_message_level"), MSG_NUM_MODES);
+
+		//validation
+		Primary_autoselect_mode = std::min(std::max(0, Primary_autoselect_mode), AS_NUM_MODES - 1);
+		Secondary_autoselect_mode = std::min(std::max(0, Secondary_autoselect_mode), AS_NUM_MODES - 1);
+		Player_message_level = std::min(std::max(0, Player_message_level), MSG_NUM_MODES - 1);
 
 		find_gameinfo_for_current_game();
 	}
@@ -456,6 +427,7 @@ int write_player_file()
 	rootTag.list.push_back(std::make_unique<ByteTag>("Auto_leveling", Auto_leveling_on));
 	rootTag.list.push_back(std::make_unique<ByteTag>("Primary_autoselect_mode", Primary_autoselect_mode));
 	rootTag.list.push_back(std::make_unique<ByteTag>("Secondary_autoselect_mode", Secondary_autoselect_mode));
+	rootTag.list.push_back(std::make_unique<ByteTag>("Player_message_level", Player_message_level));
 
 	//Structure is generated, so now serialize it.
 	int errno_ret = WriteConfigFile();

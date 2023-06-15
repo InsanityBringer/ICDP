@@ -31,6 +31,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "scores.h"
 #include "multi.h"
 #include "newdemo.h"
+#include "playsave.h"
 
 #ifdef EDITOR
 #include "2d/gr.h"	//	for powerup outline drawing
@@ -209,7 +210,7 @@ int pick_up_energy(void)
 		used = 1;
 	}
 	else
-		HUD_init_message(TXT_MAXED_OUT, TXT_ENERGY);
+		HUD_init_message_leveled(MSG_ALL, TXT_MAXED_OUT, TXT_ENERGY);
 
 	return used;
 }
@@ -226,7 +227,7 @@ int pick_up_vulcan_ammo(void)
 	}
 	else 
 	{
-		HUD_init_message("%s %d %s!", TXT_ALREADY_HAVE, f2i(VULCAN_AMMO_SCALE * Primary_ammo_max[VULCAN_INDEX]), TXT_VULCAN_ROUNDS);
+		HUD_init_message_leveled(MSG_ALL, "%s %d %s!", TXT_ALREADY_HAVE, f2i(VULCAN_AMMO_SCALE * Primary_ammo_max[VULCAN_INDEX]), TXT_VULCAN_ROUNDS);
 		used = 0;
 	}
 	Primary_weapon = pwsave;
@@ -263,13 +264,13 @@ int do_powerup(object* obj)
 			used = 1;
 		}
 		else
-			HUD_init_message(TXT_MAXED_OUT, TXT_SHIELD);
+			HUD_init_message_leveled(MSG_ALL, TXT_MAXED_OUT, TXT_SHIELD);
 		break;
 	case POW_LASER:
 		if (Players[Player_num].laser_level >= MAX_LASER_LEVEL) 
 		{
 			Players[Player_num].laser_level = MAX_LASER_LEVEL;
-			HUD_init_message(TXT_MAXED_OUT, TXT_LASER);
+			HUD_init_message_leveled(MSG_ALL, TXT_MAXED_OUT, TXT_LASER);
 		}
 		else 
 		{
@@ -397,7 +398,7 @@ int do_powerup(object* obj)
 	case	POW_CLOAK:
 		if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) 
 		{
-			HUD_init_message("%s %s!", TXT_ALREADY_ARE, TXT_CLOAKED);
+			HUD_init_message_leveled(MSG_ALL, "%s %s!", TXT_ALREADY_ARE, TXT_CLOAKED);
 			break;
 		}
 		else 
@@ -416,7 +417,7 @@ int do_powerup(object* obj)
 	case	POW_INVULNERABILITY:
 		if (Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE) 
 		{
-			HUD_init_message("%s %s!", TXT_ALREADY_ARE, TXT_INVULNERABLE);
+			HUD_init_message_leveled(MSG_ALL, "%s %s!", TXT_ALREADY_ARE, TXT_INVULNERABLE);
 			break;
 		}
 		else 

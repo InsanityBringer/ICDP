@@ -742,8 +742,16 @@ static const char* Autoselect_mode_names[] =
 	"When not firing"
 };
 
+static const char* Message_level_names[] =
+{
+	"All",
+	"No redundant messages",
+	"Only player chat"
+};
+
 void gameplay_options_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 {
+	//I need some way to generalize this. 
 	if (citem == 1)
 	{
 		if (*last_key == KEY_LEFT)
@@ -768,11 +776,23 @@ void gameplay_options_menuset(int nitems, newmenu_item* items, int* last_key, in
 		items[citem + 1].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode];
 		items[citem + 1].redraw = true;
 	}
+	else if (citem == 5)
+	{
+		if (*last_key == KEY_LEFT)
+		{
+			Player_message_level--; if (Player_message_level < 0) Player_message_level = MSG_NUM_MODES - 1;
+		}
+		else if (*last_key == KEY_RIGHT)
+			Player_message_level = (Player_message_level + 1) % MSG_NUM_MODES;
+
+		items[citem + 1].text = (char*)Message_level_names[Player_message_level];
+		items[citem + 1].redraw = true;
+	}
 }
 
 void do_gameplay_options_menu()
 {
-	newmenu_item m[5];
+	newmenu_item m[7];
 	int i = 0;
 
 	do
@@ -782,8 +802,10 @@ void do_gameplay_options_menu()
 		m[2].type = NM_TYPE_TEXT; m[2].text = (char*)Autoselect_mode_names[Primary_autoselect_mode];
 		m[3].type = NM_TYPE_MENU; m[3].text = (char*)"Secondary autoselect on pickup:";
 		m[4].type = NM_TYPE_TEXT; m[4].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode];
+		m[5].type = NM_TYPE_MENU; m[5].text = (char*)"Message level:";
+		m[6].type = NM_TYPE_TEXT; m[6].text = (char*)Message_level_names[Player_message_level];
 
-		i = newmenu_do1(nullptr, "GAME OPTIONS", 5, m, gameplay_options_menuset, i);
+		i = newmenu_do1(nullptr, "GAME OPTIONS", 7, m, gameplay_options_menuset, i);
 
 		switch (i)
 		{
@@ -792,6 +814,9 @@ void do_gameplay_options_menu()
 			break;
 		case 3:
 			Secondary_autoselect_mode = (Secondary_autoselect_mode + 1) % AS_NUM_MODES;
+			break;
+		case 5:
+			Player_message_level = (Player_message_level + 1) % MSG_NUM_MODES;
 			break;
 		}
 
