@@ -12,6 +12,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 */
 
 #include <stdlib.h>
+#include <algorithm>
 #include "mem/mem.h"
 #include "2d/gr.h"
 #include "2d/grdef.h"
@@ -62,6 +63,21 @@ int gr_vline(grs_canvas* canvas, int color, int y1, int y2, int x)
 	for (i = y1; i <= y2; i++)
 		canvas->cv_bitmap.bm_data[i * canvas->cv_bitmap.bm_rowsize + x] = color;
 	return 0;
+}
+
+void gr_universal_uline_debug(grs_canvas* canvas, int color, int a1, int b1, int a2, int b2)
+{
+	float x = a1; float y = b1;
+
+	int deltaX = a2 - a1; int deltaY = b2 - b1;
+	int count = std::max(abs(deltaX), abs(deltaY));
+	float xStep = (float)deltaX / count; float yStep = (float)deltaY / count;
+
+	for (int i = 0; i < count; i++)
+	{
+		plot(canvas, color, floor(x), floor(y), false);
+		x += xStep; y += yStep;
+	}
 }
 
 void gr_universal_uline(grs_canvas* canvas, int color, int a1, int b1, int a2, int b2)

@@ -159,6 +159,18 @@ void G3Drawer::clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 	int plane_flag;
 	g3s_point* old_p1;
 
+	fix save_right = clip_ratios[0];
+	fix save_top = clip_ratios[1];
+	fix save_left = clip_ratios[2];
+	fix save_bot = clip_ratios[3];
+
+	//I can't figure out why the line drawer is overflowing when using the custom clip planes, so this will be done for now..
+	//Instead I'll let the 2D line clipping handle this. 
+	set_clip_ratios(-F1_0, F1_0, F1_0, -F1_0);
+
+	g3_code_point(*p0); g3_code_point(*p1);
+	codes_or = (*p0)->p3_codes | (*p1)->p3_codes;
+
 	//might have these left over
 	(*p0)->p3_flags &= ~(PF_UVS | PF_LS);
 	(*p1)->p3_flags &= ~(PF_UVS | PF_LS);
@@ -178,8 +190,13 @@ void G3Drawer::clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 
 			if (old_p1->p3_flags & PF_TEMP_POINT)
 				free_temp_point(old_p1);
+
+			//[ISB] mac descent bug: codes should be recalculated here, but they weren't
+			codes_or = (*p0)->p3_codes | (*p1)->p3_codes;
 		}
 	}
+
+	set_clip_ratios(save_left,save_top,save_right,save_bot);
 }
 
 int G3Drawer::clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)

@@ -168,6 +168,7 @@ public:
 	void draw_sphere(g3s_point* pnt, fix rad);
 
 	bool draw_line(g3s_point* p0, g3s_point* p1, int color);
+	bool draw_line_hack(g3s_point* p0, g3s_point* p1, int color);
 
 	void draw_bitmap(g3s_point* pnt, fix w, fix h, grs_bitmap* bm, int orientation);
 
