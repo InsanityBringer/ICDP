@@ -15,6 +15,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <vector>
 
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
@@ -27,7 +28,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/mono.h"
 #include "misc/error.h"
 
-mle Mission_list[MAX_MISSIONS];
+std::vector<mle> Mission_list;
 
 int Current_mission_num;
 char* Current_mission_filename, * Current_mission_longname;
@@ -149,8 +150,8 @@ void get_string_before_whitespace(const char* msn_line, char* trimmed_line)
 	}
 }
 
-//returns 1 if file read ok, else 0
-int read_mission_file(char* filename, int count, int location)
+//returns true if file read ok, else false
+bool read_mission_file(char* filename, int location, bool anarchy_mode)
 {
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename2[CHOCOLATE_MAX_FILE_PATH_SIZE];
@@ -168,14 +169,16 @@ int read_mission_file(char* filename, int count, int location)
 	{
 		char* p;
 		char temp[FILENAME_LEN], * t;
+		char mission_name[MISSION_NAME_LEN + 1];
+		bool anarchy_only_flag = false;
 
 		strcpy(temp, filename);
 		if ((t = strchr(temp, '.')) == NULL)
-			return 0;	//missing extension
+			return false;	//missing extension
 		*t = 0;			//kill extension
 
-		strncpy(Mission_list[count].filename, temp, MISSION_FILENAME_LEN);
-		Mission_list[count].anarchy_only_flag = 0;
+		//strncpy(Mission_list[count].filename, temp, MISSION_FILENAME_LEN);
+		//Mission_list[count].anarchy_only_flag = 0;
 		//Mission_list[count].location = location;
 
 		//[ISB] uh, doesn't this desync cfile? Seems benign though...
@@ -188,37 +191,41 @@ int read_mission_file(char* filename, int count, int location)
 				* t = 0;
 			t = p + strlen(p) - 1;
 			while (isspace(*t)) t--;
-			strncpy(Mission_list[count].mission_name, p, MISSION_NAME_LEN);
+			strncpy(mission_name, p, MISSION_NAME_LEN);
 		}
 		else 
 		{
 			cfclose(mfile);
-			return 0;
+			return false;
 		}
 
 		p = get_parm_value("type", mfile->file);
 
 		//get mission type 
 		if (p)
-			Mission_list[count].anarchy_only_flag = istok(p, "anarchy");
+			anarchy_only_flag = istok(p, "anarchy");
+
+		//Only append to the list if mission exists
+		if (anarchy_mode || !anarchy_only_flag)
+			Mission_list.emplace_back(temp, mission_name, anarchy_only_flag);
 
 		cfclose(mfile);
 
-		return 1;
+		return true;
 	}
 
-	return 0;
+	return false;
 }
 
 
 //fills in the global list of missions.  Returns the number of missions
 //in the list.  If anarchy_mode set, don't include non-anarchy levels.
 //if there is only one mission, this function will call load_mission on it.
-int build_mission_list(int anarchy_mode)
+int build_mission_list(bool anarchy_mode)
 {
 	//[ISB] ported from Descent 2, doesn't use system specific calls directly aaaa
 	static int num_missions = -1;
-	int count = 0, special_count = 0;
+	int special_count = 0;
 	FILEFINDSTRUCT find;
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char search_name[CHOCOLATE_MAX_FILE_PATH_SIZE];
@@ -228,44 +235,40 @@ int build_mission_list(int anarchy_mode)
 	char search_name[100] = "*.MSN";
 #endif
 
-	//now search for levels on disk
+	Mission_list.clear();
 
+	//now search for levels on disk
 #ifndef DEST_SAT
-	strcpy(Mission_list[0].filename, "");		//no filename for builtin
-	strcpy(Mission_list[0].mission_name, "Descent: First Strike");
-	count = 1;
+	Mission_list.emplace_back("", "Descent: First Strike");
 #endif
 
-	special_count = count = 1;
+	special_count = 1;
 
 	if (!FileFindFirst(search_name, &find)) 
 	{
 		do 
 		{
+
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 			get_full_file_path(file_path_name, find.name, CHOCOLATE_MISSIONS_DIR);
-			if (read_mission_file(file_path_name, count, 0))
+			read_mission_file(file_path_name, 0, anarchy_mode);
 #else
-			if (read_mission_file(find.name, count, 0))
+			read_mission_file(find.name, 0, anarchy_mode);
 #endif
-			{
-				if (anarchy_mode || !Mission_list[count].anarchy_only_flag)
-					count++;
-			}
 
-		} while (!FileFindNext(&find) && count < MAX_MISSIONS);
+		} while (!FileFindNext(&find));
 		FileFindClose();
 	}
 
-	if (count > special_count)
-		qsort(&Mission_list[special_count], count - special_count, sizeof(*Mission_list),
+	if (Mission_list.size() > special_count)
+		qsort(&Mission_list.data()[special_count], Mission_list.size() - special_count, sizeof(Mission_list[0]), //do I actually need the data() there? Should write a better sort function using C++ means..
 		(int (*)(const void*, const void*))ml_sort_func);
 
 	//fill in built-in level
 
 	load_mission(0);			//set built-in mission as default
-	num_missions = count;
-	return count;
+	num_missions = Mission_list.size();
+	return num_missions;
 }
 
 //values for built-in mission
@@ -509,7 +512,7 @@ int load_mission_by_name(char* mission_name)
 	get_full_file_path(mission_name_full_path, mission_name, CHOCOLATE_MISSIONS_DIR);
 #endif
 
-	n = build_mission_list(1);
+	n = build_mission_list(true);
 
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	if (strlen(mission_name) == 0)

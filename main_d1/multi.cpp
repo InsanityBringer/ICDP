@@ -338,8 +338,7 @@ map_objnum_local_to_local(int local_objnum)
 //          on the curretn Game_mode value.
 //
 
-void
-multi_endlevel_score(void)
+void multi_endlevel_score(void)
 {
 	int old_connect;
 	int i;
@@ -389,8 +388,7 @@ multi_endlevel_score(void)
 #endif
 }
 
-int
-get_team(int pnum)
+int get_team(int pnum)
 {
 	if (Netgame.team_vector & (1 << pnum))
 		return 1;
@@ -398,35 +396,40 @@ get_team(int pnum)
 		return 0;
 }
 
-int
-multi_choose_mission(int* anarchy_only)
+int multi_choose_mission(int* anarchy_only)
 {
-	int i, n_missions;
+	int i;
 	int default_mission;
-	char* m[MAX_MISSIONS];
 	int new_mission_num = 0;
 
 	*anarchy_only = 0;
 
-	n_missions = build_mission_list(1);
+	int n_missions = build_mission_list(true);
 
-	if (n_missions > 1) {
+	char** m = (char**)malloc(sizeof(*m) * n_missions);
+	if (!m)
+		Error("multi_choose_mission: failed to allocate string list");
 
+	if (n_missions > 1) 
+	{
 		default_mission = 0;
-		for (i = 0; i < n_missions; i++) {
+		for (i = 0; i < n_missions; i++) 
+		{
 			m[i] = Mission_list[i].mission_name;
 			if (!_stricmp(m[i], config_last_mission))
 				default_mission = i;
 		}
 
 		new_mission_num = newmenu_listbox1(TXT_MULTI_MISSION, n_missions, m, 1, default_mission, NULL);
+		free(m);
 
 		if (new_mission_num == -1)
 			return -1; 	//abort!
 
-		strcpy(config_last_mission, m[new_mission_num]);
+		strcpy(config_last_mission, Mission_list[new_mission_num].mission_name);
 
-		if (!load_mission(new_mission_num)) {
+		if (!load_mission(new_mission_num)) 
+		{
 			nm_messagebox(NULL, 1, TXT_OK, TXT_MISSION_ERROR);
 			return -1;
 		}
@@ -438,8 +441,7 @@ multi_choose_mission(int* anarchy_only)
 
 extern void game_disable_cheats();
 
-void
-multi_new_game(void)
+void multi_new_game(void)
 {
 	int i;
 

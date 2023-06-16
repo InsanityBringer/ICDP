@@ -387,7 +387,7 @@ int D_DescentMain(int argc, const char** argv)
 			Function_mode = FMODE_GAME;
 	}
 
-	build_mission_list(0);		// This also loads mission 0.
+	build_mission_list(false);		// This also loads mission 0.
 
 	while (Function_mode != FMODE_EXIT)
 	{

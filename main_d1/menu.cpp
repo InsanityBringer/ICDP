@@ -590,30 +590,31 @@ void do_detail_level_menu_custom(void)
 
 void do_new_game_menu()
 {
-	int n_missions, new_level_num, player_highest_level;
-
 #ifndef SHAREWARE
-	n_missions = build_mission_list(0);
+	int n_missions = build_mission_list(false);
 
 	if (n_missions > 1)
 	{
-		int new_mission_num, i, default_mission;
-		char* m[MAX_MISSIONS];
+		char** m = (char**)malloc(sizeof(*m) * Mission_list.size());
+		if (!m)
+			Error("do_new_game_menu: failed to allocate string list");
 
-		default_mission = 0;
-		for (i = 0; i < n_missions; i++) 
+		int default_mission = 0;
+		for (int i = 0; i < n_missions; i++) 
 		{
 			m[i] = Mission_list[i].mission_name;
 			if (!_strfcmp(m[i], config_last_mission))
 				default_mission = i;
 		}
 
-		new_mission_num = newmenu_listbox1("New Game\n\nSelect mission", n_missions, m, 1, default_mission, NULL);
+		int new_mission_num = newmenu_listbox1("New Game\n\nSelect mission", n_missions, m, 1, default_mission, NULL);
+
+		free(m);
 
 		if (new_mission_num == -1)
 			return;		//abort!
 
-		strcpy(config_last_mission, m[new_mission_num]);
+		strcpy(config_last_mission, Mission_list[new_mission_num].mission_name);
 
 		if (!load_mission(new_mission_num)) 
 		{
@@ -623,9 +624,9 @@ void do_new_game_menu()
 	}
 #endif
 
-	new_level_num = 1;
+	int new_level_num = 1;
 
-	player_highest_level = get_highest_level();
+	int player_highest_level = get_highest_level();
 
 	if (player_highest_level > Last_level)
 		player_highest_level = Last_level;

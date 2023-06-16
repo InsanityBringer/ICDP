@@ -13,10 +13,10 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
+#include <vector>
 #include "misc/types.h"
 #include "platform/platform_filesys.h"
 
-#define MAX_MISSIONS 						100
 #define MAX_LEVELS_PER_MISSION			30
 #define MAX_SECRET_LEVELS_PER_MISSION	5
 #define MISSION_NAME_LEN 					21
@@ -26,13 +26,31 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define MISSION_FILENAME_LEN			9
 #endif
  //mission list entry
-typedef struct mle {
+struct mle
+{
 	char	filename[MISSION_FILENAME_LEN];			//filename without extension
 	char	mission_name[MISSION_NAME_LEN + 1];
-	uint8_t	anarchy_only_flag;					//if true, mission is anarchy only
-} mle;
+	bool	anarchy_only_flag;					//if true, mission is anarchy only
 
-extern mle Mission_list[MAX_MISSIONS];
+	mle()
+	{
+		memset(filename, 0, sizeof(filename));
+		memset(mission_name, 0, sizeof(mission_name));
+		anarchy_only_flag = false;
+	}
+
+	mle(const char* newfilename, const char* newname, bool anarchy = false)
+	{
+		strncpy(filename, newfilename, MISSION_FILENAME_LEN);
+		filename[MISSION_FILENAME_LEN - 1] = '\0';
+		strncpy(mission_name, newname, MISSION_NAME_LEN + 1);
+		mission_name[MISSION_NAME_LEN] = '\0';
+
+		anarchy_only_flag = anarchy;
+	}
+};
+
+extern std::vector<mle> Mission_list;
 
 extern int Current_mission_num;
 extern char* Current_mission_filename, * Current_mission_longname;
@@ -44,7 +62,7 @@ extern char Secret_level_names[MAX_SECRET_LEVELS_PER_MISSION][13];
 //fills in the global list of missions.  Returns the number of missions
 //in the list.  If anarchy_mode set, don't include non-anarchy levels.
 //if there is only one mission, this function will call load_mission on it.
-int build_mission_list(int anarchy_mode);
+int build_mission_list(bool anarchy_mode);
 
 //loads the specfied mission from the mission list.  build_mission_list()
 //must have been called.  If build_mission_list() returns 0, this function
