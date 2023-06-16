@@ -118,6 +118,8 @@ extern int Network_rejoined;
 extern int Network_new_game;
 extern int Network_status;
 
+extern bool Network_recieved_objects;
+
 extern uint16_t Current_Port;
 
 extern fix LastPacketTime[MAX_PLAYERS];

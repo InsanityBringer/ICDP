@@ -96,6 +96,8 @@ int 	Network_games_changed = 0;
 int 	Network_socket = 0;
 int	Network_allow_socket_changes = 0;
 
+bool Network_recieved_objects;
+
 uint16_t Current_Port = IPX_DEFAULT_SOCKET;
 
 // For rejoin object syncing
@@ -1536,6 +1538,9 @@ void network_read_object_packet(uint8_t* data)
 	int remote_frame_num = data[2];
 
 	frame_num++;
+
+	//Flag us as having recieved objects, since duplication shouldn't happen in this case. 
+	Network_recieved_objects = true;
 
 	//	mprintf((0, "Object packet %d (remote #%d) contains %d objects.\n", frame_num, remote_frame_num, nobj));
 

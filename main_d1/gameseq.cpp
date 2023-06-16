@@ -1239,6 +1239,7 @@ void StartNewLevelSub(int level_num, int page_in_textures)
 	if (Game_mode & GM_MULTI)
 	{
 		multi_prep_level(); // Removes robots from level if necessary
+		Network_recieved_objects = false; //no longer need this flag. 
 	}
 #endif
 

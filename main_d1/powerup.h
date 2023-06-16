@@ -71,6 +71,11 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define	VULCAN_WEAPON_AMMO_AMOUNT	196
 #define	VULCAN_AMMO_AMOUNT			(49*2)
 
+constexpr int POW_CLASS_UNCLASSIFIED = 0;
+constexpr int POW_CLASS_PRIMARY = 1;
+constexpr int POW_CLASS_SECONDARY = 2;
+constexpr int POW_CLASS_KEY = 3;
+
 // What I picked up        What it said I picked up
 // ----------------        ------------------------
 // vulcan ammo             4 homing missiles
@@ -86,15 +91,24 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define	POWERUP_NAME_LENGTH	16		//	Length of a robot or powerup name.
 extern char	Powerup_names[MAX_POWERUP_TYPES][POWERUP_NAME_LENGTH];
 
-typedef struct powerup_type_info {
+typedef struct powerup_type_info 
+{
 	int	vclip_num;
 	int	hit_sound;
 	fix	size;			//3d size of longest dimension
 	fix	light;		//	amount of light cast by this powerup, set in bitmaps.tbl
+
+	//New keys for generalizing features..
+	int multi_replacement; //Replace this powerup with another in multiplayer games
+	int anarchy_limit; //Amount of this powerup that can be present in an anarchy game. 0 is unlimited.
+	int powerup_class; //Used to determine the class of this powerup for things like duplication. 
 } powerup_type_info;
 
 extern int N_powerup_types;
 extern powerup_type_info Powerup_info[MAX_POWERUP_TYPES];
+
+//Initializes all the powerups. Call before loading descent.pig or bitmaps.tbl.
+void powerup_init_all();
 
 void draw_powerup(object* obj);
 

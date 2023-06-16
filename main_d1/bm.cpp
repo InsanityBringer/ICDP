@@ -85,8 +85,11 @@ uint16_t				ObjBitmapPtrs[MAX_OBJ_BITMAPS];		// These point back into ObjBitmaps
 int bm_init()
 {
 	init_polygon_models();
+	powerup_init_all();
 	piggy_init();				// This calls bm_read_all
 	piggy_read_sounds();
+
+	init_endlevel();
 	return 0;
 }
 

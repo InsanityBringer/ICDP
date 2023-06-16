@@ -44,6 +44,38 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 int N_powerup_types = 0;
 powerup_type_info Powerup_info[MAX_POWERUP_TYPES];
 
+void powerup_init_all()
+{
+	//For now, this extra information is hardcoded
+	for (int i = 0; i < MAX_POWERUP_TYPES; i++)
+		Powerup_info[i].multi_replacement = -1;
+
+	Powerup_info[POW_INVULNERABILITY].anarchy_limit = 3;
+	Powerup_info[POW_CLOAK].anarchy_limit = 3;
+
+	Powerup_info[POW_LASER].powerup_class = POW_CLASS_PRIMARY;
+	Powerup_info[POW_QUAD_FIRE].powerup_class = POW_CLASS_PRIMARY;
+	Powerup_info[POW_VULCAN_WEAPON].powerup_class = POW_CLASS_PRIMARY;
+	Powerup_info[POW_VULCAN_AMMO].powerup_class = POW_CLASS_PRIMARY;
+	Powerup_info[POW_SPREADFIRE_WEAPON].powerup_class = POW_CLASS_PRIMARY;
+	Powerup_info[POW_PLASMA_WEAPON].powerup_class = POW_CLASS_PRIMARY;
+	Powerup_info[POW_FUSION_WEAPON].powerup_class = POW_CLASS_PRIMARY;
+
+	Powerup_info[POW_MISSILE_1].powerup_class = POW_CLASS_SECONDARY;
+	Powerup_info[POW_MISSILE_4].powerup_class = POW_CLASS_SECONDARY;
+	Powerup_info[POW_HOMING_AMMO_1].powerup_class = POW_CLASS_SECONDARY;
+	Powerup_info[POW_HOMING_AMMO_4].powerup_class = POW_CLASS_SECONDARY;
+	Powerup_info[POW_PROXIMITY_WEAPON].powerup_class = POW_CLASS_SECONDARY;
+	Powerup_info[POW_SMARTBOMB_WEAPON].powerup_class = POW_CLASS_SECONDARY;
+	Powerup_info[POW_MEGA_WEAPON].powerup_class = POW_CLASS_SECONDARY;
+
+	Powerup_info[POW_KEY_BLUE].powerup_class = POW_CLASS_KEY;
+	Powerup_info[POW_KEY_GOLD].powerup_class = POW_CLASS_KEY;
+	Powerup_info[POW_KEY_RED].powerup_class = POW_CLASS_KEY;
+
+	Powerup_info[POW_EXTRA_LIFE].multi_replacement = POW_INVULNERABILITY;
+}
+
 //process this powerup for this frame
 void do_powerup_frame(object* obj)
 {

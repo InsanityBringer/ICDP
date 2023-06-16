@@ -2521,8 +2521,7 @@ multi_send_hostage_door_status(int wallnum)
 int Multi_num_extra_primaries;
 int Multi_num_extra_secondaries;
 
-void
-multi_prep_level(void)
+void multi_prep_level(void)
 {
 	// Do any special stuff to the level required for serial games
 	// before we begin playing in it.
@@ -2572,6 +2571,11 @@ multi_prep_level(void)
 
 	inv_count = 0;
 	cloak_count = 0;
+
+	int* powerup_usage_list = (int*)malloc(sizeof(*powerup_usage_list) * MAX_POWERUP_TYPES);
+	if (!powerup_usage_list)
+		Error("multi_prep_level: failed to allocate powerup count");
+
 	for (i = 0; i <= Highest_object_index; i++)
 	{
 		int objnum;
@@ -2594,9 +2598,10 @@ multi_prep_level(void)
 
 		if (Objects[i].type == OBJ_POWERUP)
 		{
-			if (Objects[i].id == POW_EXTRA_LIFE)
+			//Check if the object should be replaced in multiplayer
+			if (Powerup_info[Objects[i].id].multi_replacement >= 0)
 			{
-				Objects[i].id = POW_INVULNERABILITY;
+				Objects[i].id = Powerup_info[Objects[i].id].multi_replacement;
 				Objects[i].rtype.vclip_info.vclip_num = Powerup_info[Objects[i].id].vclip_num;
 				Objects[i].rtype.vclip_info.frametime = Vclip[Objects[i].rtype.vclip_info.vclip_num].frame_time;
 			}
@@ -2604,36 +2609,80 @@ multi_prep_level(void)
 			if (Game_mode & GM_MULTI_COOP)
 				continue;
 
-			if ((Objects[i].id >= POW_KEY_BLUE) && (Objects[i].id <= POW_KEY_GOLD))
+			//Check if a key
+			if (Powerup_info[Objects[i].id].powerup_class == POW_CLASS_KEY)
 			{
 				Objects[i].id = POW_SHIELD_BOOST;
 				Objects[i].rtype.vclip_info.vclip_num = Powerup_info[Objects[i].id].vclip_num;
 				Objects[i].rtype.vclip_info.frametime = Vclip[Objects[i].rtype.vclip_info.vclip_num].frame_time;
 			}
 
-			if (Objects[i].id == POW_INVULNERABILITY) {
-				if (inv_count >= 3) {
-					mprintf((0, "Bashing Invulnerability object #%i to shield.\n", i));
+			//Check for anarchy limit
+			int limit = Powerup_info[Objects[i].id].anarchy_limit;
+			if (limit > 0)
+			{
+				if (powerup_usage_list[Objects[i].id] > limit)
+				{
+					mprintf((0, "Bashing powerup %d object #%i to shield.\n", Objects[i].id, i));
 					Objects[i].id = POW_SHIELD_BOOST;
 					Objects[i].rtype.vclip_info.vclip_num = Powerup_info[Objects[i].id].vclip_num;
 					Objects[i].rtype.vclip_info.frametime = Vclip[Objects[i].rtype.vclip_info.vclip_num].frame_time;
 				}
 				else
-					inv_count++;
-			}
-
-			if (Objects[i].id == POW_CLOAK) {
-				if (cloak_count >= 3) {
-					mprintf((0, "Bashing Cloak object #%i to shield.\n", i));
-					Objects[i].id = POW_SHIELD_BOOST;
-					Objects[i].rtype.vclip_info.vclip_num = Powerup_info[Objects[i].id].vclip_num;
-					Objects[i].rtype.vclip_info.frametime = Vclip[Objects[i].rtype.vclip_info.vclip_num].frame_time;
-				}
-				else
-					cloak_count++;
+					powerup_usage_list[Objects[i].id]++;
 			}
 		}
 	}
+
+	//Handle duplication separately, since the list size will change
+	if (!Network_recieved_objects) //Don't duplicate if objects were sent, otherwise a late joining player will have too many primaries
+	{
+		int highest_object_num_initial = Highest_object_index;
+		bool is_new[MAX_OBJECTS];
+		memset(is_new, 0, sizeof(is_new));
+		for (i = 0; i < highest_object_num_initial; i++)
+		{
+			if (!is_new[i] && Objects[i].type == OBJ_POWERUP)
+			{
+				if (Powerup_info[Objects[i].id].powerup_class == POW_CLASS_PRIMARY)
+				{
+					for (int j = 0; j < Multi_num_extra_primaries; j++)
+					{
+						int objnum = obj_create(OBJ_POWERUP, Objects[i].id, Objects[i].segnum, &Objects[i].pos, &vmd_identity_matrix, Powerup_info[Objects[i].id].size, CT_POWERUP, MT_PHYSICS, RT_POWERUP);
+						if (objnum != -1)
+						{
+							Objects[objnum].rtype.vclip_info.vclip_num = Powerup_info[Objects[i].id].vclip_num;
+							Objects[objnum].rtype.vclip_info.frametime = Vclip[Objects[objnum].rtype.vclip_info.vclip_num].frame_time;
+							Objects[objnum].rtype.vclip_info.framenum = 0;
+							Objects[objnum].mtype.phys_info.drag = 512;
+							Objects[objnum].mtype.phys_info.mass = F1_0;
+							vm_vec_zero(&Objects[objnum].mtype.phys_info.velocity);
+							is_new[objnum] = true;
+						}
+					}
+				}
+				else if (Powerup_info[Objects[i].id].powerup_class == POW_CLASS_SECONDARY)
+				{
+					for (int j = 0; j < Multi_num_extra_secondaries; j++)
+					{
+						int objnum = obj_create(OBJ_POWERUP, Objects[i].id, Objects[i].segnum, &Objects[i].pos, &vmd_identity_matrix, Powerup_info[Objects[i].id].size, CT_POWERUP, MT_PHYSICS, RT_POWERUP);
+						if (objnum != -1)
+						{
+							Objects[objnum].rtype.vclip_info.vclip_num = Powerup_info[Objects[i].id].vclip_num;
+							Objects[objnum].rtype.vclip_info.frametime = Vclip[Objects[objnum].rtype.vclip_info.vclip_num].frame_time;
+							Objects[objnum].rtype.vclip_info.framenum = 0;
+							Objects[objnum].mtype.phys_info.drag = 512;
+							Objects[objnum].mtype.phys_info.mass = F1_0;
+							vm_vec_zero(&Objects[objnum].mtype.phys_info.velocity);
+							is_new[objnum] = true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	free(powerup_usage_list);
 
 	multi_sort_kill_list();
 

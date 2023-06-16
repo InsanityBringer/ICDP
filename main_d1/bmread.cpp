@@ -384,6 +384,7 @@ int bm_init_use_tbl()
 	int	i, have_bin_tbl;
 
 	init_polygon_models();
+	powerup_init_all();
 
 	ObjType[0] = OL_PLAYER;
 	ObjId[0] = 0;
