@@ -679,7 +679,8 @@ void draw_model_picture(int mn, vms_angvec * orient_angles)
 	gr_set_current_canvas(temp_canv);
 	gr_clear_canvas(BM_XRGB(0, 0, 0));
 
-	g3_start_frame();
+	//[ISB] at the moment, any instance of this function is drawn to a 4:3 screen. 
+	g3_start_frame(960.f / 800.f);
 	g3_set_view_matrix(&temp_pos, &temp_orient, 0x9000);
 
 	if (Polygon_models[mn].rad != 0)
