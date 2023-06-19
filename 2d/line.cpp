@@ -73,10 +73,13 @@ void gr_universal_uline_debug(grs_canvas* canvas, int color, int a1, int b1, int
 	int count = std::max(abs(deltaX), abs(deltaY));
 	float xStep = (float)deltaX / count; float yStep = (float)deltaY / count;
 
+	int writeColor = 0xC0;
+
 	for (int i = 0; i < count; i++)
 	{
-		plot(canvas, color, floor(x), floor(y), false);
+		plot(canvas, writeColor, floor(x), floor(y), false);
 		x += xStep; y += yStep;
+		writeColor = color;
 	}
 }
 
@@ -330,10 +333,15 @@ int gr_line_explicit_clip(grs_canvas* canvas, int color, fix a1, fix b1, fix a2,
 	int x1, y1, x2, y2;
 	int clipped = 0;
 
-	x1 = i2f(minx);
+	/*x1 = i2f(minx);
 	y1 = i2f(miny);
 	x2 = i2f(maxx);
-	y2 = i2f(maxy);
+	y2 = i2f(maxy);*/
+
+	x1 = i2f(MINX);
+	y1 = i2f(MINY);
+	x2 = i2f(MAXX);
+	y2 = i2f(MAXY);
 
 	CLIPLINE(a1, b1, a2, b2, x1, y1, x2, y2, return 2, clipped = 1, FSCALE);
 
