@@ -1815,13 +1815,16 @@ done_rendering:
 }
 #ifdef EDITOR
 
-extern int render_3d_in_big_window;
+extern bool render_3d_in_big_window;
+extern grs_canvas* game_view_canvas; //ugh
 
 //finds what segment is at a given x&y -  seg,side,face are filled in
 //works on last frame rendered. returns true if found
 //if seg<0, then an object was found, and the object number is -seg-1
 int find_seg_side_face(short x, short y, int* seg, int* side, int* face, int* poly)
 {
+	//Can't perform this search when multithreading is in use, results must be immediate. 
+	Disable_multithread = true;
 	_search_mode = -1;
 
 	_search_x = x; _search_y = y;
@@ -1841,7 +1844,7 @@ int find_seg_side_face(short x, short y, int* seg, int* side, int* face, int* po
 	}
 	else 
 	{
-		gr_set_current_canvas(&VR_render_sub_buffer);	//render off-screen
+		gr_set_current_canvas(game_view_canvas);	//render off-screen
 		render_frame(0);
 	}
 
@@ -1854,6 +1857,7 @@ int find_seg_side_face(short x, short y, int* seg, int* side, int* face, int* po
 
 	//	mprintf((0,"found seg=%d, side=%d, face=%d, poly=%d\n",found_seg,found_side,found_face,found_poly));
 
+	Disable_multithread = false;
 	return (found_seg != -1);
 
 }

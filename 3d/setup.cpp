@@ -31,6 +31,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 //#define G3_DEBUG_EMPTY_CELLS
 
 bool Use_multithread = false;
+bool Disable_multithread = false; //Disables multithreading for the current frame. 
 int Thread_count = 0;
 
 std::condition_variable Render_start_signal;
@@ -185,9 +186,15 @@ void G3Instance::dispatch_render_threads()
 	}
 }
 
+bool multithread_save = false;
+
 //start the frame
 void G3Instance::start_frame(float desired_aspect)
 {
+	multithread_save = Use_multithread;
+	if (Disable_multithread)
+		Use_multithread = false; //TODO: Need separate flags for multithread availability and usage status. 
+	
 	//set int w,h & fixed-point w,h/2
 	Canv_w2 = (Canvas_width = grd_curcanv->cv_bitmap.bm_w) << 15;
 	Canv_h2 = (Canvas_height = grd_curcanv->cv_bitmap.bm_h) << 15;
@@ -276,6 +283,11 @@ void G3Instance::end_frame()
 #endif
 	}
 #endif
+
+	if (Disable_multithread)
+		Use_multithread = multithread_save;
+
+	Num_threads_dispatched = 0; //oops, forgot to reset this.. causes problems when Disable_multithread gets set. 
 
 	//debugging the command decoder..
 	//debug_decode_command_buffer();

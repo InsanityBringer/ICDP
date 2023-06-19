@@ -25,6 +25,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "2d/scale.h"
 
 extern int g3d_interp_outline;		//if on, polygon models outlined in white
+extern bool Disable_multithread;	//Set to true before calling g3_start_frame if the frame should not use multithreading. 
 
 //Structure for storing u,v,light values.  This structure doesn't have a
 //prefix because it was defined somewhere else before it was moved here

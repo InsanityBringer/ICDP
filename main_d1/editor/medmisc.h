@@ -15,7 +15,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define _MEDMISC_H
 
 void GetMouseRotation( int idx, int idy, vms_matrix * RotMat );
-extern int Gameview_lockstep;				//In medmisc.c
+extern bool Gameview_lockstep;				//In medmisc.c
 int ToggleLockstep();
 int medlisp_delete_segment(void);
 int medlisp_scale_segment(void);

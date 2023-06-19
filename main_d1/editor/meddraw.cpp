@@ -828,6 +828,7 @@ void draw_world(grs_canvas *screen_canvas,editor_view *v,segment *mine_ptr,int d
 	vm_vec_add2(&viewer_position,&Ed_view_target);
 
 	gr_clear_canvas(0);
+	Disable_multithread = true; //Not sure why yet, but the big view doesn't work with multithreading
 	g3_start_frame();
 	g3_set_view_matrix(&viewer_position,&v->ev_matrix,v->ev_zoom);
 
@@ -886,7 +887,8 @@ void draw_world(grs_canvas *screen_canvas,editor_view *v,segment *mine_ptr,int d
 
 		// Label the window
 		gr_set_fontcolor((v==current_view)?CRED:CWHITE, -1 );
-		if ( screen_canvas == LargeViewBox->canvas ) {
+		if ( screen_canvas == LargeViewBox->canvas ) 
+		{
 			gr_ustring( 5, 5, "USER VIEW" );
 			switch (Large_view_index) {
 				case 0: gr_ustring( 85, 5, "-- TOP");	break;
@@ -926,6 +928,7 @@ void draw_world(grs_canvas *screen_canvas,editor_view *v,segment *mine_ptr,int d
 #endif
 
 	ui_mouse_show();
+	Disable_multithread = false;
 
 }
 

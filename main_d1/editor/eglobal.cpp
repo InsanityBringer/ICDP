@@ -20,29 +20,29 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 // Global pointer to current vertices, right now always Vertices.  Set in create_new_mine.
 segment	New_segment;				// The segment which can be added to the mine.
 segment	*Cursegp;					// Pointer to current segment in mine.
-int		Curside;						// Side index in 0..MAX_SIDES_PER_SEGMENT of active side.
-int		Curedge;						//	Current edge on current side, in 0..3
-int		Curvert;						//	Current vertex on current side, in 0..3
+int		Curside;					// Side index in 0..MAX_SIDES_PER_SEGMENT of active side.
+int		Curedge;					//	Current edge on current side, in 0..3
+int		Curvert;					//	Current vertex on current side, in 0..3
 int		AttachSide = WFRONT;		//	Side on segment to attach.
 segment	*Markedsegp;				// Marked segment, used in conjunction with *Cursegp to form joints.
 int		Markedside;					// Marked side on Markedsegp.
 
-int		Draw_all_segments;		// Set to 1 means draw_world draws all segments in Segments, else draw only connected segments
+bool	Draw_all_segments;		// Set to 1 means draw_world draws all segments in Segments, else draw only connected segments
 
-int8_t		Vertex_active[MAX_VERTICES];	// !0 means vertex is in use, 0 means not in use.
+int8_t	Vertex_active[MAX_VERTICES];	// !0 means vertex is in use, 0 means not in use.
 
-int		N_selected_segs=0;							// Number of segments found at Selected_segs
-short		Selected_segs[MAX_SELECTED_SEGS];		// List of segment numbers currently selected
+int		N_selected_segs=0;						// Number of segments found at Selected_segs
+short	Selected_segs[MAX_SELECTED_SEGS];		// List of segment numbers currently selected
 
-int		N_warning_segs=0;								// Number of segments warning-worthy, such as a concave segment
-short		Warning_segs[MAX_WARNING_SEGS];			// List of segment numbers currently selected
+int		N_warning_segs=0;						// Number of segments warning-worthy, such as a concave segment
+short	Warning_segs[MAX_WARNING_SEGS];			// List of segment numbers currently selected
 
-int		N_found_segs=0;								// Number of segments found with last shift-mouse-click
-short		Found_segs[MAX_FOUND_SEGS];				// List of warning-worthy segments
+int		N_found_segs=0;							// Number of segments found with last shift-mouse-click
+short	Found_segs[MAX_FOUND_SEGS];				// List of warning-worthy segments
 
-int		Show_axes_flag=0;								// 0 = don't show, !0 = do show coordinate axes in *Cursegp orientation
+bool	Show_axes_flag=false;					// 0 = don't show, !0 = do show coordinate axes in *Cursegp orientation
 
-int8_t		Been_visited[MAX_SEGMENTS];				//	List of segments visited in a recursive search, if element n set, segment n done been visited
+int8_t	Been_visited[MAX_SEGMENTS];				//	List of segments visited in a recursive search, if element n set, segment n done been visited
 
 // Variables global to this editor.c and the k?????.c files.
 uint32_t        Update_flags = UF_ALL;  //force total redraw
@@ -71,7 +71,7 @@ editor_view *Views[] = {&LargeView,
 
 int N_views = (sizeof(Views) / sizeof(*Views));
 
-int	Lock_view_to_cursegp = 1;		// !0 means whenever cursegp changes, view it
+bool	Lock_view_to_cursegp = true;		// !0 means whenever cursegp changes, view it
 
 int	Num_tilings = 1;					// Number of tilings per wall
 

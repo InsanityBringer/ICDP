@@ -134,6 +134,9 @@ UI_EVENT * DemoBuffer = NULL;
 
 int	Found_seg_index=0;				// Index in Found_segs corresponding to Cursegp
 
+//New canvas for the game view so it can always be in 320x200 even if VR_offscreen_buffer isn't. 
+grs_canvas* game_view_canvas;
+
 
 void print_status_bar( char message[DIAGNOSTIC_MESSAGE_MAX] ) 
 {
@@ -306,32 +309,6 @@ int GotoGame()
 	return GotoGameCommon(2);
 }
 
-
-void ReadLispMacro( FILE * file, char * buffer )
-{
-//	char c;
-//	int size=0;
-//	int pcount = 0;
-//	char text[100];
-//	int i=0;
-	
-	fscanf( file, " { %s } ", buffer );
-
-/*
-	while (1)
-	{
-		c = text[i++];
-		if (pcount > 0 )
-			buffer[size++] = c;
-		if ( c == '(' ) pcount++;
-		if ( c == ')' ) break;
-	}
-	buffer[size++] = 0;
-*/
-
-	return;
-}
-
 static int (*KeyFunction[2048])();
 
 void medkey_init()
@@ -394,7 +371,7 @@ void init_editor()
 
 	canv_offscreen = gr_create_canvas(LVIEW_W,LVIEW_H);
 	
-	Draw_all_segments = 1;						// Say draw all segments, not just connected ones
+	Draw_all_segments = true;						// Say draw all segments, not just connected ones
 
 	init_autosave();
   
@@ -984,6 +961,9 @@ void editor(void)
 		return;
 	}
 
+	//Game view canvas needs to be created early since rendering happens early on
+	game_view_canvas = gr_create_canvas(320, 200);
+
 	gr_set_current_canvas(ui_canvas);
 	gr_set_curfont(editor_font);
 
@@ -1366,6 +1346,8 @@ void editor(void)
 		plat_present_canvas(*ui_canvas, ASPECT_4_3);
 		timer_mark_end(US_60FPS);
 	}
+
+	gr_free_canvas(game_view_canvas);
 
 	clear_warn_func(med_show_warning);
 

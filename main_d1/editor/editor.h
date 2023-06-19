@@ -132,12 +132,13 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define SEGSIZEMODE_MAX			SEGSIZEMODE_VERTEX
 
 //defines a view for an editor window
-typedef struct editor_view {
+typedef struct editor_view 
+{
 	short ev_num;				//each view has it's own number
 	short ev_changed;			//set to true if view changed
 	grs_canvas *ev_canv;		//points to this window's canvas
 	fix ev_dist;				//the distance from the view point
-	vms_matrix ev_matrix;	//the view matrix
+	vms_matrix ev_matrix;		//the view matrix
 	fix ev_zoom;				//zoom for this window
 } editor_view;
 
@@ -149,6 +150,7 @@ typedef struct editor_view {
 extern editor_view *Views[];
 extern int N_views;
 extern grs_canvas *canv_offscreen;		//for off-screen rendering
+extern grs_canvas* game_view_canvas;	//Canvas that the game view will be rendered to. 
 extern int Large_view_index;
 extern UI_GADGET_USERBOX * LargeViewBox;
 extern int Found_seg_index;				// Index in Found_segs corresponding to Cursegp
@@ -158,11 +160,11 @@ extern int gamestate_not_restored;
 extern	segment  *Cursegp;				// Pointer to current segment in the mine, the one to which things happen.
 extern	vms_vector Ed_view_target;		// what editor is looking at
 extern	segment  New_segment;			// The segment which can be added to the mine.
-extern	int		Curside;					// Side index in 0..MAX_SIDES_PER_SEGMENT of active side.
-extern	int		Curedge;					//	Current edge on current side, in 0..3
-extern	int		Curvert;					//	Current vertex on current side, in 0..3
+extern	int		Curside;				// Side index in 0..MAX_SIDES_PER_SEGMENT of active side.
+extern	int		Curedge;				//	Current edge on current side, in 0..3
+extern	int		Curvert;				//	Current vertex on current side, in 0..3
 extern	int		AttachSide;				//	Side on segment to attach
-extern	int		Draw_all_segments;	// Set to 1 means draw_world draws all segments in Segments, else draw only connected segments
+extern	bool	Draw_all_segments;		// Set to 1 means draw_world draws all segments in Segments, else draw only connected segments
 extern	segment	*Markedsegp;			// Marked segment, used in conjunction with *Cursegp to form joints.
 extern	int		Markedside;				// Marked side on Markedsegp.
 extern	int8_t		Vertex_active[MAX_VERTICES];	// !0 means vertex is in use, 0 means not in use.
@@ -170,25 +172,25 @@ extern	int8_t		Vertex_active[MAX_VERTICES];	// !0 means vertex is in use, 0 mean
 extern	grs_canvas *Pad_text_canvas;		// Keypad text
 
 // The extra group in the following arrays is used for group rotation.
-extern 	group		GroupList[MAX_GROUPS+1];
+extern 	group	GroupList[MAX_GROUPS+1];
 extern 	segment  *Groupsegp[MAX_GROUPS+1];
 extern 	int		Groupside[MAX_GROUPS+1];
-extern	int 		Num_groups; 
+extern	int 	Num_groups; 
 extern	int		Current_group;
 
-extern	short		Found_segs[];			// List of segment numbers "found" under cursor click
+extern	short	Found_segs[];			// List of segment numbers "found" under cursor click
 extern	int		N_found_segs;			// Number of segments found at Found_segs
 
 extern	int		N_selected_segs;		// Number of segments found at Selected_segs
-extern	short		Selected_segs[];		// List of segment numbers currently selected
+extern	short	Selected_segs[];		// List of segment numbers currently selected
 
-extern	int		N_warning_segs;		// Number of segments warning-worthy, such as a concave segment
-extern	short		Warning_segs[];		// List of warning-worthy segments
+extern	int		N_warning_segs;			// Number of segments warning-worthy, such as a concave segment
+extern	short	Warning_segs[];			// List of warning-worthy segments
 
-extern	int		Show_axes_flag;		// 0 = don't show, !0 = do show coordinate axes in *Cursegp orientation
+extern	bool	Show_axes_flag;			// 0 = don't show, !0 = do show coordinate axes in *Cursegp orientation
 
-extern   int		Autosave_count;		// Current counter for which autosave mine we are "on"
-extern	int		Autosave_flag;			// Whether or not Autosave is on.
+extern  int		Autosave_count;			// Current counter for which autosave mine we are "on"
+extern	bool	Autosave_flag;			// Whether or not Autosave is on.
 extern	struct tm Editor_time_of_day;
 
 extern	int		SegSizeMode;			// Mode = 0/1 = not/is legal to move bound vertices, 
@@ -375,8 +377,10 @@ extern	vms_angvec *vm_vec_to_angles(vms_angvec *result, vms_vector *forvec);
 
 #define ACCURACY 0.1*F1_0
 
-typedef struct vms_equation {
-    union {
+typedef struct vms_equation 
+{
+    union 
+	{
             struct {fix x3, x2, x1, x0, y3, y2, y1, y0, z3, z2, z1, z0;};
             fix xyz[3][4];
     };
@@ -555,7 +559,7 @@ extern int MacroStatus;
 
 //extern	int	Highest_vertex_index;			// Highest index in Vertices and Vertex_active, an efficiency hack
 //extern	int	Highest_segment_index;			// Highest index in Segments, an efficiency hack
-extern	int	Lock_view_to_cursegp;			// !0 means whenever cursegp changes, view it
+extern	bool	Lock_view_to_cursegp;			// !0 means whenever cursegp changes, view it
 
 //	eglobal.c
 extern	int	Num_tilings;						// number of tilings/wall
@@ -603,7 +607,7 @@ extern int Cur_robot_type;
 extern int DisplayCurrentRobotType(void);
 extern short			Cur_object_index;
 
-extern int render_3d_in_big_window;
+extern bool render_3d_in_big_window;
 extern void move_object_to_mouse_click(void);
 
 //these are instances of canvases, pointed to by variables below
