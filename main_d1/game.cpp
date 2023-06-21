@@ -2005,6 +2005,7 @@ void game()
 	fly_init(ConsoleObject);
 
 	Game_suspended = 0;
+	ai_notarget = ai_noawareness = false;
 
 	reset_time();
 	FrameTime = 0;			//make first frame zero
