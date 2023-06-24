@@ -101,4 +101,4 @@ extern void newdemo_stop_playback();
 extern void newdemo_start_recording();
 extern void newdemo_stop_recording();
 
-extern int newdemo_get_percent_done(); //[ISB] did I accidently give this void type?
+extern int newdemo_get_percent_done();

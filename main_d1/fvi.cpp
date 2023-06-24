@@ -36,8 +36,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "main_shared/piggy.h"
 #include "player.h"
 
-extern int Physics_cheat_flag;
-
 #define face_type_num(nfaces,face_num,tri_edge) ((nfaces==1)?0:(tri_edge*2 + face_num))
 
 //[ISB] Credits to Parabolicus for the not horrible port
@@ -852,7 +850,7 @@ int fvi_sub(vms_vector* intp, int* ints, vms_vector* p0, int startseg, vms_vecto
 
 						//if what we have hit is a door, check the adjoining seg
 
-						if ((thisobjnum == Players[Player_num].objnum) && (Physics_cheat_flag == 0xBADA55))
+						if ((thisobjnum == Players[Player_num].objnum) && Physics_cheat_flag)
 						{
 							wid_flag = WALL_IS_DOORWAY(seg, side);
 							if (seg->children[side] >= 0)

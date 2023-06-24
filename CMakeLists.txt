@@ -177,6 +177,7 @@ set(DESCENT1_SOURCES
 	main_d1/fvi.h
 	main_d1/game.cpp
 	main_d1/game.h
+	main_d1/gamecntl.cpp
 	main_d1/gamefont.cpp
 	main_d1/gamefont.h
 	main_d1/gamemine.cpp

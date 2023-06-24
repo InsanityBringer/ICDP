@@ -94,3 +94,7 @@ extern void ai_multi_send_robot_position(int objnum, int force);
 //[ISB] cheat stuff
 extern bool ai_notarget;
 extern bool ai_noawareness;
+
+extern void do_lunacy_on();
+extern void do_lunacy_off();
+extern bool Lunacy;

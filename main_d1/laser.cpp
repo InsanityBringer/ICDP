@@ -40,7 +40,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "multi.h"
 #include "physics.h"
 
-int Laser_rapid_fire = 0;
+bool Laser_rapid_fire = false;
 
 //---------------------------------------------------------------------------------
 // Called by render code.... determines if the laser is from a robot or the
@@ -1063,12 +1063,13 @@ int do_laser_firing_player(void)
 
 	Last_laser_fired_time = GameTime;
 
-	while (Next_laser_fire_time <= GameTime) {
+	while (Next_laser_fire_time <= GameTime) 
+	{
 		if ((plp->energy >= energy_used) || ((Primary_weapon == VULCAN_INDEX) && (plp->primary_ammo[Primary_weapon] >= ammo_used))) {
 			int	laser_level, flags;
 
 			//mprintf(0, ".");
-			if (Laser_rapid_fire != 0xBADA55)
+			if (!Laser_rapid_fire)
 				Next_laser_fire_time += Weapon_info[weapon_index].fire_wait;
 			else
 				Next_laser_fire_time += F1_0 / 25;
@@ -1077,7 +1078,8 @@ int do_laser_firing_player(void)
 
 			flags = 0;
 
-			if (Primary_weapon == SPREADFIRE_INDEX) {
+			if (Primary_weapon == SPREADFIRE_INDEX) 
+			{
 				if (Spreadfire_toggle)
 					flags |= LASER_SPREADFIRE_TOGGLED;
 				Spreadfire_toggle = !Spreadfire_toggle;

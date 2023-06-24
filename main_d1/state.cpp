@@ -79,9 +79,8 @@ extern void multi_initiate_restore_game();
 extern int Do_appearance_effect;
 extern fix Fusion_next_sound_time;
 
-extern int Laser_rapid_fire, Ugly_robot_cheat, Ugly_robot_texture;
-extern int Physics_cheat_flag;
-extern int	Lunacy;
+extern int Ugly_robot_texture;
+extern bool Lunacy;
 extern void do_lunacy_on(void);
 extern void do_lunacy_off(void);
 
@@ -429,7 +428,7 @@ int state_save_all_sub(char* filename, char* desc, int between_levels)
 
 	// Save the Cheats_enabled
 	file_write_int(fp, Cheats_enabled);
-	file_write_int(fp, Game_turbo_mode);
+	file_write_int(fp, Game_turbo_mode ? 1 : 0);
 
 	if (!between_levels) 
 	{
@@ -527,11 +526,11 @@ int state_save_all_sub(char* filename, char* desc, int between_levels)
 		fwrite(Automap_visited, sizeof(uint8_t) * MAX_SEGMENTS, 1, fp);
 	}
 	file_write_int(fp, state_game_id);
-	file_write_int(fp, Laser_rapid_fire);
-	file_write_int(fp, Ugly_robot_cheat);
+	file_write_int(fp, Laser_rapid_fire ? 0xBADA55 : 0);
+	file_write_int(fp, Ugly_robot_cheat ? 0xBADA55 : 0);
 	file_write_int(fp, Ugly_robot_texture);
-	file_write_int(fp, Physics_cheat_flag);
-	file_write_int(fp, Lunacy);
+	file_write_int(fp, Physics_cheat_flag ? 0xBADA55 : 0);
+	file_write_int(fp, Lunacy ? 1 : 0);
 
 	fclose(fp);
 
@@ -706,7 +705,7 @@ int state_restore_all_sub(char* filename, int multi)
 
 	// Restore the cheats enabled flag
 	Cheats_enabled = file_read_int(fp);
-	Game_turbo_mode = file_read_int(fp);
+	Game_turbo_mode = !!file_read_int(fp);
 
 	if (!between_levels) 
 	{
@@ -872,10 +871,10 @@ int state_restore_all_sub(char* filename, int multi)
 	if (version >= 7) 
 	{
 		state_game_id = file_read_int(fp);
-		Laser_rapid_fire = file_read_int(fp);
-		Ugly_robot_cheat = file_read_int(fp);
+		Laser_rapid_fire = !!file_read_int(fp);
+		Ugly_robot_cheat = !!file_read_int(fp);
 		Ugly_robot_texture = file_read_int(fp);
-		Physics_cheat_flag = file_read_int(fp);
+		Physics_cheat_flag = !!file_read_int(fp);
 		int tmp_Lunacy = file_read_int(fp);
 		if (tmp_Lunacy)
 			do_lunacy_on();

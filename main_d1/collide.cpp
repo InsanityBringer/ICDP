@@ -66,10 +66,10 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "collide.h"
 
-int Ugly_robot_cheat = 0;
-int Ugly_robot_texture = 0;
-
 #define STANDARD_EXPL_DELAY (f1_0/4)
+
+bool Ugly_robot_cheat;
+int Ugly_robot_texture;
 
 //##void collide_fireball_and_wall(object *fireball,fix hitspeed, short hitseg, short hitwall, vms_vector * hitpt)	{
 //##	return; 
@@ -905,7 +905,7 @@ void collide_robot_and_weapon(object* robot, object* weapon, vms_vector* collisi
 	if (Robot_info[robot->id].boss_flag)
 		Boss_hit_this_frame = 1;
 
-	if (Ugly_robot_cheat == 0xBADa55) 
+	if (Ugly_robot_cheat) 
 	{
 		robot->rtype.pobj_info.tmap_override = Ugly_robot_texture % NumTextures;
 	}

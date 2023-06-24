@@ -121,13 +121,6 @@ int time_stopped, time_started;
 
 uint8_t* Game_cockpit_copy_code = NULL;
 
-uint8_t new_cheats[] = { KEY_B ^ 0xaa, KEY_B ^ 0xaa, KEY_B ^ 0xaa, KEY_F ^ 0xaa, KEY_A ^ 0xaa,
-							KEY_U ^ 0xaa, KEY_I ^ 0xaa, KEY_R ^ 0xaa, KEY_L ^ 0xaa, KEY_H ^ 0xaa,
-							KEY_G ^ 0xaa, KEY_G ^ 0xaa, KEY_U ^ 0xaa, KEY_A ^ 0xaa, KEY_I ^ 0xaa,
-							KEY_G ^ 0xaa, KEY_R ^ 0xaa, KEY_I ^ 0xaa, KEY_S ^ 0xaa, KEY_M ^ 0xaa,
-							KEY_I ^ 0xaa, KEY_E ^ 0xaa, KEY_N ^ 0xaa, KEY_H ^ 0xaa, KEY_S ^ 0xaa,
-							KEY_N ^ 0xaa, KEY_D ^ 0xaa, KEY_X ^ 0xaa, KEY_X ^ 0xaa, KEY_A ^ 0xaa };
-
 int			VR_screen_mode = 0;
 int			VR_render_width = 0; //recycling these as config keys too.. 
 int			VR_render_height = 0;
@@ -174,7 +167,7 @@ fix	Fusion_charge = 0;
 fix	Fusion_next_sound_time = 0;
 
 bool Debug_spew = true;
-int Game_turbo_mode = 0;
+bool Game_turbo_mode = false;
 
 int Game_mode = GM_GAME_OVER;
 
@@ -844,6 +837,17 @@ void show_framerate()
 
 	ftoa(temp, rate);	// Convert fixed to string
 	gr_printf(grd_curcanv->cv_w - 50, grd_curcanv->cv_h - 20, "FPS: %s ", temp);
+
+	//[ISB] informational, show the frame rate of the current demo frame. 
+	//This isn't smoothed over like normal framerate is, so it's a bit jerky but will give the most accurate information. 
+	if (Newdemo_state == ND_STATE_PLAYBACK)
+	{
+		extern fix nd_recorded_time;
+
+		rate = fixdiv(f1_0, nd_recorded_time);
+		ftoa(temp, rate);	// Convert fixed to string
+		gr_printf(grd_curcanv->cv_w - 50, grd_curcanv->cv_h - 14, "DEM: %s ", temp);
+	}
 }
 
 static int timer_paused = 0;
@@ -1898,71 +1902,16 @@ int Config_menu_flag;
 
 jmp_buf LeaveGame;
 
-int8_t	Enable_john_cheat_1, Enable_john_cheat_2, Enable_john_cheat_3, Enable_john_cheat_4;
-
-int cheat_enable_index;
-#define CHEAT_ENABLE_LENGTH (sizeof(cheat_enable_keys) / sizeof(*cheat_enable_keys))
-
-uint8_t cheat_enable_keys[] = { KEY_G,KEY_A,KEY_B,KEY_B,KEY_A,KEY_G,KEY_A,KEY_B,KEY_B,KEY_A,KEY_H,KEY_E,KEY_Y };
-
-uint8_t cheat_wowie[] = { KEY_S,KEY_C,KEY_O,KEY_U,KEY_R,KEY_G,KEY_E };
-uint8_t cheat_allkeys[] = { KEY_M,KEY_I,KEY_T,KEY_Z,KEY_I };
-uint8_t cheat_invuln[] = { KEY_R,KEY_A,KEY_C,KEY_E,KEY_R,KEY_X };
-uint8_t cheat_cloak[] = { KEY_G,KEY_U,KEY_I,KEY_L,KEY_E };
-uint8_t cheat_shield[] = { KEY_T,KEY_W,KEY_I,KEY_L,KEY_I,KEY_G,KEY_H,KEY_T };
-uint8_t cheat_warp[] = { KEY_F,KEY_A,KEY_R,KEY_M,KEY_E,KEY_R,KEY_J,KEY_O,KEY_E };
-uint8_t cheat_astral[] = { KEY_A,KEY_S,KEY_T,KEY_R,KEY_A,KEY_L };
-
-#define NUM_NEW_CHEATS 5
-
-#define CHEAT_WOWIE_LENGTH (sizeof(cheat_wowie) / sizeof(*cheat_wowie))
-#define CHEAT_ALLKEYS_LENGTH (sizeof(cheat_allkeys) / sizeof(*cheat_allkeys))
-#define CHEAT_INVULN_LENGTH (sizeof(cheat_invuln) / sizeof(*cheat_invuln))
-#define CHEAT_CLOAK_LENGTH (sizeof(cheat_cloak) / sizeof(*cheat_cloak))
-#define CHEAT_SHIELD_LENGTH (sizeof(cheat_shield) / sizeof(*cheat_shield))
-#define CHEAT_WARP_LENGTH (sizeof(cheat_warp) / sizeof(*cheat_warp))
-#define CHEAT_ASTRAL_LENGTH (sizeof(cheat_astral) / sizeof(*cheat_astral))
-
-#define CHEAT_TURBOMODE_OFS	0
-#define CHEAT_WOWIE2_OFS		1
-#define CHEAT_NEWLIFE_OFS		2
-#define CHEAT_EXITPATH_OFS		3
-#define CHEAT_ROBOTPAUSE_OFS	4
-
-#define CHEAT_TURBOMODE_LENGTH	6
-#define CHEAT_WOWIE2_LENGTH		6
-#define CHEAT_NEWLIFE_LENGTH		5
-#define CHEAT_EXITPATH_LENGTH		5
-#define CHEAT_ROBOTPAUSE_LENGTH	6
-
-int cheat_wowie_index;
-int cheat_allkeys_index;
-int cheat_invuln_index;
-int cheat_cloak_index;
-int cheat_shield_index;
-int cheat_warp_index;
-int cheat_astral_index;
-int cheat_turbomode_index;
-int cheat_wowie2_index;
-int cheat_newlife_index;
-int cheat_exitpath_index;
-int cheat_robotpause_index;
-
 int Cheats_enabled = 0;
-
-extern int Laser_rapid_fire, Ugly_robot_cheat;
-extern void do_lunacy_on(), do_lunacy_off();
-
-extern int Physics_cheat_flag;
 
 void game_disable_cheats()
 {
-	Game_turbo_mode = 0;
+	Game_turbo_mode = false;
 	Cheats_enabled = 0;
 	do_lunacy_off();
-	Laser_rapid_fire = 0;
-	Ugly_robot_cheat = 0;
-	Physics_cheat_flag = 0;
+	Laser_rapid_fire = false;
+	Ugly_robot_cheat = false;
+	Physics_cheat_flag = false;
 }
 
 //	------------------------------------------------------------------------------------
@@ -1977,9 +1926,7 @@ void game()
 	last_drawn_cockpit = -1;				// Force cockpit to redraw next time a frame renders.
 	Endlevel_sequence = 0;
 
-	cheat_enable_index = 0;
-	cheat_wowie_index = cheat_allkeys_index = cheat_invuln_index = cheat_cloak_index = cheat_shield_index = cheat_warp_index = cheat_astral_index = 0;
-	cheat_turbomode_index = cheat_wowie2_index = 0;
+	init_cheats();
 
 	set_screen_mode(SCREEN_GAME);
 	reset_palette_add();
@@ -2133,11 +2080,6 @@ void game()
 	game_disable_cheats();
 }
 
-extern void john_cheat_func_1(int);
-extern void john_cheat_func_2(int);
-extern void john_cheat_func_3(int);
-extern void john_cheat_func_4(int);
-
 //called at the end of the program
 void close_game()
 {
@@ -2282,285 +2224,29 @@ void ReadControls()
 
 	while ((key = key_inkey_time(&key_time)) != 0) 
 	{
-		john_cheat_func_1(key);
-
-#ifdef NETWORK
-		if ((Game_mode & GM_MULTI) && (multi_sending_message || multi_defining_message)) {
-			multi_message_input_sub(key);
-			key = 0;		// Wipe out key!
-		}
-#endif
-
-		if (!(Game_mode & GM_MULTI) && key == cheat_enable_keys[cheat_enable_index]) 
-		{
-			if (++cheat_enable_index == CHEAT_ENABLE_LENGTH) 
-			{
-				HUD_init_message(TXT_CHEATS_ENABLED);
-				digi_play_sample(SOUND_CHEATER, F1_0);
-				Cheats_enabled = 1;
-				Players[Player_num].score = 0;
-			}
-		}
-		else
-			cheat_enable_index = 0;
-
-		john_cheat_func_2(key);
-
-		if (Cheats_enabled) 
-		{
-			if (!(Game_mode & GM_MULTI) && key == cheat_wowie[cheat_wowie_index]) 
-			{
-				if (++cheat_wowie_index == CHEAT_WOWIE_LENGTH)
-				{
-					int i;
-
-					HUD_init_message(TXT_WOWIE_ZOWIE);
-					digi_play_sample(SOUND_CHEATER, F1_0);
-
-					Players[Player_num].primary_weapon_flags |= 0xff ^ (HAS_PLASMA_FLAG | HAS_FUSION_FLAG);
-					Players[Player_num].secondary_weapon_flags |= 0xff ^ (HAS_SMART_FLAG | HAS_MEGA_FLAG);
-
-					for (i = 0; i < 3; i++)
-						Players[Player_num].primary_ammo[i] = Primary_ammo_max[i];
-
-					for (i = 0; i < 3; i++)
-						Players[Player_num].secondary_ammo[i] = Secondary_ammo_max[i];
-
-					if (Newdemo_state == ND_STATE_RECORDING)
-						newdemo_record_laser_level(Players[Player_num].laser_level, MAX_LASER_LEVEL);
-
-					Players[Player_num].energy = MAX_ENERGY;
-					Players[Player_num].laser_level = MAX_LASER_LEVEL;
-					Players[Player_num].flags |= PLAYER_FLAGS_QUAD_LASERS;
-					update_laser_weapon_info();
-
-					cheat_wowie_index = 0;
-				}
-			}
-			else
-				cheat_wowie_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == (0xaa ^ new_cheats[cheat_wowie2_index * NUM_NEW_CHEATS + CHEAT_WOWIE2_OFS]))
-			{
-				if (++cheat_wowie2_index == CHEAT_WOWIE2_LENGTH)
-				{
-					int i;
-
-					HUD_init_message("SUPER %s", TXT_WOWIE_ZOWIE);
-					digi_play_sample(SOUND_CHEATER, F1_0);
-
-					Players[Player_num].primary_weapon_flags = 0xff;
-					Players[Player_num].secondary_weapon_flags = 0xff;
-
-					for (i = 0; i < MAX_PRIMARY_WEAPONS; i++)
-						Players[Player_num].primary_ammo[i] = Primary_ammo_max[i];
-
-					for (i = 0; i < MAX_SECONDARY_WEAPONS; i++)
-						Players[Player_num].secondary_ammo[i] = Secondary_ammo_max[i];
-
-					if (Newdemo_state == ND_STATE_RECORDING)
-						newdemo_record_laser_level(Players[Player_num].laser_level, MAX_LASER_LEVEL);
-
-					Players[Player_num].energy = MAX_ENERGY;
-					Players[Player_num].laser_level = MAX_LASER_LEVEL;
-					Players[Player_num].flags |= PLAYER_FLAGS_QUAD_LASERS;
-					update_laser_weapon_info();
-
-					cheat_wowie2_index = 0;
-				}
-			}
-			else
-				cheat_wowie2_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == cheat_allkeys[cheat_allkeys_index]) 
-			{
-				if (++cheat_allkeys_index == CHEAT_ALLKEYS_LENGTH) 
-				{
-					HUD_init_message(TXT_ALL_KEYS);
-					digi_play_sample(SOUND_CHEATER, F1_0);
-					Players[Player_num].flags |= PLAYER_FLAGS_BLUE_KEY | PLAYER_FLAGS_RED_KEY | PLAYER_FLAGS_GOLD_KEY;
-
-					cheat_allkeys_index = 0;
-				}
-			}
-			else
-				cheat_allkeys_index = 0;
-
-
-			if (!(Game_mode & GM_MULTI) && key == cheat_invuln[cheat_invuln_index]) 
-			{
-				if (++cheat_invuln_index == CHEAT_INVULN_LENGTH)
-				{
-					Players[Player_num].flags ^= PLAYER_FLAGS_INVULNERABLE;
-					HUD_init_message("%s %s!", TXT_INVULNERABILITY, (Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE) ? TXT_ON : TXT_OFF);
-					digi_play_sample(SOUND_CHEATER, F1_0);
-					Players[Player_num].invulnerable_time = GameTime + i2f(1000);
-
-					cheat_invuln_index = 0;
-				}
-			}
-			else
-				cheat_invuln_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == cheat_cloak[cheat_cloak_index]) 
-			{
-				if (++cheat_cloak_index == CHEAT_CLOAK_LENGTH) 
-				{
-					Players[Player_num].flags ^= PLAYER_FLAGS_CLOAKED;
-					HUD_init_message("%s %s!", TXT_CLOAK, (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) ? TXT_ON : TXT_OFF);
-					digi_play_sample(SOUND_CHEATER, F1_0);
-					if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) 
-					{
-						ai_do_cloak_stuff();
-						Players[Player_num].cloak_time = GameTime;
-					}
-
-					cheat_cloak_index = 0;
-				}
-			}
-			else
-				cheat_cloak_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == cheat_shield[cheat_shield_index]) 
-			{
-				if (++cheat_shield_index == CHEAT_SHIELD_LENGTH) 
-				{
-					HUD_init_message(TXT_FULL_SHIELDS);
-					digi_play_sample(SOUND_CHEATER, F1_0);
-					Players[Player_num].shields = MAX_SHIELDS;
-
-					cheat_shield_index = 0;
-				}
-			}
-			else
-				cheat_shield_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == cheat_warp[cheat_warp_index]) 
-			{
-				if (++cheat_warp_index == CHEAT_WARP_LENGTH) 
-				{
-					newmenu_item m;
-					char text[10] = "";
-					int new_level_num;
-					int item;
-					digi_play_sample(SOUND_CHEATER, F1_0);
-					m.type = NM_TYPE_INPUT; m.text_len = 10; m.text = text;
-					item = newmenu_do(NULL, TXT_WARP_TO_LEVEL, 1, &m, NULL);
-					if (item != -1) {
-						new_level_num = atoi(m.text);
-						if (new_level_num != 0 && new_level_num >= 0 && new_level_num <= Last_level)
-							StartNewLevel(new_level_num);
-					}
-
-					cheat_warp_index = 0;
-				}
-			}
-			else
-				cheat_warp_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == cheat_astral[cheat_astral_index]) 
-			{
-				if (++cheat_astral_index == CHEAT_ASTRAL_LENGTH) 
-				{
-					digi_play_sample(SOUND_CHEATER, F1_0);
-					if (Physics_cheat_flag == 0xBADA55) 
-					{
-						Physics_cheat_flag = 0;
-					}
-					else 
-					{
-						Physics_cheat_flag = 0xBADA55;
-					}
-					HUD_init_message("%s %s!", "Ghosty mode", Physics_cheat_flag == 0xBADA55 ? TXT_ON : TXT_OFF);
-					cheat_astral_index = 0;
-				}
-			}
-			else
-				cheat_astral_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == (0xaa ^ new_cheats[cheat_turbomode_index * NUM_NEW_CHEATS + CHEAT_TURBOMODE_OFS])) 
-			{
-				if (++cheat_turbomode_index == CHEAT_TURBOMODE_LENGTH) 
-				{
-					Game_turbo_mode ^= 1;
-					HUD_init_message("%s %s!", "Turbo mode", Game_turbo_mode ? TXT_ON : TXT_OFF);
-					digi_play_sample(SOUND_CHEATER, F1_0);
-				}
-			}
-			else
-				cheat_turbomode_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == (0xaa ^ new_cheats[cheat_newlife_index * NUM_NEW_CHEATS + CHEAT_NEWLIFE_OFS])) 
-			{
-				if (++cheat_newlife_index == CHEAT_NEWLIFE_LENGTH) 
-				{
-					if (Players[Player_num].lives < 50)
-					{
-						Players[Player_num].lives++;
-						HUD_init_message("Extra life!");
-						digi_play_sample(SOUND_CHEATER, F1_0);
-					}
-
-					cheat_newlife_index = 0;
-				}
-			}
-			else
-				cheat_newlife_index = 0;
-
-			if (!(Game_mode & GM_MULTI) && key == (0xaa ^ new_cheats[cheat_exitpath_index * NUM_NEW_CHEATS + CHEAT_EXITPATH_OFS])) 
-			{
-				if (++cheat_exitpath_index == CHEAT_EXITPATH_LENGTH)
-				{
-#ifdef SHOW_EXIT_PATH
-					if (create_special_path()) 
-					{
-						HUD_init_message("Exit path illuminated!");
-						digi_play_sample(SOUND_CHEATER, F1_0);
-					}
-#endif
-					cheat_exitpath_index = 0;
-				}
-			}
-			else
-				cheat_exitpath_index = 0;
-
-
-			if (!(Game_mode & GM_MULTI) && key == (0xaa ^ new_cheats[cheat_robotpause_index * NUM_NEW_CHEATS + CHEAT_ROBOTPAUSE_OFS])) {
-				if (++cheat_robotpause_index == CHEAT_ROBOTPAUSE_LENGTH) {
-					Robot_firing_enabled = !Robot_firing_enabled;
-					HUD_init_message("%s %s!", "Robot firing", Robot_firing_enabled ? TXT_ON : TXT_OFF);
-					digi_play_sample(SOUND_CHEATER, F1_0);
-
-					cheat_robotpause_index = 0;
-				}
-
-			}
-			else
-				cheat_robotpause_index = 0;
-
-
-		}
-
-		john_cheat_func_3(key);
+		//cleaned up cheat handling done here. 
+		do_cheat_key(key);
 
 #ifndef RELEASE
 #ifdef NETWORK
-		if ((key & KEY_DEBUGGED) && (Game_mode & GM_MULTI)) {
+		if ((key & KEY_DEBUGGED) && (Game_mode & GM_MULTI)) 
+		{
 			Network_message_reciever = 100;		// Send to everyone...
 			sprintf(Network_message, "%s %s", TXT_I_AM_A, TXT_CHEATER);
 		}
 #endif
 #endif
 
-		if (Endlevel_sequence) {
-
+		if (Endlevel_sequence) 
+		{
 			if (key == KEY_PRINT_SCREEN)
 				save_screen_shot(0);
 
 			if (key == KEY_PAUSE)
 				key = do_game_pause(0);		//so esc from pause will end level
 
-			if (key == KEY_ESC) {
+			if (key == KEY_ESC) 
+			{
 				stop_endlevel_sequence();
 				last_drawn_cockpit = -1;
 				return;
@@ -2572,24 +2258,25 @@ void ReadControls()
 			break;		//don't process any other keys
 		}
 
-		john_cheat_func_4(key);
-
-		if (Player_is_dead) {
-
+		if (Player_is_dead) 
+		{
 			if (key == KEY_PRINT_SCREEN)
 				save_screen_shot(0);
 
-			if (key == KEY_PAUSE) {
+			if (key == KEY_PAUSE) 
+			{
 				key = do_game_pause(0);		//so esc from pause will end level
 				Death_sequence_aborted = 0;		// Clear because code above sets this for any key.
 			}
 
-			if (key == KEY_ESC) {
+			if (key == KEY_ESC) 
+			{
 				if (ConsoleObject->flags & OF_EXPLODING)
 					Death_sequence_aborted = 1;
 			}
 
-			if (key == KEY_BACKSP) {
+			if (key == KEY_BACKSP) 
+			{
 				Death_sequence_aborted = 0;		// Clear because code above sets this for any key.
 				Int3();
 			}
@@ -2597,9 +2284,10 @@ void ReadControls()
 			break;		//don't process any other keys
 		}
 
-		if (Newdemo_state == ND_STATE_PLAYBACK) {
-			switch (key) {
-
+		if (Newdemo_state == ND_STATE_PLAYBACK) 
+		{
+			switch (key) 
+			{
 			case KEY_DEBUGGED + KEY_I:
 				Newdemo_do_interpolate = !Newdemo_do_interpolate;
 				if (Newdemo_do_interpolate)
@@ -2608,7 +2296,8 @@ void ReadControls()
 					mprintf((0, "demo playback interpolation now off\n"));
 				break;
 #ifndef NDEBUG
-			case KEY_DEBUGGED + KEY_K: {
+			case KEY_DEBUGGED + KEY_K: 
+			{
 				int how_many, c;
 				char filename[13], num[16];
 				newmenu_item m[6];
@@ -2631,7 +2320,9 @@ void ReadControls()
 					break;
 				newdemo_strip_frames(filename, how_many);
 			}
-									   break;
+			break;
+
+			case KEY_DEBUGGED + KEY_F:	framerate_on = !framerate_on; break;
 #endif
 
 			case KEY_F3:				toggle_cockpit();			break;
@@ -2674,7 +2365,8 @@ void ReadControls()
 			case KEY_PAUSE:
 				do_game_pause(0);
 				break;
-			case KEY_PRINT_SCREEN: {
+			case KEY_PRINT_SCREEN: 
+			{
 				int old_state;
 
 				old_state = Newdemo_vcr_state;

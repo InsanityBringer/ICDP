@@ -16,18 +16,18 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/types.h"
 #include "2d/gr.h"
 
-#define NM_TYPE_MENU  	0		// A menu item... when enter is hit on this, newmenu_do returns this item number
-#define NM_TYPE_INPUT 	1		// An input box... fills the text field in, and you need to fill in text_len field.
-#define NM_TYPE_CHECK 	2		// A check box. Set and get its status by looking at flags field (1=on, 0=off)
-#define NM_TYPE_RADIO 	3		// Same as check box, but only 1 in a group can be set at a time. Set group fields.
+#define NM_TYPE_MENU  		0		// A menu item... when enter is hit on this, newmenu_do returns this item number
+#define NM_TYPE_INPUT 		1		// An input box... fills the text field in, and you need to fill in text_len field.
+#define NM_TYPE_CHECK 		2		// A check box. Set and get its status by looking at flags field (1=on, 0=off)
+#define NM_TYPE_RADIO 		3		// Same as check box, but only 1 in a group can be set at a time. Set group fields.
 #define NM_TYPE_TEXT	 	4		// A line of text that does nothing.
-#define NM_TYPE_NUMBER	5		// A numeric entry counter.  Changes value from min_value to max_value;
+#define NM_TYPE_NUMBER		5		// A numeric entry counter.  Changes value from min_value to max_value;
 #define NM_TYPE_INPUT_MENU	6		// A inputbox that you hit Enter to edit, when done, hit enter and menu leaves.
-#define NM_TYPE_SLIDER	7		// A slider from min_value to max_value. Draws with text_len chars.
+#define NM_TYPE_SLIDER		7		// A slider from min_value to max_value. Draws with text_len chars.
 
 #define NM_MAX_TEXT_LEN	50
 
-typedef struct newmenu_item 
+struct newmenu_item
 {
 	int 	type;				// What kind of item this is, see NM_TYPE_????? defines
 	int 	value;			// For checkboxes and radio buttons, this is 1 if marked initially, else 0
@@ -41,7 +41,7 @@ typedef struct newmenu_item
 	short right_offset;
 	uint8_t redraw;
 	char	saved_text[NM_MAX_TEXT_LEN + 1];
-} newmenu_item;
+};
 
 // Pass an array of newmenu_items and it processes the menu. It will
 // return a -1 if Esc is pressed, otherwise, it returns the index of 

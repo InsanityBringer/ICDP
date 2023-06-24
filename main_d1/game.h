@@ -181,8 +181,6 @@ void clear_boxed_message();
 //turns off rear view & rear view cockpit
 void reset_rear_view(void);
 
-extern int Game_turbo_mode;
-
 #define VR_NONE			0	//viewing the game screen
 #define VR_AREA_DET		1	//viewing with the stereo area determined method
 #define VR_INTERLACED	2	//viewing with the stereo interlaced method
@@ -213,3 +211,17 @@ void fill_background(int x, int y, int w, int h, int dx, int dy);
 void game_init_render_sub_buffers(int x, int y, int w, int h);
 void GameLoop(int RenderFlag, int ReadControlsFlag);
 void powerup_grab_cheat_all(void);
+
+//New cheat input stuff
+void init_cheats();
+void do_cheat_key(int keycode);
+
+//Cheat flags
+extern bool Ugly_robot_cheat;
+extern int Ugly_robot_texture;
+extern bool Laser_rapid_fire;
+extern bool Physics_cheat_flag;
+extern bool Game_turbo_mode;
+
+int create_special_path();
+extern bool framerate_on;
