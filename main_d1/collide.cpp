@@ -1372,9 +1372,7 @@ void collide_player_and_powerup(object* player, object* powerup, vms_vector* col
 {
 	if (!Endlevel_sequence && !Player_is_dead && (player->id == Player_num)) 
 	{
-		int powerup_used;
-
-		powerup_used = do_powerup(powerup);
+		bool powerup_used = do_powerup(powerup);
 
 		if (powerup_used) 
 		{

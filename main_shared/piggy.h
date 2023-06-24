@@ -25,20 +25,20 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #define MAX_ALIASES 20
 
-typedef struct alias 
+struct alias
 {
 	char alias_name[FILENAME_LEN];
 	char file_name[FILENAME_LEN];
-} alias;
+};
 
 extern alias alias_list[MAX_ALIASES];
 extern int Num_aliases;
 extern bool warn_on_late_cache;
 
-typedef struct bitmap_index 
+struct bitmap_index
 {
 	uint16_t	index;
-} bitmap_index;
+};
 
 int piggy_init();
 void piggy_close();

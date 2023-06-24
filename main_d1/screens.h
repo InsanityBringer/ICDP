@@ -18,13 +18,13 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 //What graphics modes the game & editor open
 
 //for Screen_mode variable
-#define SCREEN_MENU				0	//viewing the menu screen
-#define SCREEN_GAME				1	//viewing the menu screen
-#define SCREEN_EDITOR			2	//viewing the editor screen
+#define SCREEN_MENU				0		//viewing the menu screen
+#define SCREEN_GAME				1		//viewing the menu screen
+#define SCREEN_EDITOR			2		//viewing the editor screen
 
 //from editor.c
 #ifdef EDITOR
-extern grs_canvas * Canv_editor;			//the full on-scrren editor canvas
+extern grs_canvas* Canv_editor;			//the full on-scrren editor canvas
 extern grs_canvas* Canv_editor_game;	//the game window on the editor screen
 #endif
 

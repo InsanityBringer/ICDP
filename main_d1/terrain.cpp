@@ -45,9 +45,6 @@ uint8_t* light_array;
 #define HEIGHT(_i,_j) (height_array[(_i)*grid_w+(_j)])
 #define LIGHT(_i,_j) light_array[(_i)*grid_w+(_j)]
 
-//!!#define HEIGHT(_i,_j)	height_array[(grid_h-1-j)*grid_w+(_i)]
-//!!#define LIGHT(_i,_j)		light_array[(grid_h-1-j)*grid_w+(_i)]
-
 #define LIGHTVAL(_i,_j) (((fix) LIGHT(_i,_j))<<8)
 
 g3s_point save_row[GRID_MAX_SIZE];
@@ -55,9 +52,6 @@ g3s_point save_row[GRID_MAX_SIZE];
 vms_vector start_point;
 
 grs_bitmap* terrain_bm;
-
-//extern fix g3_get_surface_dotprod(g3s_point** list); //[ISB] unused
-//#pragma aux g3_get_surface_dotprod "*" parm [esi] value [eax] modify exact [eax];
 
 int terrain_outline = 0;
 
@@ -146,7 +140,8 @@ vms_vector* get_dy_vec(int h)
 
 	dyp = &y_cache[h];
 
-	if (!yc_flags[h]) {
+	if (!yc_flags[h]) 
+	{
 		vms_vector tv;
 
 		//@@g3_rotate_delta_y(dyp,h*HEIGHT_SCALE);
@@ -168,9 +163,6 @@ void render_terrain(vms_vector* org_point, int org_2dx, int org_2dy)
 	vms_vector delta_i, delta_j;		//delta_y;
 	g3s_point p, last_p, save_p_low, save_p_high;
 	g3s_point last_p2;
-	int i, j;
-	int low_i, high_i, low_j, high_j;
-	int viewer_i, viewer_j;
 	vms_vector tv;
 
 	mine_tiles_drawn = 0;	//clear flags
@@ -178,8 +170,8 @@ void render_terrain(vms_vector* org_point, int org_2dx, int org_2dy)
 	org_i = org_2dy;
 	org_j = org_2dx;
 
-	low_i = 0;  high_i = grid_w - 1;
-	low_j = 0;  high_j = grid_h - 1;
+	int low_i = 0; int high_i = grid_w - 1;
+	int low_j = 0; int high_j = grid_h - 1;
 
 	//@@start_point.x = org_point->x - GRID_SCALE*(org_i - low_i);
 	//@@start_point.z = org_point->z - GRID_SCALE*(org_j - low_j);
@@ -199,8 +191,8 @@ void render_terrain(vms_vector* org_point, int org_2dx, int org_2dy)
 	vm_vec_scale_add2(&start_point, &surface_orient.fvec, -(org_j - low_j) * GRID_SCALE);
 
 	vm_vec_sub(&tv, &Viewer->pos, &start_point);
-	viewer_i = vm_vec_dot(&tv, &surface_orient.rvec) / GRID_SCALE;
-	viewer_j = vm_vec_dot(&tv, &surface_orient.fvec) / GRID_SCALE;
+	int viewer_i = vm_vec_dot(&tv, &surface_orient.rvec) / GRID_SCALE;
+	int viewer_j = vm_vec_dot(&tv, &surface_orient.fvec) / GRID_SCALE;
 
 	//mprintf((0,"viewer_i,j = %d,%d\n",viewer_i,viewer_j));
 
@@ -210,7 +202,7 @@ void render_terrain(vms_vector* org_point, int org_2dx, int org_2dy)
 	g3_rotate_point(&last_p, &start_point);
 	save_p_low = last_p;
 
-	for (j = low_j; j <= high_j; j++) 
+	for (int j = low_j; j <= high_j; j++) 
 	{
 		g3_add_delta_vec(&save_row[j], &last_p, get_dy_vec(HEIGHT(low_i, j)));
 		if (j == high_j)
@@ -219,12 +211,13 @@ void render_terrain(vms_vector* org_point, int org_2dx, int org_2dy)
 			g3_add_delta_vec(&last_p, &last_p, &delta_j);
 	}
 
-	for (i = low_i; i < viewer_i; i++) 
+	for (int i = low_i; i < viewer_i; i++) 
 	{
 		g3_add_delta_vec(&save_p_low, &save_p_low, &delta_i);
 		last_p = save_p_low;
 		g3_add_delta_vec(&last_p2, &last_p, get_dy_vec(HEIGHT(i + 1, low_j)));
 
+		int j; //j will be reused
 		for (j = low_j; j < viewer_j; j++) 
 		{
 			g3s_point p2;
@@ -276,7 +269,7 @@ void render_terrain(vms_vector* org_point, int org_2dx, int org_2dy)
 	g3_rotate_point(&last_p, &start_point);
 	save_p_low = last_p;
 
-	for (j = low_j; j <= high_j; j++) 
+	for (int j = low_j; j <= high_j; j++) 
 	{
 		g3_add_delta_vec(&save_row[j], &last_p, get_dy_vec(HEIGHT(high_i, j)));
 		if (j == high_j)
@@ -285,12 +278,13 @@ void render_terrain(vms_vector* org_point, int org_2dx, int org_2dy)
 			g3_add_delta_vec(&last_p, &last_p, &delta_j);
 	}
 
-	for (i = high_i - 1; i >= viewer_i; i--) 
+	for (int i = high_i - 1; i >= viewer_i; i--) 
 	{
 		g3_add_delta_vec(&save_p_low, &save_p_low, &delta_i);
 		last_p = save_p_low;
 		g3_add_delta_vec(&last_p2, &last_p, get_dy_vec(HEIGHT(i, low_j)));
 
+		int j;
 		for (j = low_j; j < viewer_j; j++) 
 		{
 			g3s_point p2;
@@ -342,12 +336,10 @@ void free_height_array(void)
 void load_terrain(char* filename)
 {
 	grs_bitmap height_bitmap;
-	int iff_error;
-	int i, j;
-	uint8_t h, min_h, max_h;
 
-	iff_error = iff_read_bitmap(filename, &height_bitmap, BM_LINEAR, NULL);
-	if (iff_error != IFF_NO_ERROR) {
+	int iff_error = iff_read_bitmap(filename, &height_bitmap, BM_LINEAR, NULL);
+	if (iff_error != IFF_NO_ERROR) 
+	{
 		mprintf((1, "File %s - IFF error: %s", filename, iff_errormsg(iff_error)));
 		Error("File %s - IFF error: %s", filename, iff_errormsg(iff_error));
 	}
@@ -365,11 +357,11 @@ void load_terrain(char* filename)
 
 	height_array = height_bitmap.bm_data;
 
-	max_h = 0; min_h = 255;
-	for (i = 0; i < grid_w; i++)
-		for (j = 0; j < grid_h; j++) {
-
-			h = HEIGHT(i, j);
+	uint8_t max_h = 0, min_h = 255;
+	for (int i = 0; i < grid_w; i++)
+		for (int j = 0; j < grid_h; j++) 
+		{
+			uint8_t h = HEIGHT(i, j);
 
 			if (h > max_h)
 				max_h = h;
@@ -378,8 +370,8 @@ void load_terrain(char* filename)
 				min_h = h;
 		}
 
-	for (i = 0; i < grid_w; i++)
-		for (j = 0; j < grid_h; j++)
+	for (int i = 0; i < grid_w; i++)
+		for (int j = 0; j < grid_h; j++)
 			HEIGHT(i, j) -= min_h;
 
 
@@ -407,9 +399,7 @@ fix get_face_light(vms_vector* p0, vms_vector* p1, vms_vector* p2)
 	vm_vec_normal(&norm, p0, p1, p2);
 
 	return -vm_vec_dot(&norm, &light);
-
 }
-
 
 fix get_avg_light(int i, int j)
 {
@@ -439,19 +429,19 @@ void free_light_table(void)
 
 void build_light_table()
 {
-	int i, j;
-	fix l, l2, min_l = 0x7fffffff, max_l = 0;
+	fix min_l = 0x7fffffff, max_l = 0;
 
 	if (light_array)
 		free(light_array);
 	else
 		atexit(free_light_table);		//first time
 
-	//MALLOC(light_array,uint8_t,grid_w*grid_h); //Won't comile -KRB
-	light_array = (uint8_t*)malloc(grid_w * grid_h + (sizeof(uint8_t))); //my hack -KRB
-	for (i = 1; i < grid_w; i++)
-		for (j = 1; j < grid_h; j++) {
-			l = get_avg_light(i, j);
+	MALLOC(light_array,uint8_t,grid_w*grid_h);
+
+	for (int i = 1; i < grid_w; i++)
+		for (int j = 1; j < grid_h; j++) 
+		{
+			fix l = get_avg_light(i, j);
 
 			if (l > max_l)
 				max_l = l;
@@ -462,18 +452,18 @@ void build_light_table()
 			//printf("light %2d,%2d = %8x\n",i,j,l);
 		}
 
-	for (i = 1; i < grid_w; i++)
-		for (j = 1; j < grid_h; j++) 
+	for (int i = 1; i < grid_w; i++)
+		for (int j = 1; j < grid_h; j++) 
 		{
+			fix l = get_avg_light(i, j);
 
-			l = get_avg_light(i, j);
-
-			if (min_l == max_l) {
+			if (min_l == max_l) 
+			{
 				LIGHT(i, j) = (uint8_t)(l >> 8);
 				continue;
 			}
 
-			l2 = fixdiv((l - min_l), (max_l - min_l));
+			fix l2 = fixdiv((l - min_l), (max_l - min_l));
 
 			if (l2 == f1_0)
 				l2--;

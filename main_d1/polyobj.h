@@ -17,20 +17,13 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "2d/gr.h"
 #include "3d/3d.h"
 
-#ifndef DRIVE
 #include "robot.h"
-#endif
 #include "main_shared/piggy.h"
 
-#ifndef DRIVE
 #define MAX_POLYGON_MODELS 85
-#else
-#define MAX_POLYGON_MODELS 300
-#define MAX_SUBMODELS 10
-#endif
 
  //used to describe a polygon model
-typedef struct polymodel 
+struct polymodel
 {
 	int n_models;
 	int model_data_size;
@@ -48,9 +41,7 @@ typedef struct polymodel
 	uint8_t		n_textures;
 	uint16_t	first_texture;
 	uint8_t		simpler_model;		//alternate model with less detail (0 if none, model_num+1 else)
-//	vms_vector min,max;
-} polymodel;
-
+};
 //array of pointers to polygon objects
 extern polymodel Polygon_models[];
 
@@ -61,17 +52,12 @@ extern int Simple_model_threshhold_scale;
 //how many polygon objects there are
 extern int N_polygon_models;
 
-
 //array of names of currently-loaded models
 extern char Pof_names[MAX_POLYGON_MODELS][13];
 
 void init_polygon_models();
 
-#ifndef DRIVE
 int load_polygon_model(char* filename, int n_textures, int first_texture, robot_info* r);
-#else
-int load_polygon_model(char* filename, int n_textures, grs_bitmap*** textures);
-#endif
 
 //draw a polygon model
 void draw_polygon_model(vms_vector* pos, vms_matrix* orient, vms_angvec* anim_angles, int model_num, int flags, fix light, fix* glow_values, bitmap_index alt_textures[]);

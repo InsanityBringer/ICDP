@@ -17,7 +17,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "vclip.h"
 #include "fix/fix.h"
 
-#define	POW_EXTRA_LIFE 			0
+#define	POW_EXTRA_LIFE 				0
 #define	POW_ENERGY					1
 #define	POW_SHIELD_BOOST			2
 #define	POW_LASER					3
@@ -27,43 +27,26 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define	POW_KEY_GOLD				6
 
 #define	POW_RADAR_ROBOTS			7
-#define	POW_RADAR_POWERUPS		8
+#define	POW_RADAR_POWERUPS			8
 #define	POW_FULL_MAP				9
 
 #define	POW_MISSILE_1				10
 #define	POW_MISSILE_4				11
 
 #define	POW_QUAD_FIRE				12
-
- //--#define	POW_VULCAN_WEAPON			13
- //--#define	POW_SPREADFIRE_WEAPON	14
- //--#define	POW_PLASMA_WEAPON			15
- //--#define	POW_FUSION_WEAPON			16
- //--#define	POW_PROXIMITY_WEAPON		17
- //--#define	POW_SMARTBOMB_WEAPON		18
- //--#define	POW_MEGA_WEAPON			19
- //--#define	POW_VULCAN_AMMO			20
- //--#define	POW_HOMING_AMMO_1			21
- //--#define	POW_HOMING_AMMO_4			22
- //--#define	POW_CLOAK					23
- //--#define	POW_TURBO					24
- //--#define	POW_INVULNERABILITY		25
- //--#define	POW_HEADLIGHT				26
- //--#define	POW_MEGAWOW					27
-
 #define	POW_VULCAN_WEAPON			13
-#define	POW_SPREADFIRE_WEAPON	14
+#define	POW_SPREADFIRE_WEAPON		14
 #define	POW_PLASMA_WEAPON			15
 #define	POW_FUSION_WEAPON			16
 #define	POW_PROXIMITY_WEAPON		17
-#define	POW_SMARTBOMB_WEAPON		20	//18
-#define	POW_MEGA_WEAPON			21	//19
-#define	POW_VULCAN_AMMO			22	//20
-#define	POW_HOMING_AMMO_1			18	//21
-#define	POW_HOMING_AMMO_4			19	//22
+#define	POW_SMARTBOMB_WEAPON		20
+#define	POW_MEGA_WEAPON				21
+#define	POW_VULCAN_AMMO				22
+#define	POW_HOMING_AMMO_1			18
+#define	POW_HOMING_AMMO_4			19
 #define	POW_CLOAK					23
 #define	POW_TURBO					24
-#define	POW_INVULNERABILITY		25
+#define	POW_INVULNERABILITY			25
 #define	POW_HEADLIGHT				26
 #define	POW_MEGAWOW					27
 
@@ -71,27 +54,17 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define	VULCAN_WEAPON_AMMO_AMOUNT	196
 #define	VULCAN_AMMO_AMOUNT			(49*2)
 
-constexpr int POW_CLASS_UNCLASSIFIED = 0;
-constexpr int POW_CLASS_PRIMARY = 1;
-constexpr int POW_CLASS_SECONDARY = 2;
-constexpr int POW_CLASS_KEY = 3;
-
-// What I picked up        What it said I picked up
-// ----------------        ------------------------
-// vulcan ammo             4 homing missiles
-// mega missile            1 homing missile
-// smart missile           vulcan ammo
-// 4 homing missiles       mega missile
-// 1 homing missile        smart missile
-// 
-// The rest were correct.  I can help you with this whenever you're free.
+constexpr int POW_CLASS_UNCLASSIFIED	= 0;
+constexpr int POW_CLASS_PRIMARY			= 1;
+constexpr int POW_CLASS_SECONDARY		= 2;
+constexpr int POW_CLASS_KEY				= 3;
 
 #define MAX_POWERUP_TYPES			29
 
 #define	POWERUP_NAME_LENGTH	16		//	Length of a robot or powerup name.
 extern char	Powerup_names[MAX_POWERUP_TYPES][POWERUP_NAME_LENGTH];
 
-typedef struct powerup_type_info 
+struct powerup_type_info
 {
 	int	vclip_num;
 	int	hit_sound;
@@ -99,10 +72,10 @@ typedef struct powerup_type_info
 	fix	light;		//	amount of light cast by this powerup, set in bitmaps.tbl
 
 	//New keys for generalizing features..
-	int multi_replacement; //Replace this powerup with another in multiplayer games
+	int multi_replacement; //Replace this powerup with another in multiplayer games. -1 if not active. 
 	int anarchy_limit; //Amount of this powerup that can be present in an anarchy game. 0 is unlimited.
 	int powerup_class; //Used to determine the class of this powerup for things like duplication. 
-} powerup_type_info;
+};
 
 extern int N_powerup_types;
 extern powerup_type_info Powerup_info[MAX_POWERUP_TYPES];
@@ -113,13 +86,10 @@ void powerup_init_all();
 void draw_powerup(object* obj);
 
 //returns true if powerup consumed
-int do_powerup(object* obj);
+bool do_powerup(object* obj);
 
 //process (animate) a powerup for one frame
 void do_powerup_frame(object* obj);
-
-//	Diminish shields and energy towards max in case they exceeded it.
-//extern void diminish_towards_max(void); //[ISB] cut
 
 extern void do_megawow_powerup(int quantity);
 

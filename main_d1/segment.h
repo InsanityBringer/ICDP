@@ -28,33 +28,33 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define	MAX_VERTICES_PER_SEGMENT	8
 #define	MAX_SIDES_PER_SEGMENT		6
 #define	MAX_VERTICES_PER_POLY		4
-#define	WLEFT								0
-#define	WTOP								1
-#define	WRIGHT							2
-#define	WBOTTOM							3
-#define	WBACK								4
-#define	WFRONT							5
+#define	WLEFT						0
+#define	WTOP						1
+#define	WRIGHT						2
+#define	WBOTTOM						3
+#define	WBACK						4
+#define	WFRONT						5
 
-#define	MAX_GAME_SEGMENTS				800
-#define	MAX_GAME_VERTICES				2800
+#define	MAX_GAME_SEGMENTS			800
+#define	MAX_GAME_VERTICES			2800
 
 #if defined(SHAREWARE) && !defined(EDITOR)
-#define	MAX_SEGMENTS					MAX_GAME_SEGMENTS
-#define	MAX_SEGMENT_VERTICES			MAX_GAME_VERTICES
+#define	MAX_SEGMENTS				MAX_GAME_SEGMENTS
+#define	MAX_SEGMENT_VERTICES		MAX_GAME_VERTICES
 #else
-#define	MAX_SEGMENTS					900
-#define	MAX_SEGMENT_VERTICES			(4*MAX_SEGMENTS)
+#define	MAX_SEGMENTS				900
+#define	MAX_SEGMENT_VERTICES		(4*MAX_SEGMENTS)
 #endif
 
 //normal everyday vertices
 
-#define	DEFAULT_LIGHTING			0			// (F1_0/2)
+#define	DEFAULT_LIGHTING			0 // (F1_0/2)
 
 #ifdef EDITOR	//verts for the new segment
 #define	NUM_NEW_SEG_VERTICES		8
 #define	NEW_SEGMENT_VERTICES		(MAX_SEGMENT_VERTICES)
 #define	MAX_VERTICES				(MAX_SEGMENT_VERTICES+NUM_NEW_SEG_VERTICES)
-#else		//No editor
+#else			//No editor
 #define	MAX_VERTICES				(MAX_SEGMENT_VERTICES)
 #endif
 
@@ -64,45 +64,48 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 //Structure for storing u,v,light values. 
 //NOTE: this structure should be the same as the one in 3d.h
-typedef struct uvl {
+struct uvl
+{
 	fix u, v, l;
-} uvl;
+};
 
-typedef struct side {
+struct side
+{
 	int8_t		type;									// replaces num_faces and tri_edge, 1 = quad, 2 = 0:2 triangulation, 3 = 1:3 triangulation
 	uint8_t		pad;									//keep us longword alligned
 	short		wall_num;
 	short		tmap_num;
 	short		tmap_num2;
-	uvl		uvls[4];
+	uvl			uvls[4];
 	vms_vector	normals[2];						// 2 normals, if quadrilateral, both the same.
-} side;
+};
 
 #ifdef EDITOR
 #define SEGMENT_SIZEOF 522
 #else
 #define SEGMENT_SIZEOF sizeof(segment)
 #endif
-typedef struct segment 
+
+struct segment
 {
 #ifdef	EDITOR
 	short		segnum;								// segment number, not sure what it means
 #endif
-	side		sides[MAX_SIDES_PER_SEGMENT];	// 6 sides
+	side		sides[MAX_SIDES_PER_SEGMENT];		// 6 sides
 	short		children[MAX_SIDES_PER_SEGMENT];	// indices of 6 children segments, front, left, top, right, bottom, back
 	short		verts[MAX_VERTICES_PER_SEGMENT];	// vertex ids of 4 front and 4 back vertices
 #ifdef	EDITOR
 	short		group;								// group number to which the segment belongs.
 #endif
-	short		objects;								// pointer to objects in this segment
-	uint8_t		special;								// special property of a segment (such as damaging, trigger, etc.)
+	short		objects;							// pointer to objects in this segment
+	uint8_t		special;							// special property of a segment (such as damaging, trigger, etc.)
 	int8_t		matcen_num;							//	which center segment is associated with.
 	short		value;
-	fix		static_light;						//average static light in segment
+	fix			static_light;						//average static light in segment
 #ifndef	EDITOR
-	short		pad;			//make structure longword aligned
+	short		pad;								//make structure longword aligned
 #endif
-} segment;
+};
 
 //	Local segment data.
 //	This is stuff specific to a segment that does not need to get written to disk.
@@ -111,33 +114,33 @@ typedef struct segment
 #define	SS_REPAIR_CENTER	0x01				//	Bitmask for this segment being part of repair center.
 
 #ifdef RESTORE_REPAIRCENTER
-typedef struct 
+struct lsegment
 {
 	int	special_type;
-	short	special_segment;						// if special_type indicates repair center, this is the base of the repair center
-} lsegment;
+	short	special_segment; // if special_type indicates repair center, this is the base of the repair center
+};
 #endif
 
-typedef struct 
+struct group
 {
 	int		num_segments;
 	int		num_vertices;
-	short		segments[MAX_SEGMENTS];
-	short		vertices[MAX_VERTICES];
-} group;
+	short	segments[MAX_SEGMENTS];
+	short	vertices[MAX_VERTICES];
+};
 
 // Globals from mglobal.c
 extern	vms_vector	Vertices[];
 extern	segment		Segments[];
 #ifdef RESTORE_REPAIRCENTER
-extern	lsegment		Lsegments[];
+extern	lsegment	Lsegments[];
 #endif
 extern	int			Num_segments;
 extern	int			Num_vertices;
 
-extern	int8_t		Side_to_verts[MAX_SIDES_PER_SEGMENT][4];	// Side_to_verts[my_side] is list of vertices forming side my_side.
+extern	int8_t	Side_to_verts[MAX_SIDES_PER_SEGMENT][4];		// Side_to_verts[my_side] is list of vertices forming side my_side.
 extern	int		Side_to_verts_int[MAX_SIDES_PER_SEGMENT][4];	// Side_to_verts[my_side] is list of vertices forming side my_side.
-extern	char		Side_opposite[];									// Side_opposite[my_side] returns side opposite cube from my_side.
+extern	char	Side_opposite[];								// Side_opposite[my_side] returns side opposite cube from my_side.
 
 #define SEG_PTR_2_NUM(segptr) (Assert((unsigned) (segptr-Segments)<MAX_SEGMENTS),(segptr)-Segments)
 
@@ -150,15 +153,6 @@ extern	char		Side_opposite[];									// Side_opposite[my_side] returns side opp
 //	the number of vertices in *nv.
 #ifdef EDITOR
 extern void med_get_vertex_list(segment* s, int* nv, short** vp);
-
-//	Return a pointer to the list of vertex indices for face facenum in vp and
-//	the number of vertices in *nv.
-extern void med_get_face_vertex_list(segment* s, int side, int facenum, int* nv, short** vp);
-
-//	Set *nf = number of faces in segment s.
-extern void med_get_num_faces(segment* s, int* nf);
-
-void med_validate_segment_side(segment* sp, int side);
 
 // Delete segment function added for curves.c
 extern int med_delete_segment(segment* sp);

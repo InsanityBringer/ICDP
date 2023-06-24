@@ -93,14 +93,14 @@ int Highest_object_index = 0;
 int Highest_ever_object_index = 0;
 
 int print_object_info = 0;
-//@@int Object_viewer = 0;
 
 //	List of objects rendered last frame in order.  Created at render time, used by homing missiles in laser.c
 short Ordered_rendered_object_list[MAX_RENDERED_OBJECTS];
 int	Num_rendered_objects = 0;
 
 #ifndef NDEBUG
-char	Object_type_names[MAX_OBJECT_TYPES][9] = {
+char	Object_type_names[MAX_OBJECT_TYPES][9] = 
+{
 	"WALL    ",
 	"FIREBALL",
 	"ROBOT   ",
@@ -123,23 +123,21 @@ char	Object_type_names[MAX_OBJECT_TYPES][9] = {
 //set viewer object to next object in array
 void object_goto_next_viewer()
 {
-	int i, start_obj = 0;
+	int start_obj = Viewer - Objects;		//get viewer object number
 
-	start_obj = Viewer - Objects;		//get viewer object number
-
-	for (i = 0; i <= Highest_object_index; i++) {
-
+	for (int i = 0; i <= Highest_object_index; i++) 
+	{
 		start_obj++;
 		if (start_obj > Highest_object_index) start_obj = 0;
 
-		if (Objects[start_obj].type != OBJ_NONE) {
+		if (Objects[start_obj].type != OBJ_NONE) 
+		{
 			Viewer = &Objects[start_obj];
 			return;
 		}
 	}
 
 	Error("Couldn't find a viewer object!");
-
 }
 #endif
 
@@ -150,13 +148,9 @@ void draw_object_blob(object* obj, bitmap_index bmi)
 	PIGGY_PAGE_IN(bmi);
 
 	if (bm->bm_w > bm->bm_h)
-
 		g3_draw_bitmap(&obj->pos, obj->size, fixmuldiv(obj->size, bm->bm_h, bm->bm_w), bm);
-
 	else
-
 		g3_draw_bitmap(&obj->pos, fixmuldiv(obj->size, bm->bm_w, bm->bm_h), obj->size, bm);
-
 }
 
 //draw an object that is a texture-mapped rod
@@ -184,7 +178,6 @@ void draw_object_tmap_rod(object* obj, bitmap_index bitmapi, int lighted)
 		light = f1_0;
 
 	g3_draw_rod_tmap(bitmap, &bot_p, obj->size, &top_p, obj->size, light);
-
 }
 
 int	Linear_tmap_polygon_objects = 1;
@@ -212,11 +205,12 @@ void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time
 	fix cloak_delta_time, total_cloaked_time;
 	fix light_scale;
 	int cloak_value;
-	int fading = 0;		//if true, fading, else cloaking
+	bool fading = false;		//if true, fading, else cloaking
 
 	total_cloaked_time = cloak_end_time - cloak_start_time;
 
-	switch (obj->type) {
+	switch (obj->type) 
+	{
 	case OBJ_PLAYER:
 		Cloak_fadein_duration = CLOAK_FADEIN_DURATION_PLAYER;
 		Cloak_fadeout_duration = CLOAK_FADEOUT_DURATION_PLAYER;
@@ -231,17 +225,17 @@ void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time
 
 	cloak_delta_time = GameTime - cloak_start_time;
 
-	if (cloak_delta_time < Cloak_fadein_duration / 2) {
-
+	if (cloak_delta_time < Cloak_fadein_duration / 2)
+	{
 		light_scale = Cloak_fadein_duration / 2 - cloak_delta_time;
-		fading = 1;
+		fading = true;
 	}
-	else if (cloak_delta_time < Cloak_fadein_duration) {
-
+	else if (cloak_delta_time < Cloak_fadein_duration) 
+	{
 		cloak_value = f2i((cloak_delta_time - Cloak_fadein_duration / 2) * CLOAKED_FADE_LEVEL);
-
 	}
-	else if (GameTime < cloak_end_time - Cloak_fadeout_duration) {
+	else if (GameTime < cloak_end_time - Cloak_fadeout_duration) 
+	{
 		static int cloak_delta = 0, cloak_dir = 1;
 		static fix cloak_timer = 0;
 
@@ -249,8 +243,8 @@ void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time
 		//pulse rate will change!
 
 		cloak_timer -= FrameTime;
-		while (cloak_timer < 0) {
-
+		while (cloak_timer < 0) 
+		{
 			cloak_timer += Cloak_fadeout_duration / 12;
 
 			cloak_delta += cloak_dir;
@@ -262,76 +256,70 @@ void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time
 		cloak_value = CLOAKED_FADE_LEVEL - cloak_delta;
 
 	}
-	else if (GameTime < cloak_end_time - Cloak_fadeout_duration / 2) {
-
+	else if (GameTime < cloak_end_time - Cloak_fadeout_duration / 2) 
+	{
 		cloak_value = f2i((total_cloaked_time - Cloak_fadeout_duration / 2 - cloak_delta_time) * CLOAKED_FADE_LEVEL);
 
 	}
-	else {
-
+	else 
+	{
 		light_scale = Cloak_fadeout_duration / 2 - (total_cloaked_time - cloak_delta_time);
-		fading = 1;
+		fading = true;
 	}
 
-
-	if (fading) {
-		fix new_light, new_glow;
-
-		new_light = fixmul(light, light_scale);
-		new_glow = fixmul(*glow, light_scale);
+	if (fading) 
+	{
+		fix new_light = fixmul(light, light_scale);
+		fix new_glow = fixmul(*glow, light_scale);
 		draw_polygon_model(&obj->pos, &obj->orient, &obj->rtype.pobj_info.anim_angles[0], obj->rtype.pobj_info.model_num, obj->rtype.pobj_info.subobj_flags, new_light, &new_glow, alt_textures);
 	}
-	else {
-		//Gr_scanline_darkening_level = cloak_value;
+	else 
+	{
 		g3_set_darkening_level(cloak_value);
 		draw_polygon_model(&obj->pos, &obj->orient, &obj->rtype.pobj_info.anim_angles[0], obj->rtype.pobj_info.model_num, obj->rtype.pobj_info.subobj_flags, light, glow, alt_textures);
 		g3_set_darkening_level(GR_FADE_LEVELS);
-		//Gr_scanline_darkening_level = GR_FADE_LEVELS;
 	}
-
 }
 
 //draw an object which renders as a polygon model
 void draw_polygon_object(object* obj)
 {
-	fix light;
-	int	imsave;
-	fix engine_glow_value;
+	fix light = compute_object_light(obj, NULL);
 
-	light = compute_object_light(obj, NULL);
-
-	imsave = g3_get_interpolation_mode();
+	int imsave = g3_get_interpolation_mode();
 	if (Linear_tmap_polygon_objects)
 		g3_set_interpolation_mode(1);
 
 	//set engine glow value
-	engine_glow_value = f1_0 / 5;
-	if (obj->movement_type == MT_PHYSICS) {
-
-		if (obj->mtype.phys_info.flags & PF_USES_THRUST && obj->type == OBJ_PLAYER && obj->id == Player_num) {
+	fix engine_glow_value = f1_0 / 5;
+	if (obj->movement_type == MT_PHYSICS) 
+	{
+		if (obj->mtype.phys_info.flags & PF_USES_THRUST && obj->type == OBJ_PLAYER && obj->id == Player_num) 
+		{
 			fix thrust_mag = vm_vec_mag_quick(&obj->mtype.phys_info.thrust);
 			engine_glow_value += (fixdiv(thrust_mag, Player_ship->max_thrust) * 4) / 5;
 		}
-		else {
+		else
+		{
 			fix speed = vm_vec_mag_quick(&obj->mtype.phys_info.velocity);
 			engine_glow_value += (fixdiv(speed, MAX_VELOCITY) * 4) / 5;
 		}
 	}
 
-	if (obj->rtype.pobj_info.tmap_override != -1) {
+	if (obj->rtype.pobj_info.tmap_override != -1) 
+	{
 		polymodel* pm = &Polygon_models[obj->rtype.pobj_info.model_num];
 		bitmap_index bm_ptrs[10];
 
-		int i;
-
 		Assert(pm->n_textures <= 10);
 
-		for (i = 0; i < pm->n_textures; i++)
+		for (int i = 0; i < pm->n_textures; i++)
 			bm_ptrs[i] = Textures[obj->rtype.pobj_info.tmap_override];
 
 		draw_polygon_model(&obj->pos, &obj->orient, &obj->rtype.pobj_info.anim_angles[0], obj->rtype.pobj_info.model_num, obj->rtype.pobj_info.subobj_flags, light, &engine_glow_value, bm_ptrs);
 	}
-	else {
+	else 
+	{
 		bitmap_index* alt_textures = NULL;
 
 #ifdef NETWORK
@@ -341,15 +329,18 @@ void draw_polygon_object(object* obj)
 
 		if (obj->type == OBJ_PLAYER && (Players[obj->id].flags & PLAYER_FLAGS_CLOAKED))
 			draw_cloaked_object(obj, light, &engine_glow_value, Players[obj->id].cloak_time, Players[obj->id].cloak_time + CLOAK_TIME_MAX, alt_textures);
-		else if ((obj->type == OBJ_ROBOT) && (obj->ctype.ai_info.CLOAKED)) {
+		else if ((obj->type == OBJ_ROBOT) && (obj->ctype.ai_info.CLOAKED)) 
+		{
 			if (Robot_info[obj->id].boss_flag)
 				draw_cloaked_object(obj, light, &engine_glow_value, Boss_cloak_start_time, Boss_cloak_end_time, alt_textures);
 			else
 				draw_cloaked_object(obj, light, &engine_glow_value, GameTime - F1_0 * 10, GameTime + F1_0 * 10, alt_textures);
 		}
-		else {
+		else 
+		{
 			draw_polygon_model(&obj->pos, &obj->orient, &obj->rtype.pobj_info.anim_angles[0], obj->rtype.pobj_info.model_num, obj->rtype.pobj_info.subobj_flags, light, &engine_glow_value, alt_textures);
-			if (obj->type == OBJ_WEAPON && (Weapon_info[obj->id].model_num_inner > -1)) {
+			if (obj->type == OBJ_WEAPON && (Weapon_info[obj->id].model_num_inner > -1))
+			{
 				fix dist_to_eye = vm_vec_dist_quick(&Viewer->pos, &obj->pos);
 				if (dist_to_eye < Simple_model_threshhold_scale * F1_0 * 2)
 					draw_polygon_model(&obj->pos, &obj->orient, &obj->rtype.pobj_info.anim_angles[0], Weapon_info[obj->id].model_num_inner, obj->rtype.pobj_info.subobj_flags, light, &engine_glow_value, alt_textures);
@@ -358,63 +349,7 @@ void draw_polygon_object(object* obj)
 	}
 
 	g3_set_interpolation_mode(imsave);
-
 }
-
-//------------------------------------------------------------------------------
-// These variables are used to keep a list of the 3 closest robots to the viewer.
-// The code works like this: Every time render object is called with a polygon model,
-// it finds the distance of that robot to the viewer.  If this distance if within 10
-// segments of the viewer, it does the following: If there aren't already 3 robots in
-// the closet-robots list, it just sticks that object into the list along with its distance.
-// If the list already contains 3 robots, then it finds the robot in that list that is
-// farthest from the viewer. If that object is farther than the object currently being
-// rendered, then the new object takes over that far object's slot.  *Then* after all 
-// objects are rendered, object_render_targets is called an it draws a target on top
-// of all the objects.
-
-//091494: #define MAX_CLOSE_ROBOTS 3
-//--unused-- static int Object_draw_lock_boxes = 0;
-//091494: static int Object_num_close = 0;
-//091494: static object * Object_close_ones[MAX_CLOSE_ROBOTS];
-//091494: static fix Object_close_distance[MAX_CLOSE_ROBOTS];
-
-//091494: set_close_objects(object *obj)
-//091494: {
-//091494: 	fix dist;
-//091494: 
-//091494: 	if ( (obj->type != OBJ_ROBOT) || (Object_draw_lock_boxes==0) )	
-//091494: 		return;
-//091494: 
-//091494: 	// The following code keeps a list of the 10 closest robots to the 
-//091494: 	// viewer.  See comments in front of this function for how this works.
-//091494: 	dist = vm_vec_dist( &obj->pos, &Viewer->pos );
-//091494: 	if ( dist < i2f(20*10) )	{				
-//091494: 		if ( Object_num_close < MAX_CLOSE_ROBOTS )	{
-//091494: 			Object_close_ones[Object_num_close] = obj;
-//091494: 			Object_close_distance[Object_num_close] = dist;
-//091494: 			Object_num_close++;
-//091494: 		} else {
-//091494: 			int i, farthest_robot;
-//091494: 			fix farthest_distance;
-//091494: 			// Find the farthest robot in the list
-//091494: 			farthest_robot = 0;
-//091494: 			farthest_distance = Object_close_distance[0];
-//091494: 			for (i=1; i<Object_num_close; i++ )	{
-//091494: 				if ( Object_close_distance[i] > farthest_distance )	{
-//091494: 					farthest_distance = Object_close_distance[i];
-//091494: 					farthest_robot = i;
-//091494: 				}
-//091494: 			}
-//091494: 			// If this object is closer to the viewer than 
-//091494: 			// the farthest in the list, replace the farthest with this object.
-//091494: 			if ( farthest_distance > dist )	{
-//091494: 				Object_close_ones[farthest_robot] = obj;
-//091494: 				Object_close_distance[farthest_robot] = dist;
-//091494: 			}
-//091494: 		}
-//091494: 	}
-//091494: }
 
 int	Player_fired_laser_this_frame = -1;
 
@@ -423,9 +358,9 @@ int	Player_fired_laser_this_frame = -1;
 //the screen, and if so and the player had fired, "warns" the robot
 void set_robot_location_info(object* objp)
 {
-	if (Player_fired_laser_this_frame != -1) {
+	if (Player_fired_laser_this_frame != -1) 
+	{
 		g3s_point temp;
-
 		g3_rotate_point(&temp, &objp->pos);
 
 		if (temp.p3_codes & CC_BEHIND)		//robot behind the screen
@@ -433,14 +368,12 @@ void set_robot_location_info(object* objp)
 
 		//the code below to check for object near the center of the screen
 		//completely ignores z, which may not be good
-
-		if ((abs(temp.p3_x) < F1_0 * 4) && (abs(temp.p3_y) < F1_0 * 4)) {
+		if ((abs(temp.p3_x) < F1_0 * 4) && (abs(temp.p3_y) < F1_0 * 4)) 
+		{
 			objp->ctype.ai_info.danger_laser_num = Player_fired_laser_this_frame;
 			objp->ctype.ai_info.danger_laser_signature = Objects[Player_fired_laser_this_frame].signature;
 		}
 	}
-
-
 }
 
 //	------------------------------------------------------------------------------------------------------------------
@@ -460,13 +393,15 @@ void create_small_fireball_on_object(object* objp, fix size_scale, int sound_fla
 	size = fixmul(size_scale, F1_0 + P_Rand() * 4);
 
 	segnum = find_point_seg(&pos, objp->segnum);
-	if (segnum != -1) {
+	if (segnum != -1) 
+	{
 		object* expl_obj;
 		expl_obj = object_create_explosion(segnum, &pos, size, VCLIP_SMALL_EXPLOSION);
 		if (!expl_obj)
 			return;
 		obj_attach(objp, expl_obj);
-		if (P_Rand() < 8192) {
+		if (P_Rand() < 8192) 
+		{
 			fix	vol = F1_0 / 2;
 			if (objp->type == OBJ_ROBOT)
 				vol *= 2;
@@ -479,21 +414,20 @@ void create_small_fireball_on_object(object* objp, fix size_scale, int sound_fla
 //	------------------------------------------------------------------------------------------------------------------
 void create_vclip_on_object(object* objp, fix size_scale, int vclip_num)
 {
-	fix			size;
-	vms_vector	pos, rand_vec;
-	int			segnum;
+	vms_vector	rand_vec;
 
-	pos = objp->pos;
+	vms_vector pos = objp->pos;
 	make_random_vector(&rand_vec);
 
 	vm_vec_scale(&rand_vec, objp->size / 2);
 
 	vm_vec_add2(&pos, &rand_vec);
 
-	size = fixmul(size_scale, F1_0 + P_Rand() * 4);
+	fix size = fixmul(size_scale, F1_0 + P_Rand() * 4);
 
-	segnum = find_point_seg(&pos, objp->segnum);
-	if (segnum != -1) {
+	int segnum = find_point_seg(&pos, objp->segnum);
+	if (segnum != -1) 
+	{
 		object* expl_obj;
 		expl_obj = object_create_explosion(segnum, &pos, size, vclip_num);
 		if (!expl_obj)
@@ -506,25 +440,14 @@ void create_vclip_on_object(object* objp, fix size_scale, int vclip_num)
 	}
 }
 
-// -- mk, 02/05/95 -- #define	VCLIP_INVULNERABILITY_EFFECT	VCLIP_SMALL_EXPLOSION
-// -- mk, 02/05/95 -- 
-// -- mk, 02/05/95 -- // -----------------------------------------------------------------------------
-// -- mk, 02/05/95 -- void do_player_invulnerability_effect(object *objp)
-// -- mk, 02/05/95 -- {
-// -- mk, 02/05/95 -- 	if (P_Rand() < FrameTime*8) {
-// -- mk, 02/05/95 -- 		create_vclip_on_object(objp, F1_0, VCLIP_INVULNERABILITY_EFFECT);
-// -- mk, 02/05/95 -- 	}
-// -- mk, 02/05/95 -- }
-
 // -----------------------------------------------------------------------------
 //	Render an object.  Calls one of several routines based on type
 void render_object(object* obj)
 {
-	int	mld_save;
-
 	if (obj == Viewer) return;
 
-	if (obj->type == OBJ_NONE) {
+	if (obj->type == OBJ_NONE) 
+	{
 #ifndef NDEBUG
 		mprintf((1, "ERROR!!!! Bogus obj %d in seg %d is rendering!\n", obj - Objects, obj->segnum));
 		Int3();
@@ -532,10 +455,11 @@ void render_object(object* obj)
 		return;
 	}
 
-	mld_save = Max_linear_depth;
+	int mld_save = Max_linear_depth;
 	Max_linear_depth = Max_linear_depth_objects;
 
-	switch (obj->render_type) {
+	switch (obj->render_type) 
+	{
 
 	case RT_NONE:	break;		//doesn't render, like the player
 
@@ -546,13 +470,6 @@ void render_object(object* obj)
 		//"warn" robot if being shot at
 		if (obj->type == OBJ_ROBOT)
 			set_robot_location_info(obj);
-
-		//JOHN SAID TO:			if ( (obj->type==OBJ_PLAYER) && ((keyd_pressed[KEY_W]) || (keyd_pressed[KEY_I])))
-		//JOHN SAID TO:				object_render_id(obj);
-
-		// -- mk, 02/05/95 -- 			if (obj->type == OBJ_PLAYER)
-		// -- mk, 02/05/95 -- 				if (Players[obj->id].flags & PLAYER_FLAGS_INVULNERABLE)
-		// -- mk, 02/05/95 -- 					do_player_invulnerability_effect(obj);
 
 		break;
 
@@ -579,81 +496,13 @@ void render_object(object* obj)
 
 }
 
-//--unused-- void object_toggle_lock_targets()	{
-//--unused-- 	Object_draw_lock_boxes ^= 1;
-//--unused-- }
-
-//091494: //draw target boxes for nearby robots
-//091494: void object_render_targets()
-//091494: {
-//091494: 	g3s_point pt;
-//091494: 	uint8_t codes;
-//091494: 	int i;
-//091494: 	int radius,x,y;
-//091494: 
-//091494: 	if (Object_draw_lock_boxes==0) 
-//091494: 		return;
-//091494: 
-//091494: 	for (i=0; i<Object_num_close; i++ )	{
-//091494: 			
-//091494: 		codes = g3_rotate_point(&pt, &Object_close_ones[i]->pos );
-//091494: 		if ( !(codes & CC_BEHIND) )	{
-//091494: 			g3_project_point(&pt);
-//091494: 			if (pt.p3_flags & PF_PROJECTED)	{
-//091494: 				x = f2i(pt.p3_sx);
-//091494: 				y = f2i(pt.p3_sy);
-//091494: 				radius = f2i(fixdiv((grd_curcanv->cv_bitmap.bm_w*Object_close_ones[i]->size)/8,pt.z));
-//091494: 				gr_setcolor( BM_XRGB(0,31,0) );
-//091494: 				gr_box(x-radius,y-radius,x+radius,y+radius);
-//091494: 			}
-//091494: 		}
-//091494: 	}
-//091494: 	Object_num_close=0;
-//091494: }
-
-
-//--unused-- //draw target boxes for nearby robots
-//--unused-- void object_render_id(object * obj)
-//--unused-- {
-//--unused-- 	g3s_point pt;
-//--unused-- 	uint8_t codes;
-//--unused-- 	int x,y;
-//--unused-- 	int w, h, aw;
-//--unused-- 	char s[20], *s1;
-//--unused-- 
-//--unused-- 	s1 = network_get_player_name( obj-Objects );
-//--unused-- 
-//--unused-- 	if (s1)
-//--unused-- 		sprintf( s, "%s", s1 );
-//--unused-- 	else
-//--unused-- 		sprintf( s, "<%d>", obj->id );
-//--unused-- 
-//--unused-- 	codes = g3_rotate_point(&pt, &obj->pos );
-//--unused-- 	if ( !(codes & CC_BEHIND) )	{
-//--unused-- 		g3_project_point(&pt);
-//--unused-- 		if (pt.p3_flags & PF_PROJECTED)	{
-//--unused-- 			gr_get_string_size( s, &w, &h, &aw );
-//--unused-- 			x = f2i(pt.p3_sx) - w/2;
-//--unused-- 			y = f2i(pt.p3_sy) - h/2;
-//--unused-- 			if ( x>= 0 && y>=0 && (x+w)<=grd_curcanv->cv_bitmap.bm_w && (y+h)<grd_curcanv->cv_bitmap.bm_h )	{
-//--unused-- 				gr_set_fontcolor( BM_XRGB(0,31,0), -1 );
-//--unused-- 				gr_string( x, y, s );
-//--unused-- 			}
-//--unused-- 		}
-//--unused-- 	}
-//--unused-- }
-
-
 void check_and_fix_matrix(vms_matrix* m);
 
 #define vm_angvec_zero(v) (v)->p=(v)->b=(v)->h=0
 
 void reset_player_object()
 {
-	int i;
-
 	//Init physics
-
 	vm_vec_zero(&ConsoleObject->mtype.phys_info.velocity);
 	vm_vec_zero(&ConsoleObject->mtype.phys_info.thrust);
 	vm_vec_zero(&ConsoleObject->mtype.phys_info.rotvel);
@@ -664,21 +513,17 @@ void reset_player_object()
 	ConsoleObject->mtype.phys_info.flags |= PF_TURNROLL | PF_LEVELLING | PF_WIGGLE | PF_USES_THRUST;
 
 	//Init render info
-
 	ConsoleObject->render_type = RT_POLYOBJ;
 	ConsoleObject->rtype.pobj_info.model_num = Player_ship->model_num;		//what model is this?
 	ConsoleObject->rtype.pobj_info.subobj_flags = 0;		//zero the flags
 	ConsoleObject->rtype.pobj_info.tmap_override = -1;		//no tmap override!
 
-	for (i = 0; i < MAX_SUBMODELS; i++)
+	for (int i = 0; i < MAX_SUBMODELS; i++)
 		vm_angvec_zero(&ConsoleObject->rtype.pobj_info.anim_angles[i]);
 
 	// Clear misc
-
 	ConsoleObject->flags = 0;
-
 }
-
 
 //make object0 the player, setting all relevant fields
 void init_player_object()
@@ -696,23 +541,21 @@ void init_player_object()
 	ConsoleObject->attached_obj = -1;
 
 	reset_player_object();
-
 }
 
 //sets up the free list & init player & whatever else
 void init_objects()
 {
-	int i;
-
 	collide_init();
 
-	for (i = 0; i < MAX_OBJECTS; i++) {
+	for (int i = 0; i < MAX_OBJECTS; i++) 
+	{
 		free_obj_list[i] = i;
 		Objects[i].type = OBJ_NONE;
 		Objects[i].segnum = -1;
 	}
 
-	for (i = 0; i < MAX_SEGMENTS; i++)
+	for (int i = 0; i < MAX_SEGMENTS; i++)
 		Segments[i].objects = -1;
 
 	ConsoleObject = Viewer = &Objects[0];
@@ -722,8 +565,6 @@ void init_objects()
 
 	num_objects = 1;						//just the player
 	Highest_object_index = 0;
-
-
 }
 
 //after calling init_object(), the network code has grabbed specific
@@ -731,14 +572,12 @@ void init_objects()
 //the free list, then set the apporpriate globals
 void special_reset_objects(void)
 {
-	int i;
-
 	num_objects = MAX_OBJECTS;
 
 	Highest_object_index = 0;
 	Assert(Objects[0].type != OBJ_NONE);		//0 should be used
 
-	for (i = MAX_OBJECTS; i--;)
+	for (int i = MAX_OBJECTS; i--;)
 		if (Objects[i].type == OBJ_NONE)
 			free_obj_list[--num_objects] = i;
 		else
@@ -749,10 +588,12 @@ void special_reset_objects(void)
 #ifndef NDEBUG
 int is_object_in_seg(int segnum, int objn)
 {
-	int objnum, count = 0;
+	int count = 0;
 
-	for (objnum = Segments[segnum].objects; objnum != -1; objnum = Objects[objnum].next) {
-		if (count > MAX_OBJECTS) {
+	for (int objnum = Segments[segnum].objects; objnum != -1; objnum = Objects[objnum].next) 
+	{
+		if (count > MAX_OBJECTS)
+		{
 			Int3();
 			return count;
 		}
@@ -763,10 +604,10 @@ int is_object_in_seg(int segnum, int objn)
 
 int search_all_segments_for_object(int objnum)
 {
-	int i;
 	int count = 0;
 
-	for (i = 0; i <= Highest_segment_index; i++) {
+	for (int i = 0; i <= Highest_segment_index; i++) 
+	{
 		count += is_object_in_seg(i, objnum);
 	}
 	return count;
@@ -789,19 +630,21 @@ void johns_obj_unlink(int segnum, int objnum)
 
 void remove_incorrect_objects()
 {
-	int segnum, objnum, count;
-
-	for (segnum = 0; segnum <= Highest_segment_index; segnum++) {
-		count = 0;
-		for (objnum = Segments[segnum].objects; objnum != -1; objnum = Objects[objnum].next) {
+	for (int segnum = 0; segnum <= Highest_segment_index; segnum++) 
+	{
+		int count = 0;
+		for (int objnum = Segments[segnum].objects; objnum != -1; objnum = Objects[objnum].next) 
+		{
 			count++;
 #ifndef NDEBUG
-			if (count > MAX_OBJECTS) {
+			if (count > MAX_OBJECTS)
+			{
 				mprintf((1, "Object list in segment %d is circular.\n", segnum));
 				Int3();
 			}
 #endif
-			if (Objects[objnum].segnum != segnum) {
+			if (Objects[objnum].segnum != segnum) 
+			{
 #ifndef NDEBUG
 				mprintf((0, "Removing object %d from segment %d.\n", objnum, segnum));
 				Int3();
@@ -814,11 +657,12 @@ void remove_incorrect_objects()
 
 void remove_all_objects_but(int segnum, int objnum)
 {
-	int i;
-
-	for (i = 0; i <= Highest_segment_index; i++) {
-		if (segnum != i) {
-			if (is_object_in_seg(i, objnum)) {
+	for (int i = 0; i <= Highest_segment_index; i++) 
+	{
+		if (segnum != i) 
+		{
+			if (is_object_in_seg(i, objnum)) 
+			{
 				johns_obj_unlink(i, objnum);
 			}
 		}
@@ -827,12 +671,15 @@ void remove_all_objects_but(int segnum, int objnum)
 
 int check_duplicate_objects()
 {
-	int i, count = 0;
+	int count = 0;
 
-	for (i = 0; i <= Highest_object_index; i++) {
-		if (Objects[i].type != OBJ_NONE) {
+	for (int i = 0; i <= Highest_object_index; i++) 
+	{
+		if (Objects[i].type != OBJ_NONE) 
+		{
 			count = search_all_segments_for_object(i);
-			if (count > 1) {
+			if (count > 1) 
+			{
 #ifndef NDEBUG
 				mprintf((1, "Object %d is in %d segments!\n", i, count));
 				Int3();
@@ -849,15 +696,16 @@ void list_seg_objects(int segnum)
 {
 	int objnum, count = 0;
 
-	for (objnum = Segments[segnum].objects; objnum != -1; objnum = Objects[objnum].next) {
+	for (objnum = Segments[segnum].objects; objnum != -1; objnum = Objects[objnum].next)
+	{
 		count++;
-		if (count > MAX_OBJECTS) {
+		if (count > MAX_OBJECTS) 
+		{
 			Int3();
 			return;
 		}
 	}
 	return;
-
 }
 #endif
 
@@ -927,7 +775,8 @@ int obj_allocate(void)
 {
 	int objnum;
 
-	if (num_objects >= MAX_OBJECTS) {
+	if (num_objects >= MAX_OBJECTS)
+	{
 #ifndef NDEBUG
 		mprintf((1, "Object creation failed - too many objects!\n"));
 #endif
@@ -936,19 +785,18 @@ int obj_allocate(void)
 
 	objnum = free_obj_list[num_objects++];
 
-	if (objnum > Highest_object_index) {
+	if (objnum > Highest_object_index) 
+	{
 		Highest_object_index = objnum;
 		if (Highest_object_index > Highest_ever_object_index)
 			Highest_ever_object_index = Highest_object_index;
 	}
 
-	{
-		int	i;
-		Unused_object_slots = 0;
-		for (i = 0; i <= Highest_object_index; i++)
-			if (Objects[i].type == OBJ_NONE)
-				Unused_object_slots++;
-	}
+	Unused_object_slots = 0;
+	for (int i = 0; i <= Highest_object_index; i++)
+		if (Objects[i].type == OBJ_NONE)
+			Unused_object_slots++;
+
 	return objnum;
 }
 
@@ -968,21 +816,21 @@ void obj_free(int objnum)
 //	Scan the object list, freeing down to num_used objects
 void free_object_slots(int num_used)
 {
-	int	i, olind;
 	int	obj_list[MAX_OBJECTS];
-	int	num_already_free, num_to_free;
 
-	olind = 0;
-	num_already_free = MAX_OBJECTS - Highest_object_index - 1;
+	int olind = 0;
+	int num_already_free = MAX_OBJECTS - Highest_object_index - 1;
 
 	if (MAX_OBJECTS - num_already_free < num_used)
 		return;
 
-	for (i = 0; i <= Highest_object_index; i++) {
+	for (int i = 0; i <= Highest_object_index; i++) 
+	{
 		if (Objects[i].flags & OF_SHOULD_BE_DEAD)
 			num_already_free++;
 		else
-			switch (Objects[i].type) {
+			switch (Objects[i].type) 
+			{
 			case OBJ_NONE:
 				num_already_free++;
 				if (MAX_OBJECTS - num_already_free < num_used)
@@ -1011,15 +859,17 @@ void free_object_slots(int num_used)
 
 	}
 
-	num_to_free = MAX_OBJECTS - num_used - num_already_free;
+	int num_to_free = MAX_OBJECTS - num_used - num_already_free;
 
-	if (num_to_free > olind) {
+	if (num_to_free > olind) 
+	{
 		mprintf((1, "Warning: Asked to free %i objects, but can only free %i.\n", num_to_free, olind));
 		num_to_free = olind;
 	}
 
-	for (i = 0; i < num_to_free; i++)
-		if (Objects[obj_list[i]].type == OBJ_DEBRIS) {
+	for (int i = 0; i < num_to_free; i++)
+		if (Objects[obj_list[i]].type == OBJ_DEBRIS) 
+		{
 			num_to_free--;
 			mprintf((0, "Freeing   DEBRIS object %3i\n", obj_list[i]));
 			Objects[obj_list[i]].flags |= OF_SHOULD_BE_DEAD;
@@ -1028,7 +878,7 @@ void free_object_slots(int num_used)
 	if (!num_to_free)
 		return;
 
-	for (i = 0; i < num_to_free; i++)
+	for (int i = 0; i < num_to_free; i++)
 		if (Objects[obj_list[i]].type == OBJ_FIREBALL && Objects[obj_list[i]].ctype.expl_info.delete_objnum == -1) {
 			num_to_free--;
 			mprintf((0, "Freeing FIREBALL object %3i\n", obj_list[i]));
@@ -1038,7 +888,7 @@ void free_object_slots(int num_used)
 	if (!num_to_free)
 		return;
 
-	for (i = 0; i < num_to_free; i++)
+	for (int i = 0; i < num_to_free; i++)
 		if ((Objects[obj_list[i]].type == OBJ_WEAPON) && (Objects[obj_list[i]].id == FLARE_ID)) {
 			num_to_free--;
 			mprintf((0, "Freeing    FLARE object %3i\n", obj_list[i]));
@@ -1048,7 +898,7 @@ void free_object_slots(int num_used)
 	if (!num_to_free)
 		return;
 
-	for (i = 0; i < num_to_free; i++)
+	for (int i = 0; i < num_to_free; i++)
 		if ((Objects[obj_list[i]].type == OBJ_WEAPON) && (Objects[obj_list[i]].id != FLARE_ID)) {
 			num_to_free--;
 			mprintf((0, "Freeing   WEAPON object %3i\n", obj_list[i]));
@@ -1065,9 +915,6 @@ void free_object_slots(int num_used)
 int obj_create(uint8_t type, uint8_t id, int segnum, vms_vector* pos,
 	vms_matrix* orient, fix size, uint8_t ctype, uint8_t mtype, uint8_t rtype)
 {
-	int objnum;
-	object* obj;
-
 	Assert((segnum <= Highest_segment_index) && (segnum >= 0));
 	Assert(ctype <= CT_CNTRLCEN);
 
@@ -1075,7 +922,8 @@ int obj_create(uint8_t type, uint8_t id, int segnum, vms_vector* pos,
 		return -1;
 
 	if (get_seg_masks(pos, segnum, 0).centermask != 0)
-		if ((segnum = find_point_seg(pos, segnum)) == -1) {
+		if ((segnum = find_point_seg(pos, segnum)) == -1) 
+		{
 #ifndef NDEBUG
 			mprintf((0, "Bad segnum in obj_create (type=%d)\n", type));
 #endif
@@ -1083,14 +931,14 @@ int obj_create(uint8_t type, uint8_t id, int segnum, vms_vector* pos,
 		}
 
 	// Find next free object
-	objnum = obj_allocate();
+	int objnum = obj_allocate();
 
 	if (objnum == -1)		//no free objects
 		return -1;
 
 	Assert(Objects[objnum].type == OBJ_NONE);		//make sure unused 
 
-	obj = &Objects[objnum];
+	object* obj = &Objects[objnum];
 
 	Assert(obj->segnum == -1);
 
@@ -1120,8 +968,8 @@ int obj_create(uint8_t type, uint8_t id, int segnum, vms_vector* pos,
 		obj->ctype.powerup_info.count = 1;
 
 	// Init physics info for this object
-	if (obj->movement_type == MT_PHYSICS) {
-
+	if (obj->movement_type == MT_PHYSICS) 
+	{
 		vm_vec_zero(&obj->mtype.phys_info.velocity);
 		vm_vec_zero(&obj->mtype.phys_info.thrust);
 		vm_vec_zero(&obj->mtype.phys_info.rotvel);
@@ -1147,7 +995,8 @@ int obj_create(uint8_t type, uint8_t id, int segnum, vms_vector* pos,
 	obj_link(objnum, segnum);
 
 	//	Set (or not) persistent bit in phys_info.
-	if (obj->type == OBJ_WEAPON) {
+	if (obj->type == OBJ_WEAPON) 
+	{
 		obj->mtype.phys_info.flags |= (Weapon_info[obj->id].persistent * PF_PERSISTENT);
 		obj->ctype.laser_info.creation_time = GameTime;
 		obj->ctype.laser_info.last_hitobj = -1;
@@ -1172,16 +1021,13 @@ int obj_create(uint8_t type, uint8_t id, int segnum, vms_vector* pos,
 //create a copy of an object. returns new object number
 int obj_create_copy(int objnum, vms_vector* new_pos, int newsegnum)
 {
-	int newobjnum;
-	object* obj;
-
 	// Find next free object
-	newobjnum = obj_allocate();
+	int newobjnum = obj_allocate();
 
 	if (newobjnum == -1)
 		return -1;
 
-	obj = &Objects[newobjnum];
+	object* obj = &Objects[newobjnum];
 
 	*obj = Objects[objnum];
 
@@ -1194,9 +1040,7 @@ int obj_create_copy(int objnum, vms_vector* new_pos, int newsegnum)
 	obj->signature = Object_next_signature++;
 
 	//we probably should initialize sub-structures here
-
 	return newobjnum;
-
 }
 #endif
 
@@ -1275,7 +1119,6 @@ void dead_player_end(void)
 	ConsoleObject->render_type = Render_type_save;
 	Players[Player_num].flags &= ~PLAYER_FLAGS_INVULNERABLE;
 	Player_eggs_dropped = 0;
-
 }
 
 //	------------------------------------------------------------------------------------------------------------------
@@ -1283,16 +1126,15 @@ void dead_player_end(void)
 void set_camera_pos(vms_vector* camera_pos, object* objp)
 {
 	int	count = 0;
-	fix	camera_player_dist;
-	fix	far_scale;
 
-	camera_player_dist = vm_vec_dist_quick(camera_pos, &objp->pos);
+	fix camera_player_dist = vm_vec_dist_quick(camera_pos, &objp->pos);
 
-	if (camera_player_dist < Camera_to_player_dist_goal) { //2*objp->size) {
+	if (camera_player_dist < Camera_to_player_dist_goal)
+	{
 		//	Camera is too close to player object, so move it away.
 		vms_vector	player_camera_vec;
 		fvi_query	fq;
-		fvi_info		hit_data;
+		fvi_info	hit_data;
 		vms_vector	local_p1;
 
 		vm_vec_sub(&player_camera_vec, camera_pos, &objp->pos);
@@ -1300,10 +1142,11 @@ void set_camera_pos(vms_vector* camera_pos, object* objp)
 			player_camera_vec.x += F1_0 / 16;
 
 		hit_data.hit_type = HIT_WALL;
-		far_scale = F1_0;
+		fix far_scale = F1_0;
 
-		while ((hit_data.hit_type != HIT_NONE) && (count++ < 6)) {
-			vms_vector	closer_p1;
+		while ((hit_data.hit_type != HIT_NONE) && (count++ < 6)) 
+		{
+			vms_vector closer_p1;
 			vm_vec_normalize_quick(&player_camera_vec);
 			vm_vec_scale(&player_camera_vec, Camera_to_player_dist_goal);
 
@@ -1320,10 +1163,12 @@ void set_camera_pos(vms_vector* camera_pos, object* objp)
 			fq.flags = 0;
 			find_vector_intersection(&fq, &hit_data);
 
-			if (hit_data.hit_type == HIT_NONE) {
+			if (hit_data.hit_type == HIT_NONE) 
+			{
 				*camera_pos = closer_p1;
 			}
-			else {
+			else 
+			{
 				make_random_vector(&player_camera_vec);
 				far_scale = 3 * F1_0 / 2;
 			}
@@ -1340,11 +1185,13 @@ void dead_player_frame(void)
 	fix	time_dead;
 	vms_vector	fvec;
 
-	if (Player_is_dead) {
+	if (Player_is_dead) 
+	{
 		time_dead = GameTime - Player_time_of_death;
 
 		//	If unable to create camera at time of death, create now.
-		if (Dead_player_camera == Viewer_save) {
+		if (Dead_player_camera == Viewer_save) 
+		{
 			int		objnum;
 			object* player = &Objects[Players[Player_num].objnum];
 
@@ -1353,7 +1200,8 @@ void dead_player_frame(void)
 			mprintf((0, "Creating new dead player camera.\n"));
 			if (objnum != -1)
 				Viewer = Dead_player_camera = &Objects[objnum];
-			else {
+			else 
+			{
 				mprintf((1, "Can't create dead player camera.\n"));
 				Int3();
 			}
@@ -1367,17 +1215,13 @@ void dead_player_frame(void)
 
 		set_camera_pos(&Dead_player_camera->pos, ConsoleObject);
 
-		//		if (time_dead < DEATH_SEQUENCE_EXPLODE_TIME+F1_0*2) {
 		vm_vec_sub(&fvec, &ConsoleObject->pos, &Dead_player_camera->pos);
 		vm_vector_2_matrix(&Dead_player_camera->orient, &fvec, NULL, NULL);
-		//		} else {
-		//			Dead_player_camera->movement_type = MT_PHYSICS;
-		//			Dead_player_camera->mtype.phys_info.rotvel.y = F1_0/8;
-		//		}
 
-		if (time_dead > DEATH_SEQUENCE_EXPLODE_TIME) {
-			if (!Player_exploded) {
-
+		if (time_dead > DEATH_SEQUENCE_EXPLODE_TIME) 
+		{
+			if (!Player_exploded) 
+			{
 				if (Players[Player_num].hostages_on_board > 1)
 					HUD_init_message(TXT_SHIP_DESTROYED_2, Players[Player_num].hostages_on_board);
 				else if (Players[Player_num].hostages_on_board == 1)
@@ -1386,20 +1230,16 @@ void dead_player_frame(void)
 					HUD_init_message(TXT_SHIP_DESTROYED_0);
 
 				Player_exploded = 1;
-#ifdef ARCADE
-				if (!Arcade_mode) 
-#endif
-				{
-					drop_player_eggs(ConsoleObject);
-					Player_eggs_dropped = 1;
+
+				drop_player_eggs(ConsoleObject);
+				Player_eggs_dropped = 1;
 #ifdef NETWORK
-					if (Game_mode & GM_MULTI)
-					{
-						multi_send_position(Players[Player_num].objnum);
-						multi_send_player_explode(MULTI_PLAYER_EXPLODE);
-					}
-#endif
+				if (Game_mode & GM_MULTI)
+				{
+					multi_send_position(Players[Player_num].objnum);
+					multi_send_player_explode(MULTI_PLAYER_EXPLODE);
 				}
+#endif
 
 				explode_badass_player(ConsoleObject);
 
@@ -1410,8 +1250,10 @@ void dead_player_frame(void)
 				ConsoleObject->type = OBJ_GHOST;						//..and kill intersections
 			}
 		}
-		else {
-			if (P_Rand() < FrameTime * 4) {
+		else 
+		{
+			if (P_Rand() < FrameTime * 4)
+			{
 #ifdef NETWORK
 				if (Game_mode & GM_MULTI)
 					multi_send_create_explosion(Player_num);
@@ -1420,47 +1262,32 @@ void dead_player_frame(void)
 			}
 		}
 
-#ifdef ARCADE //[ISB] need to go through and outright cut arcade stuff...
-		if (!Arcade_mode)
-#endif
-		{
-			if (Death_sequence_aborted) { //time_dead > DEATH_SEQUENCE_LENGTH) {
-				if (!Player_eggs_dropped) {
-					drop_player_eggs(ConsoleObject);
-					Player_eggs_dropped = 1;
-#ifdef NETWORK
-					if (Game_mode & GM_MULTI)
-					{
-						multi_send_position(Players[Player_num].objnum);
-						multi_send_player_explode(MULTI_PLAYER_EXPLODE);
-					}
-#endif
-				}
-
-				DoPlayerDead();		//kill_player();
-			}
-		}
-#ifdef ARCADE
-		else 
-		{
-			if (Death_sequence_aborted || (time_dead > DEATH_SEQUENCE_LENGTH))
+		if (Death_sequence_aborted) 
+		{ 
+			if (!Player_eggs_dropped) 
 			{
-				DoPlayerDead();		//kill_player();
-			}
-		}
+				drop_player_eggs(ConsoleObject);
+				Player_eggs_dropped = 1;
+#ifdef NETWORK
+				if (Game_mode & GM_MULTI)
+				{
+					multi_send_position(Players[Player_num].objnum);
+					multi_send_player_explode(MULTI_PLAYER_EXPLODE);
+				}
 #endif
+			}
+
+			DoPlayerDead();
+		}
 	}
 }
 
-//[ISB] it takes four keystrokes to type "int". For the love of... Types from Descent 2
 int Killed_in_frame = -1;
 short Killed_objnum = -1;
 
 //	------------------------------------------------------------------------------------------------------------------
 void start_player_death_sequence(object* player)
 {
-	int	objnum;
-
 	Assert(player == ConsoleObject);
 	if ((Player_is_dead != 0) || (Dead_player_camera != NULL))
 		return;
@@ -1493,11 +1320,12 @@ void start_player_death_sequence(object* player)
 
 	Player_time_of_death = GameTime;
 
-	objnum = obj_create(OBJ_CAMERA, 0, player->segnum, &player->pos, &player->orient, 0, CT_NONE, MT_NONE, RT_NONE);
+	int objnum = obj_create(OBJ_CAMERA, 0, player->segnum, &player->pos, &player->orient, 0, CT_NONE, MT_NONE, RT_NONE);
 	Viewer_save = Viewer;
 	if (objnum != -1)
 		Viewer = Dead_player_camera = &Objects[objnum];
-	else {
+	else 
+	{
 		mprintf((1, "Can't create dead player camera.\n"));
 		Int3();
 		Dead_player_camera = Viewer;
@@ -1523,19 +1351,22 @@ void start_player_death_sequence(object* player)
 //	------------------------------------------------------------------------------------------------------------------
 void obj_delete_all_that_should_be_dead()
 {
-	int i;
-	object* objp;
-	int		local_dead_player_object = -1;
+	int	local_dead_player_object = -1;
 
 	// Move all objects
-	objp = Objects;
+	object* objp = Objects;
 
-	for (i = 0; i <= Highest_object_index; i++) {
-		if ((objp->type != OBJ_NONE) && (objp->flags & OF_SHOULD_BE_DEAD)) {
+	for (int i = 0; i <= Highest_object_index; i++) 
+	{
+		if ((objp->type != OBJ_NONE) && (objp->flags & OF_SHOULD_BE_DEAD)) 
+		{
 			Assert(!(objp->type == OBJ_FIREBALL && objp->ctype.expl_info.delete_time != -1));
-			if (objp->type == OBJ_PLAYER) {
-				if (objp->id == Player_num) {
-					if (local_dead_player_object == -1) {
+			if (objp->type == OBJ_PLAYER) 
+			{
+				if (objp->id == Player_num) 
+				{
+					if (local_dead_player_object == -1) 
+					{
 						start_player_death_sequence(objp);
 						local_dead_player_object = objp - Objects;
 					}
@@ -1545,7 +1376,8 @@ void obj_delete_all_that_should_be_dead()
 					// kill_player();
 				}
 			}
-			else {
+			else 
+			{
 				obj_delete(i);
 			}
 		}
@@ -1594,15 +1426,16 @@ void spin_object(object* obj)
 //move an object for the current frame
 void object_move_one(object* obj)
 {
-#ifndef DEMO_ONLY
 	int	previous_segment = obj->segnum;
 
 	obj->last_pos = obj->pos;			// Save the current position
 
-	if ((obj->type == OBJ_PLAYER) && (Player_num == obj->id)) {
+	if ((obj->type == OBJ_PLAYER) && (Player_num == obj->id)) 
+	{
 		fix fuel;
 		fuel = fuelcen_give_fuel(&Segments[obj->segnum], i2f(100) - Players[Player_num].energy);
-		if (fuel > 0) {
+		if (fuel > 0) 
+		{
 			Players[Player_num].energy += fuel;
 		}
 #ifdef RESTORE_REPAIRCENTER
@@ -1613,7 +1446,8 @@ void object_move_one(object* obj)
 	if (obj->lifeleft != IMMORTAL_TIME)	//if not immortal...
 		obj->lifeleft -= FrameTime;		//...inevitable countdown towards death
 
-	switch (obj->control_type) {
+	switch (obj->control_type) 
+	{
 
 	case CT_NONE: break;
 
@@ -1653,10 +1487,10 @@ void object_move_one(object* obj)
 
 #ifndef RELEASE
 	case CT_SLEW:
-		if (keyd_pressed[KEY_PAD5]) slew_stop(/*obj*/);
-		if (keyd_pressed[KEY_NUMLOCK]) {
-			slew_reset_orient(/*obj*/);
-			//*(uint8_t*)0x417 &= ~0x20;		//kill numlock
+		if (keyd_pressed[KEY_PAD5]) slew_stop();
+		if (keyd_pressed[KEY_NUMLOCK]) 
+		{
+			slew_reset_orient();
 		}
 		slew_frame(0);		// Does velocity addition for us.
 		break;
@@ -1684,7 +1518,8 @@ void object_move_one(object* obj)
 
 	}
 
-	if (obj->lifeleft < 0) {		// We died of old age
+	if (obj->lifeleft < 0) // We died of old age
+	{
 		obj->flags |= OF_SHOULD_BE_DEAD;
 		if (Weapon_info[obj->id].damage_radius)
 			explode_badass_weapon(obj);
@@ -1693,7 +1528,8 @@ void object_move_one(object* obj)
 	if (obj->type == OBJ_NONE || obj->flags & OF_SHOULD_BE_DEAD)
 		return;			//object has been deleted
 
-	switch (obj->movement_type) {
+	switch (obj->movement_type) 
+	{
 
 	case MT_NONE:			break;								//this doesn't move
 
@@ -1704,26 +1540,26 @@ void object_move_one(object* obj)
 	}
 
 	//	If player and moved to another segment, see if hit any triggers.
-	if (obj->type == OBJ_PLAYER && obj->movement_type == MT_PHYSICS) {
-		if (previous_segment != obj->segnum) {
+	if (obj->type == OBJ_PLAYER && obj->movement_type == MT_PHYSICS) 
+	{
+		if (previous_segment != obj->segnum) 
+		{
 			int	connect_side, i;
-			for (i = 0; i < n_phys_segs - 1; i++) {
+			for (i = 0; i < n_phys_segs - 1; i++) 
+			{
 				connect_side = find_connect_side(&Segments[phys_seglist[i + 1]], &Segments[phys_seglist[i]]);
 				if (connect_side != -1)
 					check_trigger(&Segments[phys_seglist[i]], connect_side, obj - Objects);
 				//check_trigger(&Segments[previous_segment], connect_side, obj-Objects);
 #ifndef NDEBUG
-				else {	// segments are not directly connected, so do binary subdivision until you find connected segments.
+				else // segments are not directly connected, so do binary subdivision until you find connected segments.
+				{	
 					mprintf((1, "UNCONNECTED SEGMENTS %d,%d\n", phys_seglist[i + 1], phys_seglist[i]));
 				}
 #endif
 			}
 		}
 	}
-
-#else
-	obj++;		//kill warning
-#endif
 }
 
 int	Max_used_objects = MAX_OBJECTS - 20;
@@ -1732,12 +1568,6 @@ int	Max_used_objects = MAX_OBJECTS - 20;
 //move all objects for the current frame
 void object_move_all()
 {
-	int i;
-	object* objp;
-
-	//	check_duplicate_objects();
-	//	remove_incorrect_objects();
-
 	if (Highest_object_index > Max_used_objects)
 		free_object_slots(Max_used_objects);		//	Free all possible object slots.
 
@@ -1749,49 +1579,26 @@ void object_move_all()
 		ConsoleObject->mtype.phys_info.flags &= ~PF_LEVELLING;
 
 	// Move all objects
-	objp = Objects;
+	object* objp = Objects;
 
-#ifndef DEMO_ONLY
-	for (i = 0; i <= Highest_object_index; i++) {
-		if ((objp->type != OBJ_NONE) && (!(objp->flags & OF_SHOULD_BE_DEAD))) {
+	for (int i = 0; i <= Highest_object_index; i++) 
+	{
+		if ((objp->type != OBJ_NONE) && (!(objp->flags & OF_SHOULD_BE_DEAD))) 
+		{
 			object_move_one(objp);
 		}
 		objp++;
 	}
-#else
-	i = 0;	//kill warning
-#endif
-
-//	check_duplicate_objects();
-//	remove_incorrect_objects();
-
 }
-
-
-//--unused-- // -----------------------------------------------------------
-//--unused-- //	Moved here from eobject.c on 02/09/94 by MK.
-//--unused-- int find_last_obj(int i)
-//--unused-- {
-//--unused-- 	for (i=MAX_OBJECTS;--i>=0;)
-//--unused-- 		if (Objects[i].type != OBJ_NONE) break;
-//--unused-- 
-//--unused-- 	return i;
-//--unused-- 
-//--unused-- }
-
 
 //make object array non-sparse
 void compress_objects(void)
 {
-	int start_i;	//,last_i;
-
-	//last_i = find_last_obj(MAX_OBJECTS);
-
 	//	Note: It's proper to do < (rather than <=) Highest_object_index here because we
 	//	are just removing gaps, and the last object can't be a gap.
-	for (start_i = 0; start_i < Highest_object_index; start_i++)
-
-		if (Objects[start_i].type == OBJ_NONE) {
+	for (int start_i = 0; start_i < Highest_object_index; start_i++)
+		if (Objects[start_i].type == OBJ_NONE) 
+		{
 
 			int	segnum_copy;
 
@@ -1811,9 +1618,6 @@ void compress_objects(void)
 			obj_link(start_i, segnum_copy);
 
 			while (Objects[--Highest_object_index].type == OBJ_NONE);
-
-			//last_i = find_last_obj(last_i);
-
 		}
 
 	reset_objects(num_objects);
@@ -1824,13 +1628,12 @@ void compress_objects(void)
 //compressed.  resets free list, marks unused objects as unused
 void reset_objects(int n_objs)
 {
-	int i;
-
 	num_objects = n_objs;
 
 	Assert(num_objects > 0);
 
-	for (i = num_objects; i < MAX_OBJECTS; i++) {
+	for (int i = num_objects; i < MAX_OBJECTS; i++) 
+	{
 		free_obj_list[i] = i;
 		Objects[i].type = OBJ_NONE;
 		Objects[i].segnum = -1;
@@ -1853,9 +1656,7 @@ int find_object_seg(object* obj)
 //callers should generally use find_vector_intersection()  
 int update_object_seg(object* obj)
 {
-	int newseg;
-
-	newseg = find_object_seg(obj);
+	int newseg = find_object_seg(obj);
 
 	if (newseg == -1)
 		return 0;
@@ -1870,50 +1671,15 @@ int update_object_seg(object* obj)
 //go through all objects and make sure they have the correct segment numbers
 void fix_object_segs()
 {
-	int i;
-
-	for (i = 0; i <= Highest_object_index; i++)
+	for (int i = 0; i <= Highest_object_index; i++)
 		if (Objects[i].type != OBJ_NONE)
-			if (update_object_seg(&Objects[i]) == 0) {
+			if (update_object_seg(&Objects[i]) == 0) 
+			{
 				mprintf((1, "Cannot find segment for object %d in fix_object_segs()\n"));
 				Int3();
 				compute_segment_center(&Objects[i].pos, &Segments[Objects[i].segnum]);
 			}
 }
-
-
-//--unused-- void object_use_new_object_list( object * new_list )
-//--unused-- {
-//--unused-- 	int i, segnum;
-//--unused-- 	object *obj;
-//--unused-- 
-//--unused-- 	// First, unlink all the old objects for the segments array
-//--unused-- 	for (segnum=0; segnum <= Highest_segment_index; segnum++) {
-//--unused-- 		Segments[segnum].objects = -1;
-//--unused-- 	}
-//--unused-- 	// Then, erase all the objects
-//--unused-- 	reset_objects(1);
-//--unused-- 
-//--unused-- 	// Fill in the object array
-//--unused-- 	memcpy( Objects, new_list, sizeof(object)*MAX_OBJECTS );
-//--unused-- 
-//--unused-- 	Highest_object_index=-1;
-//--unused-- 
-//--unused-- 	// Relink 'em
-//--unused-- 	for (i=0; i<MAX_OBJECTS; i++ )	{
-//--unused-- 		obj = &Objects[i];
-//--unused-- 		if ( obj->type != OBJ_NONE )	{
-//--unused-- 			num_objects++;
-//--unused-- 			Highest_object_index = i;
-//--unused-- 			segnum = obj->segnum;
-//--unused-- 			obj->next = obj->prev = obj->segnum = -1;
-//--unused-- 			obj_link(i,segnum);
-//--unused-- 		} else {
-//--unused-- 			obj->next = obj->prev = obj->segnum = -1;
-//--unused-- 		}
-//--unused-- 	}
-//--unused-- 	
-//--unused-- }
 
 //delete objects, such as weapons & explosions, that shouldn't stay between levels
 //	Changed by MK on 10/15/94, don't remove proximity bombs.
@@ -2006,9 +1772,6 @@ void obj_detach_all(object* parent)
 
 static void read_vector(vms_vector* v, FILE* file)
 {
-	//v->x = read_fix(file);
-	//v->y = read_fix(file);
-	//v->z = read_fix(file);
 	v->x = file_read_int(file);
 	v->y = file_read_int(file);
 	v->z = file_read_int(file);
@@ -2030,9 +1793,6 @@ static void read_angvec(vms_angvec* v, FILE* file)
 
 static void write_vector(vms_vector* v, FILE* file)
 {
-	//v->x = read_fix(file);
-	//v->y = read_fix(file);
-	//v->z = read_fix(file);
 	file_write_int(file, v->x);
 	file_write_int(file, v->y);
 	file_write_int(file, v->z);
@@ -2055,8 +1815,6 @@ static void write_angvec(vms_angvec* v, FILE* file)
 //Read an object from disk. These unions are going to be the end of me.....
 void read_obj_instance(object* obj, FILE* f)
 {
-	//Pad shorter structures by this much
-	int bytesLeft; 
 	obj->signature = file_read_int(f);
 	obj->type = file_read_byte(f);
 	obj->id = file_read_byte(f);
@@ -2086,7 +1844,8 @@ void read_obj_instance(object* obj, FILE* f)
 
 	obj->lifeleft = file_read_int(f);
 
-	bytesLeft = 64;
+	//Pad shorter structures by this much
+	int bytesLeft = 64;
 
 	switch (obj->movement_type)
 	{
@@ -2116,10 +1875,9 @@ void read_obj_instance(object* obj, FILE* f)
 	case CT_AI:
 	{
 		//30
-		int i;
 		obj->ctype.ai_info.behavior = file_read_byte(f);
 
-		for (i = 0; i < MAX_AI_FLAGS; i++)
+		for (int i = 0; i < MAX_AI_FLAGS; i++)
 			obj->ctype.ai_info.flags[i] = file_read_byte(f);
 
 		obj->ctype.ai_info.hide_segment = file_read_short(f);
@@ -2179,9 +1937,8 @@ void read_obj_instance(object* obj, FILE* f)
 	case RT_POLYOBJ:
 	{
 		//76
-		int i;
 		obj->rtype.pobj_info.model_num = file_read_int(f);
-		for (i = 0; i < MAX_SUBMODELS; i++)
+		for (int i = 0; i < MAX_SUBMODELS; i++)
 			read_angvec(&obj->rtype.pobj_info.anim_angles[i], f);
 		obj->rtype.pobj_info.subobj_flags = file_read_int(f);
 		obj->rtype.pobj_info.tmap_override = file_read_int(f);
@@ -2207,8 +1964,6 @@ void read_obj_instance(object* obj, FILE* f)
 
 void write_obj_instance(object* obj, FILE* f)
 {
-	//Pad shorter structures by this much
-	int bytesLeft;
 	uint8_t hack[76];
 	memset(&hack[0], 0, 76 * sizeof(uint8_t));
 	file_write_int(f, obj->signature);
@@ -2241,7 +1996,8 @@ void write_obj_instance(object* obj, FILE* f)
 
 	file_write_int(f, obj->lifeleft);
 
-	bytesLeft = 64;
+	//Pad shorter structures by this much
+	int bytesLeft = 64;
 
 	switch (obj->movement_type)
 	{
@@ -2272,10 +2028,9 @@ void write_obj_instance(object* obj, FILE* f)
 	case CT_AI:
 	{
 		//30
-		int i;
 		file_write_byte(f, obj->ctype.ai_info.behavior);
 
-		for (i = 0; i < MAX_AI_FLAGS; i++)
+		for (int i = 0; i < MAX_AI_FLAGS; i++)
 			file_write_byte(f, obj->ctype.ai_info.flags[i]);
 
 		file_write_short(f, obj->ctype.ai_info.hide_segment);
@@ -2336,9 +2091,8 @@ void write_obj_instance(object* obj, FILE* f)
 	case RT_POLYOBJ:
 	{
 		//76
-		int i;
 		file_write_int(f, obj->rtype.pobj_info.model_num);
-		for (i = 0; i < MAX_SUBMODELS; i++)
+		for (int i = 0; i < MAX_SUBMODELS; i++)
 			write_angvec(&obj->rtype.pobj_info.anim_angles[i], f);
 		file_write_int(f, obj->rtype.pobj_info.subobj_flags);
 		file_write_int(f, obj->rtype.pobj_info.tmap_override);

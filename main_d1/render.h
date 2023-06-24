@@ -31,14 +31,6 @@ void flash_frame();
 
 int find_seg_side_face(short x, short y, int* seg, int* side, int* face, int* poly);
 
-//these functions change different rendering parameters
-//all return the new value of the parameter
-
-//how may levels deep to render
-int inc_render_depth(void);
-int dec_render_depth(void);
-int reset_render_depth(void);
-
 //misc toggles
 int toggle_outline_mode(void);
 int toggle_show_only_curside(void);

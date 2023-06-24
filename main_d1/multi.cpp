@@ -406,6 +406,9 @@ int multi_choose_mission(int* anarchy_only)
 
 	int n_missions = build_mission_list(true);
 
+	if (n_missions == 0)
+		Error("multi_choose_missions: no missions?");
+
 	char** m = (char**)malloc(sizeof(*m) * n_missions);
 	if (!m)
 		Error("multi_choose_mission: failed to allocate string list");

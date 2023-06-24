@@ -84,8 +84,8 @@ void do_powerup_frame(object* obj)
 
 	vci->frametime -= FrameTime;
 
-	while (vci->frametime < 0) {
-
+	while (vci->frametime < 0) 
+	{
 		vci->frametime += vc->frame_time;
 
 		vci->framenum++;
@@ -93,7 +93,8 @@ void do_powerup_frame(object* obj)
 			vci->framenum = 0;
 	}
 
-	if (obj->lifeleft <= 0) {
+	if (obj->lifeleft <= 0) 
+	{
 		object_create_explosion(obj->segnum, &obj->pos, fl2f(3.5), VCLIP_POWERUP_DISAPPEARANCE);
 
 		if (Vclip[VCLIP_POWERUP_DISAPPEARANCE].sound_num > -1)
@@ -102,8 +103,7 @@ void do_powerup_frame(object* obj)
 }
 
 #ifdef EDITOR
-//extern fix blob_vertices[];
-extern grs_point blob_vertices[]; //for mac code
+extern grs_point blob_vertices[]; 
 
 //	blob_vertices has 3 vertices in it, 4th must be computed
 void draw_blob_outline(void)
@@ -160,17 +160,12 @@ void powerup_basic(int redadd, int greenadd, int blueadd, int score, const char*
 
 	HUD_init_message(text);
 
-	//mprintf_powerup_info();
-
 	add_points_to_score(score);
-
 }
 
 //	Give the megawow powerup!
 void do_megawow_powerup(int quantity)
 {
-	int i;
-
 	powerup_basic(30, 0, 30, 1, "MEGA-WOWIE-ZOWIE!");
 #ifndef SHAREWARE
 	Players[Player_num].primary_weapon_flags = 0xff;
@@ -181,11 +176,11 @@ void do_megawow_powerup(int quantity)
 #endif
 	Players[Player_num].primary_ammo[VULCAN_INDEX] = VULCAN_AMMO_MAX;
 
-	for (i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++)
 		Players[Player_num].secondary_ammo[i] = quantity;
 
 #ifndef SHAREWARE
-	for (i = 3; i < 5; i++)
+	for (int i = 3; i < 5; i++)
 		Players[Player_num].secondary_ammo[i] = quantity / 5;
 #endif
 
@@ -200,16 +195,17 @@ void do_megawow_powerup(int quantity)
 
 }
 
-int pick_up_energy(void)
+bool pick_up_energy(void)
 {
-	int	used = 0;
+	bool used = false;
 
-	if (Players[Player_num].energy < ENERGY_MAX) {
+	if (Players[Player_num].energy < ENERGY_MAX) 
+	{
 		Players[Player_num].energy += 3 * F1_0 + 3 * F1_0 * (NDL - Difficulty_level);
 		if (Players[Player_num].energy > ENERGY_MAX)
 			Players[Player_num].energy = ENERGY_MAX;
 		powerup_basic(15, 15, 7, ENERGY_SCORE, "%s %s %d", TXT_ENERGY, TXT_BOOSTED_TO, f2ir(Players[Player_num].energy));
-		used = 1;
+		used = true;
 	}
 	else
 		HUD_init_message_leveled(MSG_ALL, TXT_MAXED_OUT, TXT_ENERGY);
@@ -217,20 +213,20 @@ int pick_up_energy(void)
 	return used;
 }
 
-int pick_up_vulcan_ammo(void)
+bool pick_up_vulcan_ammo(void)
 {
-	int	used = 0;
+	bool used = false;
 
 	int	pwsave = Primary_weapon;		// Ugh, save selected primary weapon around the picking up of the ammo.  I apologize for this code.  Matthew A. Toschlog
 	if (pick_up_ammo(CLASS_PRIMARY, VULCAN_INDEX, VULCAN_AMMO_AMOUNT)) 
 	{
 		powerup_basic(7, 14, 21, VULCAN_AMMO_SCORE, "%s!", TXT_VULCAN_AMMO);
-		used = 1;
+		used = true;
 	}
 	else 
 	{
 		HUD_init_message_leveled(MSG_ALL, "%s %d %s!", TXT_ALREADY_HAVE, f2i(VULCAN_AMMO_SCALE * Primary_ammo_max[VULCAN_INDEX]), TXT_VULCAN_ROUNDS);
-		used = 0;
+		used = false;
 	}
 	Primary_weapon = pwsave;
 
@@ -238,10 +234,9 @@ int pick_up_vulcan_ammo(void)
 }
 
 //	returns true if powerup consumed
-int do_powerup(object* obj)
+bool do_powerup(object* obj)
 {
-	int used = 0;
-	int vulcan_ammo_to_add_with_cannon;
+	bool used = false;
 
 	if ((Player_is_dead) || (ConsoleObject->type == OBJ_GHOST))
 		return 0;
@@ -251,7 +246,7 @@ int do_powerup(object* obj)
 	case POW_EXTRA_LIFE:
 		Players[Player_num].lives++;
 		powerup_basic(15, 15, 15, 0, TXT_EXTRA_LIFE);
-		used = 1;
+		used = true;
 		break;
 	case POW_ENERGY:
 		used = pick_up_energy();
@@ -263,7 +258,7 @@ int do_powerup(object* obj)
 			if (Players[Player_num].shields > SHIELD_MAX)
 				Players[Player_num].shields = SHIELD_MAX;
 			powerup_basic(0, 0, 15, SHIELD_SCORE, "%s %s %d", TXT_SHIELD, TXT_BOOSTED_TO, f2ir(Players[Player_num].shields));
-			used = 1;
+			used = true;
 		}
 		else
 			HUD_init_message_leveled(MSG_ALL, TXT_MAXED_OUT, TXT_SHIELD);
@@ -281,7 +276,7 @@ int do_powerup(object* obj)
 			Players[Player_num].laser_level++;
 			powerup_basic(10, 0, 10, LASER_SCORE, "%s %s %d", TXT_LASER, TXT_BOOSTED_TO, Players[Player_num].laser_level + 1);
 			update_laser_weapon_info();
-			used = 1;
+			used = true;
 		}
 		if (!used && !(Game_mode & GM_MULTI))
 			used = pick_up_energy();
@@ -303,9 +298,9 @@ int do_powerup(object* obj)
 		Players[Player_num].flags |= PLAYER_FLAGS_BLUE_KEY;
 		powerup_basic(0, 0, 15, KEY_SCORE, "%s %s", TXT_BLUE, TXT_ACCESS_GRANTED);
 		if (Game_mode & GM_MULTI)
-			used = 0;
+			used = false;
 		else
-			used = 1;
+			used = true;
 		break;
 	case POW_KEY_RED:
 		if (Players[Player_num].flags & PLAYER_FLAGS_RED_KEY)
@@ -317,9 +312,9 @@ int do_powerup(object* obj)
 		Players[Player_num].flags |= PLAYER_FLAGS_RED_KEY;
 		powerup_basic(15, 0, 0, KEY_SCORE, "%s %s", TXT_RED, TXT_ACCESS_GRANTED);
 		if (Game_mode & GM_MULTI)
-			used = 0;
+			used = false;
 		else
-			used = 1;
+			used = true;
 		break;
 	case POW_KEY_GOLD:
 		if (Players[Player_num].flags & PLAYER_FLAGS_GOLD_KEY)
@@ -331,9 +326,9 @@ int do_powerup(object* obj)
 		Players[Player_num].flags |= PLAYER_FLAGS_GOLD_KEY;
 		powerup_basic(15, 15, 7, KEY_SCORE, "%s %s", TXT_YELLOW, TXT_ACCESS_GRANTED);
 		if (Game_mode & GM_MULTI)
-			used = 0;
+			used = false;
 		else
-			used = 1;
+			used = true;
 		break;
 	case POW_QUAD_FIRE:
 		if (!(Players[Player_num].flags & PLAYER_FLAGS_QUAD_LASERS)) 
@@ -341,7 +336,7 @@ int do_powerup(object* obj)
 			Players[Player_num].flags |= PLAYER_FLAGS_QUAD_LASERS;
 			powerup_basic(15, 15, 7, QUAD_FIRE_SCORE, "%s!", TXT_QUAD_LASERS);
 			update_laser_weapon_info();
-			used = 1;
+			used = true;
 		}
 		else
 			HUD_init_message("%s %s!", TXT_ALREADY_HAVE, TXT_QUAD_LASERS);
@@ -351,7 +346,7 @@ int do_powerup(object* obj)
 	case	POW_VULCAN_WEAPON:
 		if ((used = pick_up_primary(VULCAN_INDEX)) != 0) 
 		{
-			vulcan_ammo_to_add_with_cannon = obj->ctype.powerup_info.count;
+			int vulcan_ammo_to_add_with_cannon = obj->ctype.powerup_info.count;
 			if (vulcan_ammo_to_add_with_cannon < VULCAN_WEAPON_AMMO_AMOUNT) vulcan_ammo_to_add_with_cannon = VULCAN_WEAPON_AMMO_AMOUNT;
 			pick_up_ammo(CLASS_PRIMARY, VULCAN_INDEX, vulcan_ammo_to_add_with_cannon);
 		}
@@ -413,7 +408,7 @@ int do_powerup(object* obj)
 				multi_send_cloak();
 #endif
 			powerup_basic(-10, -10, -10, CLOAK_SCORE, "%s!", TXT_CLOAKING_DEVICE);
-			used = 1;
+			used = true;
 			break;
 		}
 	case	POW_INVULNERABILITY:
@@ -427,23 +422,19 @@ int do_powerup(object* obj)
 			Players[Player_num].invulnerable_time = GameTime;
 			Players[Player_num].flags |= PLAYER_FLAGS_INVULNERABLE;
 			powerup_basic(7, 14, 21, INVULNERABILITY_SCORE, "%s!", TXT_INVULNERABILITY);
-			used = 1;
+			used = true;
 			break;
 		}
 #ifndef RELEASE
 	case	POW_MEGAWOW:
 		do_megawow_powerup(50);
-		used = 1;
+		used = true;
 		break;
 #endif
 
 	default:
 		break;
 	}
-
-	//always say used, until physics problem (getting stuck on unused powerup)
-	//is solved.  Note also the break statements above that are commented out
-	//!!	used=1;
 
 	if (used && Powerup_info[obj->id].hit_sound > -1) 
 	{

@@ -161,12 +161,10 @@ void robot_set_angles(robot_info* r, polymodel* pm, vms_angvec angs[N_ANIM_STATE
 //reads a binary file containing a 3d model
 polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 {
-	CFILE* ifile;
-	short version;
-	int id, len, next_chunk;
-	uint8_t	model_buf[MODEL_BUF_SIZE];
+	static uint8_t model_buf[MODEL_BUF_SIZE];
 
-	if ((ifile = cfopen(filename, "rb")) == NULL)
+	CFILE* ifile = cfopen(filename, "rb");
+	if (!ifile)
 	{
 		Error("Can't open file <%s>", filename);
 		return NULL;
@@ -178,12 +176,12 @@ polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 	Pof_file_end = cfread(model_buf, 1, cfilelength(ifile), ifile);
 	cfclose(ifile);
 
-	id = pof_read_int(model_buf);
+	int id = pof_read_int(model_buf);
 
 	if (id != 'OPSP')
 		Error("Bad ID in model file <%s>", filename);
 
-	version = pof_read_short(model_buf);
+	short version = pof_read_short(model_buf);
 
 	if (version < PM_COMPATIBLE_VERSION || version > PM_OBJFILE_VERSION)
 		Error("Bad version (%d) in model file <%s>", version, filename);
@@ -193,10 +191,8 @@ polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 
 	while (new_pof_read_int(id, model_buf) == 1) 
 	{
-
-		//id  = pof_read_int(model_buf);
-		len = pof_read_int(model_buf);
-		next_chunk = Pof_addr + len;
+		int len = pof_read_int(model_buf);
+		int next_chunk = Pof_addr + len;
 
 		switch (id) 
 		{
@@ -233,11 +229,9 @@ polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 
 		case ID_SOBJ: //Subobject header
 		{
-			int n;
-
 			//mprintf(0,"Got chunk SOBJ, len=%d\n",len);
 
-			n = pof_read_short(model_buf);
+			int n = pof_read_short(model_buf);
 
 			Assert(n < MAX_SUBMODELS);
 
@@ -263,14 +257,13 @@ polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 
 			if (r) 
 			{
-				int i;
 				vms_vector gun_dir;
 
 				r->n_guns = pof_read_int(model_buf);
 
 				Assert(r->n_guns <= MAX_GUNS);
 
-				for (i = 0; i < r->n_guns; i++) 
+				for (int i = 0; i < r->n_guns; i++) 
 				{
 					int id;
 
@@ -297,14 +290,12 @@ polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 
 			if (r) 
 			{
-				int n_frames, f, m;
-
-				n_frames = pof_read_short(model_buf);
+				int n_frames = pof_read_short(model_buf);
 
 				Assert(n_frames == N_ANIM_STATES);
 
-				for (m = 0; m < pm->n_models; m++)
-					for (f = 0; f < n_frames; f++)
+				for (int m = 0; m < pm->n_models; m++)
+					for (int f = 0; f < n_frames; f++)
 						pof_cfread(&anim_angs[f][m], 1, sizeof(vms_angvec), model_buf);
 
 				robot_set_angles(r, pm, anim_angs);
@@ -318,12 +309,11 @@ polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 
 		case ID_TXTR: //Texture filename list
 		{
-			int n;
 			char name_buf[128];
 
 			//mprintf(0,"Got chunk TXTR, len=%d\n",len);
 
-			n = pof_read_short(model_buf);
+			int n = pof_read_short(model_buf);
 			//mprintf(0,"  num textures = %d\n",n);
 			while (n--) 
 			{
@@ -354,9 +344,6 @@ polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 			pof_cfseek(model_buf, next_chunk, SEEK_SET);
 	}
 
-	//	for (i=0;i<pm->n_models;i++)
-	//		pm->submodel_ptrs[i] += (int) pm->model_data;
-
 	if (FindArg("-bspgen")) 
 	{
 		char* p = strchr(filename, '.');
@@ -372,13 +359,11 @@ polymodel* read_model_file(polymodel* pm, char* filename, robot_info* r)
 //fills in arrays gun_points & gun_dirs, returns the number of guns read
 int read_model_guns(char* filename, vms_vector* gun_points, vms_vector* gun_dirs, int* gun_submodels)
 {
-	CFILE* ifile;
-	short version;
-	int id, len;
 	int n_guns = 0;
-	uint8_t	model_buf[MODEL_BUF_SIZE];
+	static uint8_t model_buf[MODEL_BUF_SIZE];
 
-	if ((ifile = cfopen(filename, "rb")) == NULL)
+	CFILE* ifile = cfopen(filename, "rb");
+	if (!ifile)
 	{
 		Error("Can't open file <%s>", filename);
 		return 0;
@@ -390,22 +375,19 @@ int read_model_guns(char* filename, vms_vector* gun_points, vms_vector* gun_dirs
 	Pof_file_end = cfread(model_buf, 1, ifile->size, ifile);
 	cfclose(ifile);
 
-	id = pof_read_int(model_buf);
+	int id = pof_read_int(model_buf);
 
 	if (id != 'OPSP')
 		Error("Bad ID in model file <%s>", filename);
 
-	version = pof_read_short(model_buf);
-
-	Assert(version >= 7);		//must be 7 or higher for this data
-
-	if (version < PM_COMPATIBLE_VERSION || version > PM_OBJFILE_VERSION)
+	short version = pof_read_short(model_buf);
+	//must be 7 or higher for this data
+	if (version < 7 || version > PM_OBJFILE_VERSION)
 		Error("Bad version (%d) in model file <%s>", version, filename);
 
 	while (new_pof_read_int(id, model_buf) == 1) 
 	{
-		//id  = pof_read_int(model_buf);
-		len = pof_read_int(model_buf);
+		int len = pof_read_int(model_buf);
 
 		if (id == ID_GUNS) //List of guns on this object
 		{
@@ -450,17 +432,13 @@ bitmap_index texture_list_index[MAX_POLYOBJ_TEXTURES];
 
 int Simple_model_threshhold_scale = 5;		//switch when this times radius far away
 
-
 //draw a polygon model
 
 void draw_polygon_model(vms_vector* pos, vms_matrix* orient, vms_angvec* anim_angles, int model_num, int flags, fix light, fix* glow_values, bitmap_index alt_textures[])
 {
-	polymodel* po;
-	int i;
-
 	Assert(model_num < N_polygon_models);
 
-	po = &Polygon_models[model_num];
+	polymodel* po = &Polygon_models[model_num];
 
 	//check if should use simple model
 	if (po->simpler_model)					//must have a simpler model
@@ -470,22 +448,20 @@ void draw_polygon_model(vms_vector* pos, vms_matrix* orient, vms_angvec* anim_an
 			//for on 11/14/94, they do match.  So we leave it in.
 		{
 			int cnt = 1;
-			fix depth;
-
-			depth = g3_calc_point_depth(pos);		//gets 3d depth
+			fix depth = g3_calc_point_depth(pos);		//gets 3d depth
 
 			while (po->simpler_model && depth > cnt++ * Simple_model_threshhold_scale * po->rad)
 				po = &Polygon_models[po->simpler_model - 1];
 		}
 
 	if (alt_textures)
-		for (i = 0; i < po->n_textures; i++) 
+		for (int i = 0; i < po->n_textures; i++) 
 		{
 			texture_list_index[i] = alt_textures[i];
 			texture_list[i] = &GameBitmaps[alt_textures[i].index];
 		}
 	else
-		for (i = 0; i < po->n_textures; i++) 
+		for (int i = 0; i < po->n_textures; i++) 
 		{
 			texture_list_index[i] = ObjBitmaps[ObjBitmapPtrs[po->first_texture + i]];
 			texture_list[i] = &GameBitmaps[ObjBitmaps[ObjBitmapPtrs[po->first_texture + i]].index];
@@ -493,14 +469,14 @@ void draw_polygon_model(vms_vector* pos, vms_matrix* orient, vms_angvec* anim_an
 
 	// Make sure the textures for this object are paged in...
 	piggy_page_flushed = 0;
-	for (i = 0; i < po->n_textures; i++)
+	for (int i = 0; i < po->n_textures; i++)
 		PIGGY_PAGE_IN(texture_list_index[i]);
 	// Hmmm... cache got flushed in the middle of paging all these in,
 	// so we need to reread them all in.
 	if (piggy_page_flushed) 
 	{
 		piggy_page_flushed = 0;
-		for (i = 0; i < po->n_textures; i++)
+		for (int i = 0; i < po->n_textures; i++)
 			PIGGY_PAGE_IN(texture_list_index[i]);
 	}
 	// Make sure that they can all fit in memory.
@@ -514,9 +490,7 @@ void draw_polygon_model(vms_vector* pos, vms_matrix* orient, vms_angvec* anim_an
 		g3_draw_polygon_model(po->model_data, texture_list, anim_angles, light, glow_values);
 	else 
 	{
-		int i;
-
-		for (i = 0; flags; flags >>= 1, i++)
+		for (int i = 0; flags; flags >>= 1, i++)
 			if (flags & 1) 
 			{
 				vms_vector ofs;
@@ -538,27 +512,20 @@ void draw_polygon_model(vms_vector* pos, vms_matrix* orient, vms_angvec* anim_an
 
 void free_polygon_models(void)
 {
-	int i;
-
-	for (i = 0; i < N_polygon_models; i++) 
+	for (int i = 0; i < N_polygon_models; i++) 
 	{
 		free_model(&Polygon_models[i]);
 	}
-
 }
 
 void polyobj_find_min_max(polymodel* pm)
 {
-	uint16_t nverts;
-	vms_vector* vp;
-	uint16_t* data, type;
-	int m;
 	vms_vector* big_mn, * big_mx;
 
 	big_mn = &pm->mins;
 	big_mx = &pm->maxs;
 
-	for (m = 0; m < pm->n_models; m++) 
+	for (int m = 0; m < pm->n_models; m++) 
 	{
 		vms_vector* mn, * mx, * ofs;
 
@@ -566,18 +533,18 @@ void polyobj_find_min_max(polymodel* pm)
 		mx = &pm->submodel_maxs[m];
 		ofs = &pm->submodel_offsets[m];
 
-		data = (uint16_t*)& pm->model_data[pm->submodel_ptrs[m]];
+		uint16_t* data = (uint16_t*)& pm->model_data[pm->submodel_ptrs[m]];
 
-		type = *data++;
+		uint16_t type = *data++;
 
 		Assert(type == 7 || type == 1);
 
-		nverts = *data++;
+		uint16_t nverts = *data++;
 
 		if (type == 7)
 			data += 2;		//skip start & pad
 
-		vp = (vms_vector*)data;
+		vms_vector* vp = (vms_vector*)data;
 
 		*mn = *mx = *vp++; nverts--;
 
@@ -612,16 +579,8 @@ extern short highest_texture_num;	//from the 3d
 char Pof_names[MAX_POLYGON_MODELS][13];
 
 //returns the number of this model
-#ifndef DRIVE
 int load_polygon_model(char* filename, int n_textures, int first_texture, robot_info* r)
-#else
-int load_polygon_model(char* filename, int n_textures, grs_bitmap*** textures)
-#endif
 {
-#ifdef DRIVE
-#define r NULL
-#endif
-
 	Assert(N_polygon_models < MAX_POLYGON_MODELS);
 	Assert(n_textures < MAX_POLYOBJ_TEXTURES);
 
@@ -642,8 +601,6 @@ int load_polygon_model(char* filename, int n_textures, grs_bitmap*** textures)
 	Polygon_models[N_polygon_models].n_textures = n_textures;
 	Polygon_models[N_polygon_models].first_texture = first_texture;
 	Polygon_models[N_polygon_models].simpler_model = 0;
-
-	//	Assert(polygon_models[N_polygon_models]!=NULL);
 
 	N_polygon_models++;
 

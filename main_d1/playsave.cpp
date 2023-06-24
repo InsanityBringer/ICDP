@@ -42,31 +42,11 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 //[ISB] stupid error codes
 #define EZERO 0
 
-//this is for version 5 and below
-typedef struct save_info_v5 
-{
-	int	id;
-	short	saved_game_version, player_struct_version;
-	int 	highest_level;
-	int	default_difficulty_level;
-	int	default_leveling_on;
-} save_info_v5;
-
-//this is for version 6 and above 
-typedef struct save_info 
-{
-	int	id;
-	short	saved_game_version, player_struct_version;
-	int	n_highest_levels;				//how many highest levels are saved
-	int	default_difficulty_level;
-	int	default_leveling_on;
-} save_info;
-
-typedef struct hli 
+struct hli
 {
 	char	shortname[9];
 	uint8_t	level_num;
-} hli;
+};
 
 struct pilot_gameinfo
 {
@@ -209,9 +189,7 @@ void find_gameinfo_for_current_game()
 
 void init_game_list()
 {
-	int i;
-
-	for (i = 0; i < N_SAVE_SLOTS; i++)
+	for (int i = 0; i < N_SAVE_SLOTS; i++)
 		saved_games[i].name[0] = 0;
 }
 
@@ -222,34 +200,6 @@ extern int choco_id_to_menu_remap[];
 
 int new_player_config()
 {
-	int i, j, control_choice;
-	newmenu_item m[7];
-
-	/*
-RetrySelection:
-	for (i = 0; i < 5; i++) 
-	{
-		m[i].type = NM_TYPE_MENU; m[i].text = const_cast<char*>(control_text[choco_menu_remap[i]]);
-	}
-	m[0].text = TXT_CONTROL_KEYBOARD;
-
-	control_choice = Config_control_type;				// Assume keyboard
-
-	control_choice = newmenu_do1(NULL, TXT_CHOOSE_INPUT, 5, m, NULL, control_choice);
-
-	if (control_choice < 0)
-		return 0;
-
-	//[ISB]: Remap chocolate input into the original input method. 
-	control_choice = choco_menu_remap[control_choice];
-
-	for (i = 0; i < CONTROL_MAX_TYPES; i++)
-		for (j = 0; j < MAX_CONTROLS; j++)
-			kconfig_settings[i][j] = default_kconfig_settings[i][j];
-	kc_set_controls();
-
-	Config_control_type = control_choice;*/
-
 	kconfig_reset_keybinds();
 
 	Player_default_difficulty = 1;
@@ -280,9 +230,7 @@ int read_player_file()
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 #endif
-	char filename[FILENAME_LEN];
-	FILE* file;
-	save_info info;
+	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	int errno_ret = EZERO;
 
 	Assert(Player_num >= 0 && Player_num < MAX_PLAYERS);
@@ -291,10 +239,11 @@ int read_player_file()
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
 	get_full_file_path(filename_full_path, filename, CHOCOLATE_PILOT_DIR);
-	file = fopen(filename_full_path, "rb");
+	FILE* file = fopen(filename_full_path, "rb");
 #else
-	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
-	file = fopen(filename, "rb");
+	snprintf(filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.nplt", Players[Player_num].callsign);
+	filename[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
+	FILE* file = fopen(filename, "rb");
 #endif
 
 	//check filename

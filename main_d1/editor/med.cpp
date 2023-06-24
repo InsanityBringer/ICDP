@@ -94,7 +94,6 @@ grs_canvas *Canv_editor;			//the editor screen
 grs_canvas *Canv_editor_game=&_canv_editor_game; //the game on the editor screen
 
 grs_canvas *canv_offscreen;		//for off-screen rendering
-grs_canvas* game_canvas;		//[ISB] 3D view canvas so it's not dependent on your resolution. 
 grs_canvas *Pad_text_canvas;		// Keypad text
 
 grs_font *editor_font=NULL;
@@ -306,7 +305,7 @@ int GotoGameScreen()
 
 int GotoGame()
 {
-	return GotoGameCommon(2);
+	return GotoGameCommon(3);
 }
 
 static int (*KeyFunction[2048])();
@@ -953,6 +952,8 @@ void editor(void)
 	InitCurve();
 
 	restore_effect_bitmap_icons();
+
+	digi_stop_current_song(); //getting tired of descent.hmp any time I need to use the editor..
 
 	if (!set_screen_mode(SCREEN_EDITOR))	
 	{

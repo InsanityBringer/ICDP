@@ -39,22 +39,13 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 trigger Triggers[MAX_TRIGGERS];
 int Num_triggers;
 
-//link Links[MAX_WALL_LINKS];
-//int Num_links;
-
-#ifdef EDITOR
-fix trigger_time_count = F1_0;
-
 //-----------------------------------------------------------------
 // Initializes all the switches.
 void trigger_init()
 {
-	int i;
-
 	Num_triggers = 0;
-	//	Num_links = 0;	
 
-	for (i = 0; i < MAX_TRIGGERS; i++)
+	for (int i = 0; i < MAX_TRIGGERS; i++)
 	{
 		Triggers[i].type = 0;
 		Triggers[i].flags = 0;
@@ -62,11 +53,7 @@ void trigger_init()
 		Triggers[i].link_num = -1;
 		Triggers[i].time = -1;
 	}
-
-	//	for (i=0;i<MAX_WALL_LINKS;i++)
-	//		Links[i].num_walls = 0;
 }
-#endif
 
 //-----------------------------------------------------------------
 // Executes a link, attached to a trigger.
@@ -74,13 +61,11 @@ void trigger_init()
 // Opens doors, Blasts blast walls, turns off illusions.
 void do_link(int8_t trigger_num)
 {
-	int i;
-
 	mprintf((0, "Door link!\n"));
 
 	if (trigger_num != -1) 
 	{
-		for (i = 0; i < Triggers[trigger_num].num_links; i++) 
+		for (int i = 0; i < Triggers[trigger_num].num_links; i++) 
 		{
 			wall_toggle(&Segments[Triggers[trigger_num].seg[i]], Triggers[trigger_num].side[i]);
 			mprintf((0, " trigger_num %d : seg %d, side %d\n",
@@ -91,13 +76,11 @@ void do_link(int8_t trigger_num)
 
 void do_matcen(int8_t trigger_num)
 {
-	int i;
-
 	mprintf((0, "Matcen link!\n"));
 
 	if (trigger_num != -1) 
 	{
-		for (i = 0; i < Triggers[trigger_num].num_links; i++) 
+		for (int i = 0; i < Triggers[trigger_num].num_links; i++) 
 		{
 			trigger_matcen(Triggers[trigger_num].seg[i]);
 			mprintf((0, " trigger_num %d : seg %d\n",
@@ -109,13 +92,11 @@ void do_matcen(int8_t trigger_num)
 
 void do_il_on(int8_t trigger_num)
 {
-	int i;
-
 	mprintf((0, "Illusion ON\n"));
 
 	if (trigger_num != -1) 
 	{
-		for (i = 0; i < Triggers[trigger_num].num_links; i++) 
+		for (int i = 0; i < Triggers[trigger_num].num_links; i++) 
 		{
 			wall_illusion_on(&Segments[Triggers[trigger_num].seg[i]], Triggers[trigger_num].side[i]);
 			mprintf((0, " trigger_num %d : seg %d, side %d\n",
@@ -126,13 +107,11 @@ void do_il_on(int8_t trigger_num)
 
 void do_il_off(int8_t trigger_num)
 {
-	int i;
-
 	mprintf((0, "Illusion OFF\n"));
 
 	if (trigger_num != -1) 
 	{
-		for (i = 0; i < Triggers[trigger_num].num_links; i++) 
+		for (int i = 0; i < Triggers[trigger_num].num_links; i++) 
 		{
 			wall_illusion_off(&Segments[Triggers[trigger_num].seg[i]], Triggers[trigger_num].side[i]);
 			mprintf((0, " trigger_num %d : seg %d, side %d\n",
@@ -141,7 +120,7 @@ void do_il_off(int8_t trigger_num)
 	}
 }
 
-int check_trigger_sub(int trigger_num, int pnum)
+bool check_trigger_sub(int trigger_num, int pnum)
 {
 	if (pnum == Player_num) 
 	{
@@ -174,7 +153,7 @@ int check_trigger_sub(int trigger_num, int pnum)
 #endif
 			gr_palette_fade_out(gr_palette, 32, 0);
 			PlayerFinishedLevel(1);		//1 means go to secret level
-			return 1;
+			return true;
 		}
 
 		if (Triggers[trigger_num].flags & TRIGGER_ENERGY_DRAIN) 
@@ -208,32 +187,22 @@ int check_trigger_sub(int trigger_num, int pnum)
 		mprintf((0, "i"));
 		do_il_off(trigger_num);
 	}
-	return 0;
+	return false;
 }
 
 //-----------------------------------------------------------------
 // Checks for a trigger whenever an object hits a trigger side.
 void check_trigger(segment* seg, short side, short objnum)
 {
-	int wall_num, trigger_num, ctrigger_num;
-	segment* csegp;
-	short cside;
-
-	//	mprintf(0,"T");
-
 	if (objnum == Players[Player_num].objnum) 
 	{
-
-		//		if ( Newdemo_state == ND_STATE_RECORDING )
-		//			newdemo_record_trigger( seg-Segments, side, objnum );
-
 		if (Newdemo_state == ND_STATE_PLAYBACK)
 			return;
 
-		wall_num = seg->sides[side].wall_num;
+		int wall_num = seg->sides[side].wall_num;
 		if (wall_num == -1) return;
 
-		trigger_num = Walls[wall_num].trigger;
+		int trigger_num = Walls[wall_num].trigger;
 
 		if (trigger_num == -1)
 			return;
@@ -245,31 +214,27 @@ void check_trigger(segment* seg, short side, short objnum)
 		{
 			Triggers[trigger_num].flags &= ~TRIGGER_ON;
 
-			csegp = &Segments[seg->children[side]];
-			cside = find_connect_side(seg, csegp);
+			segment* csegp = &Segments[seg->children[side]];
+			int cside = find_connect_side(seg, csegp);
 			Assert(cside != -1);
 
 			wall_num = csegp->sides[cside].wall_num;
 			if (wall_num == -1) return;
 
-			ctrigger_num = Walls[wall_num].trigger;
+			int ctrigger_num = Walls[wall_num].trigger;
 
 			Triggers[ctrigger_num].flags &= ~TRIGGER_ON;
 		}
-#ifndef SHAREWARE
 #ifdef NETWORK
 		if (Game_mode & GM_MULTI)
 			multi_send_trigger(trigger_num);
-#endif
 #endif
 	}
 }
 
 void triggers_frame_process()
 {
-	int i;
-
-	for (i = 0; i < Num_triggers; i++)
+	for (int i = 0; i < Num_triggers; i++)
 		if (Triggers[i].time >= 0)
 			Triggers[i].time -= FrameTime;
 }

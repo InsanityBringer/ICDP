@@ -18,7 +18,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <stdarg.h>
 
 #include "platform/posixstub.h"
-
+#include "cfile/cfile.h"
 #include "platform/platform_filesys.h"
 #include "platform/platform.h"
 #include "misc/error.h"
@@ -47,38 +47,79 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #else
 #define SCORES_FILENAME 	"DESCENT.HI"
 #endif
-#define COOL_MESSAGE_LEN 	50
-#define MAX_HIGH_SCORES 	10
+constexpr int COOL_MESSAGE_LEN = 50;
+constexpr int MAX_HIGH_SCORES = 10;
 
-typedef struct stats_info 
+constexpr int STATS_INFO_SIZEOF = 15 + (CALLSIGN_LEN + 1);
+struct stats_info
 {
-	char		name[CALLSIGN_LEN + 1];
+	char	name[CALLSIGN_LEN + 1];
 	int		score;
-	int8_t		starting_level;
-	int8_t		ending_level;
-	int8_t  	diff_level;
-	short 	kill_ratio;	// 0-100
-	short		hostage_ratio;   // 
-	int		seconds;			// How long it took in seconds...
-} stats_info;
+	int8_t	starting_level;
+	int8_t	ending_level;
+	int8_t  diff_level;
+	short 	kill_ratio;		// 0-100
+	short	hostage_ratio;	// 
+	int		seconds;		// How long it took in seconds...
 
-typedef struct all_scores 
+	void from_file(FILE* fp)
+	{
+		//I need a way to auto generate serializers..
+		fread(name, 1, sizeof(name), fp);
+		score = file_read_int(fp);
+		starting_level = file_read_byte(fp);
+		ending_level = file_read_byte(fp);
+		diff_level = file_read_byte(fp);
+		kill_ratio = file_read_short(fp);
+		hostage_ratio = file_read_short(fp);
+		seconds = file_read_int(fp);
+	}
+
+	void to_file(FILE* fp)
+	{
+		fwrite(name, 1, sizeof(name), fp);
+		file_write_int(fp, score);
+		file_write_byte(fp, starting_level);
+		file_write_byte(fp, ending_level);
+		file_write_byte(fp, diff_level);
+		file_write_short(fp, kill_ratio);
+		file_write_short(fp, hostage_ratio);
+		file_write_int(fp, seconds);
+	}
+};
+
+constexpr int ALL_SCORES_SIZEOF = 54 + (STATS_INFO_SIZEOF * MAX_HIGH_SCORES);
+struct all_scores
 {
-	char			signature[3];			// DHS
-	int8_t			version;					// version
-	char			cool_saying[COOL_MESSAGE_LEN];
+	char		signature[3];	// DHS
+	int8_t		version;
+	char		cool_saying[COOL_MESSAGE_LEN];
 	stats_info	stats[MAX_HIGH_SCORES];
-} all_scores;
+
+	void from_file(FILE* fp)
+	{
+		fread(signature, 1, sizeof(signature), fp);
+		version = file_read_byte(fp);
+		fread(cool_saying, 1, sizeof(cool_saying), fp);
+		for (int i = 0; i < MAX_HIGH_SCORES; i++)
+			stats[i].from_file(fp);
+	}
+
+	void to_file(FILE* fp)
+	{
+		fwrite(signature, 1, sizeof(signature), fp);
+		file_write_byte(fp, version);
+		fwrite(cool_saying, 1, sizeof(cool_saying), fp);
+		for (int i = 0; i < MAX_HIGH_SCORES; i++)
+			stats[i].to_file(fp);
+	}
+};
 
 static all_scores Scores;
 
 stats_info Last_game;
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 char scores_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#else
-char scores_filename[128];
-#endif
 
 #define XX  (7)
 #define YY  (-3)
@@ -87,8 +128,7 @@ char* get_scores_filename()
 {
 #ifndef RELEASE
 	// Only use the MINER variable for internal developement
-	char* p;
-	p = getenv("MINER");
+	char* p = getenv("MINER");
 	if (p) 
 	{
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
@@ -117,61 +157,52 @@ char* get_scores_filename()
 	return scores_filename;
 }
 
+void scores_create_default()
+{
+	// No error message needed, code will work without a scores file
+	sprintf(Scores.cool_saying, TXT_REGISTER_DESCENT);
+	sprintf(Scores.stats[0].name, "Parallax");
+	sprintf(Scores.stats[1].name, "Mike");
+	sprintf(Scores.stats[2].name, "Matt");
+	sprintf(Scores.stats[3].name, "John");
+	sprintf(Scores.stats[4].name, "Yuan");
+	sprintf(Scores.stats[5].name, "Adam");
+	sprintf(Scores.stats[6].name, "Mark");
+	sprintf(Scores.stats[7].name, "Allender");
+	sprintf(Scores.stats[8].name, "Jasen");
+	sprintf(Scores.stats[9].name, "Rob");
+
+	for (int i = 0; i < 10; i++)
+		Scores.stats[i].score = (10 - i) * 1000;
+}
 
 void scores_read()
 {
-	FILE* fp;
-	int fsize;
-
 	// clear score array...
-	memset(&Scores, 0, sizeof(all_scores));
+	scores_create_default();
 
-	fp = fopen(get_scores_filename(), "rb");
-	if (fp == NULL) 
-	{
-		int i;
-
-		// No error message needed, code will work without a scores file
-		sprintf(Scores.cool_saying, TXT_REGISTER_DESCENT);
-		sprintf(Scores.stats[0].name, "Parallax");
-		sprintf(Scores.stats[1].name, "Mike");
-		sprintf(Scores.stats[2].name, "Matt");
-		sprintf(Scores.stats[3].name, "John");
-		sprintf(Scores.stats[4].name, "Yuan");
-		sprintf(Scores.stats[5].name, "Adam");
-		sprintf(Scores.stats[6].name, "Mark");
-		sprintf(Scores.stats[7].name, "Allender");
-		sprintf(Scores.stats[8].name, "Jasen");
-		sprintf(Scores.stats[9].name, "Rob");
-
-		for (i = 0; i < 10; i++)
-			Scores.stats[i].score = (10 - i) * 1000;
+	FILE* fp = fopen(get_scores_filename(), "rb");
+	if (!fp) 
 		return;
-	}
 
-	fsize = _filelength(_fileno(fp));
+	int fsize = _filelength(_fileno(fp));
 
-	if (fsize != sizeof(all_scores)) 
+	if (fsize != ALL_SCORES_SIZEOF) 
 	{
 		fclose(fp);
 		return;
 	}
 	// Read 'em in...
-	fread(&Scores, sizeof(all_scores), 1, fp);
+	Scores.from_file(fp);
 	fclose(fp);
 
 	if ((Scores.version != VERSION_NUMBER) || (Scores.signature[0] != 'D') || (Scores.signature[1] != 'H') || (Scores.signature[2] != 'S')) 
-	{
-		memset(&Scores, 0, sizeof(all_scores));
-		return;
-	}
+		scores_create_default();
 }
 
 void scores_write()
 {
-	FILE* fp;
-
-	fp = fopen(get_scores_filename(), "wb");
+	FILE* fp = fopen(get_scores_filename(), "wb");
 	if (fp == NULL) 
 	{
 		nm_messagebox(TXT_WARNING, 1, TXT_OK, "%s\n'%s'", TXT_UNABLE_TO_OPEN, get_scores_filename());
@@ -182,7 +213,7 @@ void scores_write()
 	Scores.signature[1] = 'H';
 	Scores.signature[2] = 'S';
 	Scores.version = VERSION_NUMBER;
-	fwrite(&Scores, sizeof(all_scores), 1, fp);
+	Scores.to_file(fp);
 	fclose(fp);
 }
 
@@ -244,12 +275,11 @@ void scores_maybe_add_player(int abort_flag)
 {
 	char text1[COOL_MESSAGE_LEN + 10];
 	newmenu_item m[10];
-	int i, position;
 
 	scores_read();
 
-	position = MAX_HIGH_SCORES;
-	for (i = 0; i < MAX_HIGH_SCORES; i++) 
+	int position = MAX_HIGH_SCORES;
+	for (int i = 0; i < MAX_HIGH_SCORES; i++) 
 	{
 		if (Players[Player_num].score > Scores.stats[i].score) 
 		{
@@ -266,11 +296,6 @@ void scores_maybe_add_player(int abort_flag)
 	}
 	else 
 	{
-		//--		if ( Difficulty_level < 1 )	{
-		//--			nm_messagebox( "GRADUATION TIME!", 1, "Ok", "If you would had been\nplaying at a higher difficulty\nlevel, you would have placed\n#%d on the high score list.", position+1 );
-		//--			return;
-		//--		}
-
 		if (position == 0) 
 		{
 			strcpy(text1, "");
@@ -287,7 +312,7 @@ void scores_maybe_add_player(int abort_flag)
 		}
 
 		// move everyone down...
-		for (i = MAX_HIGH_SCORES - 1; i > position; i--) 
+		for (int i = MAX_HIGH_SCORES - 1; i > position; i--) 
 		{
 			Scores.stats[i] = Scores.stats[i - 1];
 		}
@@ -303,17 +328,16 @@ void scores_rprintf(int x, int y, const char* format, ...)
 {
 	va_list args;
 	char buffer[128];
-	int w, h, aw;
-	char* p;
 
 	va_start(args, format);
 	vsprintf(buffer, format, args);
 	va_end(args);
 
 	//replace the digit '1' with special wider 1
-	for (p = buffer; *p; p++)
+	for (char* p = buffer; *p; p++)
 		if (*p == '1') *p = 132;
 
+	int w, h, aw;
 	gr_get_string_size(buffer, &w, &h, &aw);
 
 	gr_string(x - w, y, buffer);
@@ -323,8 +347,7 @@ void scores_rprintf(int x, int y, const char* format, ...)
 void scores_draw_item(int  i, stats_info* stats)
 {
 	char buffer[20];
-	int y;
-	y = 7 + 70 + i * 9;
+	int y = 7 + 70 + i * 9;
 	if (i == 0) y -= 8;
 
 	if (i == MAX_HIGH_SCORES) 
@@ -357,23 +380,16 @@ void scores_draw_item(int  i, stats_info* stats)
 	else if ((stats->starting_level > 0) && (stats->ending_level < 0))
 		scores_rprintf(192 + 33 + XX, y + YY, "%d-S%d", stats->starting_level, -stats->ending_level);
 
-	{
-		int h, m, s;
-		h = stats->seconds / 3600;
-		s = stats->seconds % 3600;
-		m = s / 60;
-		s = s % 60;
-		scores_rprintf(311 - 42 + XX, y + YY, "%d:%02d:%02d", h, m, s);
-	}
+	int h = stats->seconds / 3600;
+	int s = stats->seconds % 3600;
+	int m = s / 60;
+	s = s % 60;
+	scores_rprintf(311 - 42 + XX, y + YY, "%d:%02d:%02d", h, m, s);
 }
 
 void scores_view(int citem)
 {
-	fix time_out_value;
-	fix t1;
-	int i, done, looper;
-	int k;
-	int8_t fades[64] = { 1,1,1,2,2,3,4,4,5,6,8,9,10,12,13,15,16,17,19,20,22,23,24,26,27,28,28,29,30,30,31,31,31,31,31,30,30,29,28,28,27,26,24,23,22,20,19,17,16,15,13,12,10,9,8,6,5,4,4,3,2,2,1,1 };
+	const int8_t fades[64] = { 1,1,1,2,2,3,4,4,5,6,8,9,10,12,13,15,16,17,19,20,22,23,24,26,27,28,28,29,30,30,31,31,31,31,31,30,30,29,28,28,27,26,24,23,22,20,19,17,16,15,13,12,10,9,8,6,5,4,4,3,2,2,1,1 };
 
 	grs_canvas* scores_canvas = gr_create_canvas(320, 200);
 
@@ -382,7 +398,7 @@ ReshowScores:
 
 	set_screen_mode(SCREEN_MENU);
 
-	gr_set_current_canvas(NULL);
+	gr_set_current_canvas(scores_canvas);
 
 	nm_draw_background(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
 
@@ -408,7 +424,7 @@ ReshowScores:
 
 	gr_printf(0x8000, 31, "%c%s%c  - %s", 34, Scores.cool_saying, 34, Scores.stats[0].name);
 
-	for (i = 0; i < MAX_HIGH_SCORES; i++) 
+	for (int i = 0; i < MAX_HIGH_SCORES; i++) 
 	{
 		if (i == 0) 
 		{
@@ -425,18 +441,18 @@ ReshowScores:
 
 	game_flush_inputs();
 
-	done = 0;
-	looper = 0;
+	bool done = false;
+	int looper = 0;
 
-	time_out_value = timer_get_fixed_seconds() + i2f(60 * 5);
+	fix time_out_value = timer_get_fixed_seconds() + i2f(60 * 5);
 	while (!done) 
 	{
 		timer_mark_start();
 		plat_do_events();
 		if (citem > -1) 
 		{
-			t1 = timer_get_fixed_seconds();
-			if (t1 > time_out_value) done = 1;
+			fix t1 = timer_get_fixed_seconds();
+			if (t1 > time_out_value) done = true;
 			while (timer_get_fixed_seconds() < t1 + F1_0 / 128);
 
 			gr_set_fontcolor(gr_fade_table[fades[looper] * 256 + BM_XRGB(28, 28, 28)], -1);
@@ -448,17 +464,20 @@ ReshowScores:
 				scores_draw_item(citem, &Scores.stats[citem]);
 		}
 
-		for (i = 0; i < 4; i++)
+		for (int i = 0; i < 4; i++)
 			if (joy_get_button_down_cnt(i) > 0) done = 1;
-		for (i = 0; i < 3; i++)
+		for (int i = 0; i < 3; i++)
 			if (mouse_button_down_count(i) > 0) done = 1;
 
-		k = key_inkey();
-		switch (k) {
+		int k = key_inkey();
+		switch (k) 
+		{
 		case KEY_CTRLED + KEY_R:
-			if (citem < 0) {
+			if (citem < 0) 
+			{
 				// Reset scores...
-				if (nm_messagebox(NULL, 2, TXT_NO, TXT_YES, TXT_RESET_HIGH_SCORES) == 1) {
+				if (nm_messagebox(NULL, 2, TXT_NO, TXT_YES, TXT_RESET_HIGH_SCORES) == 1) 
+				{
 					remove(get_scores_filename());
 					gr_palette_fade_out(gr_palette, 32, 0);
 					goto ReshowScores;
@@ -471,7 +490,7 @@ ReshowScores:
 		case KEY_ENTER:
 		case KEY_SPACEBAR:
 		case KEY_ESC:
-			done = 1;
+			done = true;
 			break;
 		}
 		plat_present_canvas(0);

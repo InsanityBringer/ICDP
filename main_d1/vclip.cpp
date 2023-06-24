@@ -23,20 +23,19 @@ vclip 				Vclip[VCLIP_MAXNUM];		// General purpose vclips.
 //draw an object which renders as a vclip
 void draw_vclip_object(object* obj, fix timeleft, int lighted, int vclip_num)
 {
-	int nf, bitmapnum;
+	int nf = Vclip[vclip_num].num_frames;
 
-	nf = Vclip[vclip_num].num_frames;
-
-	bitmapnum = (nf - f2i(fixdiv((nf - 1) * timeleft, Vclip[vclip_num].play_time))) - 1;
+	int bitmapnum = (nf - f2i(fixdiv((nf - 1) * timeleft, Vclip[vclip_num].play_time))) - 1;
 
 	if (bitmapnum >= Vclip[vclip_num].num_frames)
 		bitmapnum = Vclip[vclip_num].num_frames - 1;
 
-	if (bitmapnum >= 0) {
-
+	if (bitmapnum >= 0) 
+	{
 		if (Vclip[vclip_num].flags & VF_ROD)
 			draw_object_tmap_rod(obj, Vclip[vclip_num].frames[bitmapnum], lighted);
-		else {
+		else 
+		{
 			Assert(lighted == 0);		//blob cannot now be lighted
 
 			draw_object_blob(obj, Vclip[vclip_num].frames[bitmapnum]);
@@ -46,13 +45,8 @@ void draw_vclip_object(object* obj, fix timeleft, int lighted, int vclip_num)
 
 void draw_weapon_vclip(object* obj)
 {
-	int	vclip_num;
-	fix	modtime;
-
-	//mprintf( 0, "[Drawing obj %d type %d fireball size %x]\n", obj-Objects, Weapon_info[obj->id].weapon_vclip, obj->size );
-
-	vclip_num = Weapon_info[obj->id].weapon_vclip;
-	modtime = obj->lifeleft;
+	int vclip_num = Weapon_info[obj->id].weapon_vclip;
+	fix modtime = obj->lifeleft;
 	while (modtime > Vclip[vclip_num].play_time)
 		modtime -= Vclip[vclip_num].play_time;
 

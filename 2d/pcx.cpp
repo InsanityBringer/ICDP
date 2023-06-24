@@ -19,9 +19,11 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "mem/mem.h"
 #include "2d/pcx.h"
 #include "cfile/cfile.h"
+#include "misc/error.h"
 
 /* PCX Header data type */
-typedef struct {
+struct PCXHeader
+{
 	uint8_t		Manufacturer;
 	uint8_t		Version;
 	uint8_t		Encoding;
@@ -37,35 +39,72 @@ typedef struct {
 	uint8_t		Nplanes;
 	short		BytesPerLine;
 	uint8_t		filler[60];
-} PCXHeader;
 
+	void from_cfile(CFILE* fp)
+	{
+		Manufacturer = cfile_read_byte(fp);
+		Version = cfile_read_byte(fp);
+		Encoding = cfile_read_byte(fp);
+		BitsPerPixel = cfile_read_byte(fp);
+		Xmin = cfile_read_short(fp);
+		Ymin = cfile_read_short(fp);
+		Xmax = cfile_read_short(fp);
+		Ymax = cfile_read_short(fp);
+		Hdpi = cfile_read_short(fp);
+		Vdpi = cfile_read_short(fp);
+
+		for (int i = 0; i < 16; i++)
+			cfread(ColorMap[i], 1, sizeof(ColorMap[i]), fp);
+
+		Reserved = cfile_read_byte(fp);
+		Nplanes = cfile_read_byte(fp);
+		BytesPerLine = cfile_read_short(fp);
+		cfread(filler, 1, sizeof(filler), fp);
+	}
+
+	void to_file(FILE* fp)
+	{
+		file_write_byte(fp, Manufacturer);
+		file_write_byte(fp, Version);
+		file_write_byte(fp, Encoding);
+		file_write_byte(fp, BitsPerPixel);
+		file_write_short(fp, Xmin);
+		file_write_short(fp, Ymin);
+		file_write_short(fp, Xmax);
+		file_write_short(fp, Ymax);
+		file_write_short(fp, Hdpi);
+		file_write_short(fp, Vdpi);
+
+		for (int i = 0; i < 16; i++)
+			fwrite(ColorMap[i], 1, sizeof(ColorMap[i]), fp);
+
+		file_write_byte(fp, Reserved);
+		file_write_byte(fp, Nplanes);
+		file_write_short(fp, BytesPerLine);
+		fwrite(filler, 1, sizeof(filler), fp);
+	}
+};
 
 int pcx_read_bitmap(const char* filename, grs_bitmap* bmp, int bitmap_type, uint8_t* palette)
 {
-	PCXHeader header;
-	CFILE* PCXfile;
-	int i, row, col, count, xsize, ysize;
-	uint8_t data, * pixdata;
-
-	PCXfile = cfopen(filename, "rb");
+	CFILE* PCXfile = cfopen(filename, "rb");
 	if (!PCXfile)
 		return PCX_ERROR_OPENING;
 
 	// read 128 char PCX header
-	if (cfread(&header, sizeof(PCXHeader), 1, PCXfile) != 1) {
-		cfclose(PCXfile);
-		return PCX_ERROR_NO_HEADER;
-	}
+	PCXHeader header;
+	header.from_cfile(PCXfile);
 
 	// Is it a 256 color PCX file?
-	if ((header.Manufacturer != 10) || (header.Encoding != 1) || (header.Nplanes != 1) || (header.BitsPerPixel != 8) || (header.Version != 5)) {
+	if ((header.Manufacturer != 10) || (header.Encoding != 1) || (header.Nplanes != 1) || (header.BitsPerPixel != 8) || (header.Version != 5)) 
+	{
 		cfclose(PCXfile);
 		return PCX_ERROR_WRONG_VERSION;
 	}
 
 	// Find the size of the image
-	xsize = header.Xmax - header.Xmin + 1;
-	ysize = header.Ymax - header.Ymin + 1;
+	int xsize = header.Xmax - header.Xmin + 1;
+	int ysize = header.Ymax - header.Ymin + 1;
 
 	if (bitmap_type == BM_LINEAR) 
 	{
@@ -84,10 +123,11 @@ int pcx_read_bitmap(const char* filename, grs_bitmap* bmp, int bitmap_type, uint
 		}
 	}
 
-	for (row = 0; row < ysize; row++) 
+	uint8_t data, * pixdata;
+	for (int row = 0; row < ysize; row++) 
 	{
 		pixdata = &bmp->bm_data[bmp->bm_rowsize * row];
-		for (col = 0; col < xsize; ) 
+		for (int col = 0; col < xsize; ) 
 		{
 			if (cfread(&data, 1, 1, PCXfile) != 1) 
 			{
@@ -96,7 +136,7 @@ int pcx_read_bitmap(const char* filename, grs_bitmap* bmp, int bitmap_type, uint
 			}
 			if ((data & 0xC0) == 0xC0) 
 			{
-				count = data & 0x3F;
+				int count = data & 0x3F;
 				if (cfread(&data, 1, 1, PCXfile) != 1) 
 				{
 					cfclose(PCXfile);
@@ -127,7 +167,7 @@ int pcx_read_bitmap(const char* filename, grs_bitmap* bmp, int bitmap_type, uint
 					cfclose(PCXfile);
 					return PCX_ERROR_READING;
 				}
-				for (i = 0; i < 768; i++)
+				for (int i = 0; i < 768; i++)
 					palette[i] >>= 2;
 			}
 		}
@@ -145,12 +185,7 @@ int pcx_encode_line(uint8_t* inBuff, int inLen, FILE* fp);
 
 int pcx_write_bitmap(const char* filename, grs_bitmap* bmp, uint8_t* palette)
 {
-	int retval;
-	int i;
-	uint8_t data;
 	PCXHeader header;
-	FILE* PCXfile;
-
 	memset(&header, 0, sizeof(PCXHeader));
 
 	header.Manufacturer = 10;
@@ -162,19 +197,13 @@ int pcx_write_bitmap(const char* filename, grs_bitmap* bmp, uint8_t* palette)
 	header.Ymax = bmp->bm_h - 1;
 	header.BytesPerLine = bmp->bm_w;
 
-	//[ISB] knew this was a bad idea.....
-	PCXfile = fopen(filename, "wb");
-	//errno_t err = fopen_s(&PCXfile, filename, "wb");
+	FILE* PCXfile = fopen(filename, "wb");
 	if (!PCXfile)
 		return PCX_ERROR_OPENING;
 
-	if (fwrite(&header, sizeof(PCXHeader), 1, PCXfile) != 1) 
-	{
-		fclose(PCXfile);
-		return PCX_ERROR_WRITING;
-	}
+	header.to_file(PCXfile);
 
-	for (i = 0; i < bmp->bm_h; i++) 
+	for (int i = 0; i < bmp->bm_h; i++) 
 	{
 		if (!pcx_encode_line(&bmp->bm_data[bmp->bm_rowsize * i], bmp->bm_w, PCXfile))
 		{
@@ -184,7 +213,7 @@ int pcx_write_bitmap(const char* filename, grs_bitmap* bmp, uint8_t* palette)
 	}
 
 	// Mark an extended palette	
-	data = 12;
+	uint8_t data = 12;
 	if (fwrite(&data, 1, 1, PCXfile) != 1) 
 	{
 		fclose(PCXfile);
@@ -192,12 +221,12 @@ int pcx_write_bitmap(const char* filename, grs_bitmap* bmp, uint8_t* palette)
 	}
 
 	// Write the extended palette
-	for (i = 0; i < 768; i++)
+	for (int i = 0; i < 768; i++)
 		palette[i] <<= 2;
 
-	retval = fwrite(palette, 768, 1, PCXfile);
+	int retval = fwrite(palette, 768, 1, PCXfile);
 
-	for (i = 0; i < 768; i++)
+	for (int i = 0; i < 768; i++)
 		palette[i] >>= 2;
 
 	if (retval != 1) 
@@ -216,27 +245,30 @@ int pcx_encode_byte(uint8_t byt, uint8_t cnt, FILE* fid);
 // returns number of bytes written into outBuff, 0 if failed 
 int pcx_encode_line(uint8_t* inBuff, int inLen, FILE* fp)
 {
-	uint8_t cur, last;
-	int srcIndex, i;
-	int total;
-	uint8_t runCount; 	// max single runlength is 63
-	total = 0;
-	last = *(inBuff);
-	runCount = 1;
+	int total = 0;
+	uint8_t last = *(inBuff);
+	uint8_t runCount = 1;
 
-	for (srcIndex = 1; srcIndex < inLen; srcIndex++) {
-		cur = *(++inBuff);
-		if (cur == last) {
+	for (int srcIndex = 1; srcIndex < inLen; srcIndex++) 
+	{
+		uint8_t cur = *(++inBuff);
+		if (cur == last) 
+		{
 			runCount++;			// it encodes
-			if (runCount == 63) {
+			if (runCount == 63) 
+			{
+				int i;
 				if (!(i = pcx_encode_byte(last, runCount, fp)))
 					return(0);
 				total += i;
 				runCount = 0;
 			}
 		}
-		else {   	// cur != last
-			if (runCount) {
+		else // cur != last
+		{
+			if (runCount) 
+			{
+				int i;
 				if (!(i = pcx_encode_byte(last, runCount, fp)))
 					return(0);
 				total += i;
@@ -246,7 +278,9 @@ int pcx_encode_line(uint8_t* inBuff, int inLen, FILE* fp)
 		}
 	}
 
-	if (runCount) {		// finish up
+	if (runCount) // finish up
+	{
+		int i;
 		if (!(i = pcx_encode_byte(last, runCount, fp)))
 			return 0;
 		return total + i;
@@ -258,13 +292,16 @@ int pcx_encode_line(uint8_t* inBuff, int inLen, FILE* fp)
 // returns count of bytes written, 0 if error
 int pcx_encode_byte(uint8_t byt, uint8_t cnt, FILE* fid)
 {
-	if (cnt) {
-		if ((cnt == 1) && (0xc0 != (0xc0 & byt))) {
+	if (cnt) 
+	{
+		if ((cnt == 1) && (0xc0 != (0xc0 & byt))) 
+		{
 			if (EOF == putc((int)byt, fid))
 				return 0; 	// disk write error (probably full)
 			return 1;
 		}
-		else {
+		else 
+		{
 			if (EOF == putc((int)0xC0 | cnt, fid))
 				return 0; 	// disk write error
 			if (EOF == putc((int)byt, fid))
@@ -276,30 +313,22 @@ int pcx_encode_byte(uint8_t byt, uint8_t cnt, FILE* fid)
 }
 
 //text for error messges
-char pcx_error_messages[] = {
-	"No error.\0"
-	"Error opening file.\0"
-	"Couldn't read PCX header.\0"
-	"Unsupported PCX version.\0"
-	"Error reading data.\0"
-	"Couldn't find palette information.\0"
-	"Error writing data.\0"
+const char* pcx_error_messages[] = 
+{
+	"No error.",
+	"Error opening file.",
+	"Couldn't read PCX header.",
+	"Unsupported PCX version.",
+	"Error reading data.",
+	"Couldn't find palette information.",
+	"Error writing data."
 };
 
-
 //function to return pointer to error message
-char* pcx_errormsg(int error_number)
+const char* pcx_errormsg(int error_number)
 {
-	char* p = pcx_error_messages;
+	if (error_number < 0 || error_number >= 7)
+		Error("pcx_errormsg: error_number %d out of range.", error_number);
 
-	while (error_number--) {
-
-		if (!p) return NULL;
-
-		p += strlen(p) + 1;
-
-	}
-
-	return p;
-
+	return pcx_error_messages[error_number];
 }

@@ -18,42 +18,41 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "object.h"
 #include "switch.h"
 
-#define MAX_WALLS					175	// Maximum number of walls
-#define MAX_WALL_ANIMS			30		// Maximum different types of doors
-#define MAX_DOORS					50		// Maximum number of open doors
-// not used -> #define MAX_DOOR_ANIMS			20		// Maximum different types of doors
+#define MAX_WALLS				175	// Maximum number of walls
+#define MAX_WALL_ANIMS			30	// Maximum different types of doors
+#define MAX_DOORS				50	// Maximum number of open doors
 
 // Various wall types.
 #define WALL_NORMAL				0  	// Normal wall
 #define WALL_BLASTABLE			1  	// Removable (by shooting) wall
-#define WALL_DOOR					2  	// Door 
+#define WALL_DOOR				2  	// Door 
 #define WALL_ILLUSION			3  	// Wall that appears to be there, but you can fly thru
-#define WALL_OPEN					4		// Just an open side. (Trigger)
-#define WALL_CLOSED				5		// Wall.  Used for transparent walls.
+#define WALL_OPEN				4	// Just an open side. (Trigger)
+#define WALL_CLOSED				5	// Wall.  Used for transparent walls.
 
 // Various wall flags.
-#define WALL_BLASTED				1  	// Blasted out wall.
+#define WALL_BLASTED			1  	// Blasted out wall.
 #define WALL_DOOR_OPENED		2  	// Open door. 
-#define WALL_DOOR_LOCKED		8		// Door is locked.
-#define WALL_DOOR_AUTO			16		// Door automatically closes after time.
-#define WALL_ILLUSION_OFF		32		// Illusionary wall is shut off.
+#define WALL_DOOR_LOCKED		8	// Door is locked.
+#define WALL_DOOR_AUTO			16	// Door automatically closes after time.
+#define WALL_ILLUSION_OFF		32	// Illusionary wall is shut off.
 
 // Wall states
-#define WALL_DOOR_CLOSED		0		// Door is closed
-#define WALL_DOOR_OPENING		1		// Door is opening.
-#define WALL_DOOR_WAITING		2		// Waiting to close
-#define WALL_DOOR_CLOSING		3		// Door is closing
+#define WALL_DOOR_CLOSED		0	// Door is closed
+#define WALL_DOOR_OPENING		1	// Door is opening.
+#define WALL_DOOR_WAITING		2	// Waiting to close
+#define WALL_DOOR_CLOSING		3	// Door is closing
 
 //note: a door is considered opened (i.e., it has WALL_OPENED set) when it 
 //is more than half way open.  Thus, it can have any of OPENING, CLOSING, 
 //or WAITING bits set when OPENED is set.
 
-#define KEY_NONE					1
-#define KEY_BLUE					2
-#define KEY_RED				   4
-#define KEY_GOLD				   8
+#define KEY_NONE				1
+#define KEY_BLUE				2
+#define KEY_RED					4
+#define KEY_GOLD				8
 
-#define WALL_HPS					100*F1_0		// Normal wall's hp
+#define WALL_HPS				100*F1_0	// Normal wall's hp
 #define WALL_DOOR_INTERVAL	 	5*F1_0		// How many seconds a door is open
 
 #define DOOR_OPEN_TIME			i2f(2)		// How long takes to open
@@ -62,64 +61,66 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define MAX_CLIP_FRAMES			20
 
 // WALL_IS_DOORWAY flags.
-#define WID_FLY_FLAG					1
-#define WID_RENDER_FLAG				2
-#define WID_RENDPAST_FLAG			4
-#define WID_EXTERNAL_FLAG			8
+#define WID_FLY_FLAG			1
+#define WID_RENDER_FLAG			2
+#define WID_RENDPAST_FLAG		4
+#define WID_EXTERNAL_FLAG		8
 
-//	WALL_IS_DOORWAY return values			F/R/RP
-#define WID_WALL						2	// 0/1/0		wall	
-#define WID_TRANSPARENT_WALL		6	//	0/1/1		transparent wall
-#define WID_ILLUSORY_WALL			3	//	1/1/0		illusory wall
-#define WID_TRANSILLUSORY_WALL	7	//	1/1/1		transparent illusory wall
-#define WID_NO_WALL					5	//	1/0/1		no wall, can fly through
-#define WID_EXTERNAL					8	// 0/0/0/1	don't see it, dont fly through it
+//	WALL_IS_DOORWAY return values		F/R/RP
+#define WID_WALL				2	//	0/1/0	wall	
+#define WID_TRANSPARENT_WALL	6	//	0/1/1	transparent wall
+#define WID_ILLUSORY_WALL		3	//	1/1/0	illusory wall
+#define WID_TRANSILLUSORY_WALL	7	//	1/1/1	transparent illusory wall
+#define WID_NO_WALL				5	//	1/0/1	no wall, can fly through
+#define WID_EXTERNAL			8	//	0/0/0/1	don't see it, dont fly through it
 
 #define	MAX_STUCK_OBJECTS	32
 
-typedef struct stuckobj 
+struct stuckobj
 {
 	short	objnum, wallnum;
-	int	signature;
-} stuckobj;
+	int		signature;
+};
 
-typedef struct wall 
+struct wall
 {
-	int	segnum, sidenum;	// Seg & side for this wall
-	fix   hps;				  	// "Hit points" of the wall. 
-	int	linked_wall;		// number of linked wall
+	int		segnum, sidenum;	// Seg & side for this wall
+	fix		hps;				// "Hit points" of the wall. 
+	int		linked_wall;		// number of linked wall
 	uint8_t	type; 			  	// What kind of special wall.
 	uint8_t	flags;				// Flags for the wall.		
 	uint8_t	state;				// Opening, closing, etc.
-	int8_t	trigger;				// Which trigger is associated with the wall.
-	int8_t	clip_num;			// Which	animation associated with the wall. 
-	uint8_t	keys;					// which keys are required
-	short	pad;					// keep longword aligned
-} wall;
+	int8_t	trigger;			// Which trigger is associated with the wall.
+	int8_t	clip_num;			// Which animation associated with the wall. 
+	uint8_t	keys;				// which keys are required
+	short	pad;				// keep longword aligned
+};
 
-typedef struct active_door {
-	int		n_parts;					// for linked walls
-	short		front_wallnum[2];		// front wall numbers for this door
-	short		back_wallnum[2]; 		// back wall numbers for this door
-	fix		time;						// how long been opening, closing, waiting
-} active_door;
+struct active_door
+{
+	int		n_parts;			// for linked walls
+	short	front_wallnum[2];	// front wall numbers for this door
+	short	back_wallnum[2]; 	// back wall numbers for this door
+	fix		time;				// how long been opening, closing, waiting
+};
 
 //wall clip flags
-#define WCF_EXPLODES		1		//door explodes when opening
-#define WCF_BLASTABLE	2		//this is a blastable wall
-#define WCF_TMAP1			4		//this uses primary tmap, not tmap2
-#define WCF_HIDDEN		8		//this uses primary tmap, not tmap2
+#define WCF_EXPLODES	1	//door explodes when opening
+#define WCF_BLASTABLE	2	//this is a blastable wall
+#define WCF_TMAP1		4	//this uses primary tmap, not tmap2
+#define WCF_HIDDEN		8	//this uses primary tmap, not tmap2
 
-typedef struct {
-	fix				play_time;
-	short				num_frames;
-	short				frames[MAX_CLIP_FRAMES];
-	short				open_sound;
-	short				close_sound;
-	short				flags;
-	char				filename[13];
-	char				pad;
-} wclip;
+struct wclip
+{
+	fix		play_time;
+	short	num_frames;
+	short	frames[MAX_CLIP_FRAMES];
+	short	open_sound;
+	short	close_sound;
+	short	flags;
+	char	filename[13];
+	char	pad;
+};
 
 extern char	Wall_names[7][10];
 

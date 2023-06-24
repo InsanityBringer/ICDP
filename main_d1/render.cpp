@@ -142,16 +142,11 @@ extern void show_reticle(int force_big);
 void draw_3d_reticle(fix eye_offset)
 {
 	g3s_point 	reticle_points[4];
-	g3s_uvl		uvl[4];
 	g3s_point* pointlist[4];
-	int 			i;
 	vms_vector v1, v2;
-	grs_canvas* saved_canvas;
-	int saved_interp_method;
 
-	//	if (!Use_player_head_angles) return;
-
-	for (i = 0; i < 4; i++) 
+	g3s_uvl		uvl[4];
+	for (int i = 0; i < 4; i++) 
 	{
 		pointlist[i] = &reticle_points[i];
 		uvl[i].l = MAX_LIGHT;
@@ -189,18 +184,17 @@ void draw_3d_reticle(fix eye_offset)
 		reticle_canvas->cv_bitmap.bm_flags = BM_FLAG_TRANSPARENT;
 	}
 
-	saved_canvas = grd_curcanv;
+	grs_canvas* saved_canvas = grd_curcanv;
 	gr_set_current_canvas(reticle_canvas);
 	gr_clear_canvas(255);		// Clear to Xparent
 	show_reticle(1);
 	gr_set_current_canvas(saved_canvas);
 
-	saved_interp_method = g3_get_interpolation_mode();
+	int saved_interp_method = g3_get_interpolation_mode();
 	g3_set_interpolation_mode(3);		// The best, albiet slowest.
 	g3_draw_tmap(4, pointlist, uvl, &reticle_canvas->cv_bitmap);
 	g3_set_interpolation_mode(saved_interp_method);
 }
-
 
 fix flash_scale;
 
@@ -236,22 +230,19 @@ void flash_frame()
 //	tmap1, tmap2 are texture map ids.  tmap2 is the pasty one.
 void render_face(int segnum, int sidenum, int nv, short* vp, int tmap1, int tmap2, uvl* uvlp, vms_vector* norm)
 {
-	fix			face_light;
 	grs_bitmap* bm;
-	fix			reflect;
 	uvl			uvl_copy[8];
-	int			i;
 	g3s_point* pointlist[8];
 
 	Assert(nv <= 8);
 
-	for (i = 0; i < nv; i++) 
+	for (int i = 0; i < nv; i++) 
 	{
 		uvl_copy[i] = uvlp[i];
 		pointlist[i] = &Segment_points[vp[i]];
 	}
 
-	face_light = -vm_vec_dot(&Viewer->orient.fvec, norm);
+	fix face_light = -vm_vec_dot(&Viewer->orient.fvec, norm);
 
 	if (tmap1 >= NumTextures) 
 	{
@@ -271,36 +262,28 @@ void render_face(int segnum, int sidenum, int nv, short* vp, int tmap1, int tmap
 
 	Assert(!(bm->bm_flags & BM_FLAG_PAGED_OUT));
 
-	//reflect = fl2f((1.0-TmapInfo[p->tmap_num].reflect)/2.0 + 0.5);
-	//reflect = fl2f((1.0-TmapInfo[p->tmap_num].reflect));
-
-	reflect = Face_reflectivity;		// f1_0;	//until we figure this stuff out...
+	fix reflect = Face_reflectivity;
 
 	//set light values for each vertex & build pointlist
+	face_light = fixmul(face_light, reflect);
+
+	for (int i = 0; i < nv; i++) 
 	{
-		int i;
+		//the uvl struct has static light already in it
 
-		face_light = fixmul(face_light, reflect);
+		//scale static light for destruction effect
+		if (Fuelcen_control_center_destroyed)	//make lights flash
+			uvl_copy[i].l = fixmul(flash_scale, uvl_copy[i].l);
 
-		for (i = 0; i < nv; i++) 
-		{
-			//the uvl struct has static light already in it
+		//add in dynamic light (from explosions, etc.)
+		uvl_copy[i].l += Dynamic_light[vp[i]];
 
-			//scale static light for destruction effect
-			if (Fuelcen_control_center_destroyed)	//make lights flash
-				uvl_copy[i].l = fixmul(flash_scale, uvl_copy[i].l);
+		//add in light from player's headlight
+		uvl_copy[i].l += compute_headlight_light(&Segment_points[vp[i]].p3_vec, face_light);
 
-			//add in dynamic light (from explosions, etc.)
-			uvl_copy[i].l += Dynamic_light[vp[i]];
-
-			//add in light from player's headlight
-			uvl_copy[i].l += compute_headlight_light(&Segment_points[vp[i]].p3_vec, face_light);
-
-			//saturate at max value
-			if (uvl_copy[i].l > MAX_LIGHT)
-				uvl_copy[i].l = MAX_LIGHT;
-
-		}
+		//saturate at max value
+		if (uvl_copy[i].l > MAX_LIGHT)
+			uvl_copy[i].l = MAX_LIGHT;
 	}
 
 #ifdef EDITOR
@@ -321,11 +304,8 @@ void render_face(int segnum, int sidenum, int nv, short* vp, int tmap1, int tmap
 //	Used to determine which face was clicked on.
 void check_face(int segnum, int sidenum, int facenum, int nv, short* vp, int tmap1, int tmap2, uvl* uvlp)
 {
-	int	i;
-
 	if (_search_mode) 
 	{
-		int save_lighting;
 		grs_bitmap* bm;
 		g3s_uvl uvl_copy[8];
 		g3s_point* pointlist[4];
@@ -335,7 +315,7 @@ void check_face(int segnum, int sidenum, int facenum, int nv, short* vp, int tma
 		else
 			bm = &GameBitmaps[Textures[tmap1].index];
 
-		for (i = 0; i < nv; i++) 
+		for (int i = 0; i < nv; i++) 
 		{
 			//uvl_copy[i] = uvlp[i];
 			uvl_copy[i].u = uvlp[i].u;
@@ -347,9 +327,8 @@ void check_face(int segnum, int sidenum, int facenum, int nv, short* vp, int tma
 		gr_setcolor(0);
 		gr_pixel(_search_x, _search_y);	//set our search pixel to color zero
 		gr_setcolor(1);					//and render in color one
-		save_lighting = g3_global_inst.get_lighting_mode();
+		int save_lighting = g3_global_inst.get_lighting_mode();
 		g3_global_inst.set_lighting_mode(2);
-		//g3_draw_poly(nv,vp);
 		g3_draw_tmap(nv, pointlist, uvl_copy, bm);
 		g3_global_inst.set_lighting_mode(save_lighting);
 
@@ -364,7 +343,6 @@ void check_face(int segnum, int sidenum, int facenum, int nv, short* vp, int tma
 #endif
 
 fix	Tulate_min_dot = (F1_0 / 4);
-//--unused-- fix	Tulate_min_ratio = (2*F1_0);
 fix	Min_n0_n1_dot = (F1_0 * 15 / 16);
 
 // -----------------------------------------------------------------------------------
@@ -372,19 +350,14 @@ fix	Min_n0_n1_dot = (F1_0 * 15 / 16);
 //	Check for normal facing.  If so, render faces on side dictated by sidep->type.
 void render_side(segment* segp, int sidenum)
 {
-	short			vertnum_list[4];
 	side* sidep = &segp->sides[sidenum];
 	vms_vector	tvec;
-	fix			v_dot_n0, v_dot_n1;
 	uvl			temp_uvls[3];
-	fix			min_dot, max_dot;
-	vms_vector  normals[2];
 
 	if (!(WALL_IS_DOORWAY(segp, sidenum) & WID_RENDER_FLAG))		//if (WALL_IS_DOORWAY(segp, sidenum) == WID_NO_WALL)
 		return;
 
-	normals[0] = segp->sides[sidenum].normals[0];
-	normals[1] = segp->sides[sidenum].normals[1];
+	vms_vector normals[2] = { segp->sides[sidenum].normals[0], segp->sides[sidenum].normals[1] };
 
 	//	Regardless of whether this side is comprised of a single quad, or two triangles, we need to know one normal, so
 	//	deal with it, get the dot product.
@@ -393,9 +366,10 @@ void render_side(segment* segp, int sidenum)
 	else
 		vm_vec_normalized_dir(&tvec, &Viewer_eye, &Vertices[segp->verts[Side_to_verts[sidenum][0]]]);
 
+	short vertnum_list[4];
 	get_side_verts(vertnum_list, segp - Segments, sidenum);
 
-	v_dot_n0 = vm_vec_dot(&tvec, &normals[0]);
+	fix v_dot_n0 = vm_vec_dot(&tvec, &normals[0]);
 
 	if (sidep->type == SIDE_IS_QUAD) 
 	{
@@ -413,7 +387,7 @@ void render_side(segment* segp, int sidenum)
 		//	to render it as a single quadrilateral.  This is a function of how far away the viewer is, how non-planar
 		//	the face is, how normal to the surfaces the view is.
 		//	Now, if both dot products are close to 1.0, then render two triangles as a single quad.
-		v_dot_n1 = vm_vec_dot(&tvec, &normals[1]);
+		fix v_dot_n1 = vm_vec_dot(&tvec, &normals[1]);
 
 		if (sidep->type == SIDE_IS_TRI_02) 
 		{
@@ -463,7 +437,7 @@ void render_side(segment* segp, int sidenum)
 #ifdef EDITOR
 void render_object_search(object* obj)
 {
-	int changed = 0;
+	bool changed = false;
 
 	//note that we draw each pixel object twice, since we cannot control
 	//what color the object draws in, so we try color 0, then color 1,
@@ -473,15 +447,16 @@ void render_object_search(object* obj)
 	gr_pixel(_search_x, _search_y);	//set our search pixel to color zero
 	render_object(obj);
 	if (gr_ugpixel(&grd_curcanv->cv_bitmap, _search_x, _search_y) != 0)
-		changed = 1;
+		changed = true;
 
 	gr_setcolor(1);
 	gr_pixel(_search_x, _search_y);	//set our search pixel to color zero
 	render_object(obj);
 	if (gr_ugpixel(&grd_curcanv->cv_bitmap, _search_x, _search_y) != 1)
-		changed = 1;
+		changed = true;
 
-	if (changed) {
+	if (changed) 
+	{
 		if (obj->segnum != -1)
 			Cursegp = &Segments[obj->segnum];
 		found_seg = -(obj - Objects + 1);
@@ -496,7 +471,6 @@ void do_render_object(int objnum)
 #endif
 	object* obj = &Objects[objnum];
 	int count = 0;
-	int n;
 
 	Assert(objnum < MAX_OBJECTS);
 
@@ -551,7 +525,7 @@ void do_render_object(int objnum)
 		//NOTE LINK TO ABOVE
 		render_object(obj);
 
-	for (n = obj->attached_obj; n != -1; n = Objects[n].ctype.expl_info.next_attach) 
+	for (int n = obj->attached_obj; n != -1; n = Objects[n].ctype.expl_info.next_attach) 
 	{
 		Assert(Objects[n].type == OBJ_FIREBALL);
 		Assert(Objects[n].control_type == CT_EXPLOSION);
@@ -565,10 +539,6 @@ void do_render_object(int objnum)
 	if (Function_mode == FMODE_EDITOR && objnum == Cur_object_index)
 		g3d_interp_outline = save_3d_outline;
 #endif
-
-
-	//DEBUG mprintf( (0, "%d ", objnum ));
-
 }
 
 #ifndef NDEBUG
@@ -578,13 +548,13 @@ int no_migrate_segs = 1, migrate_objects = 1, behind_check = 1;
 int check_window_check = 0;
 #else
 #define draw_boxes			0
-#define window_check			1
+#define window_check		1
 #define draw_edges			0
 #define new_seg_sorting		1
 #define pre_draw_segs		0
 #define no_migrate_segs		1
 #define migrate_objects		1
-#define behind_check			1
+#define behind_check		1
 #define check_window_check	0
 #endif
 
@@ -606,16 +576,14 @@ void render_start_frame()
 //Given a lit of point numbers, rotate any that haven't been rotated this frame
 g3s_codes rotate_list(int nv, short* pointnumlist)
 {
-	int i, pnum;
-	g3s_point* pnt;
 	g3s_codes cc;
 
 	cc.high = 0xff;  cc.low = 0;
 
-	for (i = 0; i < nv; i++) 
+	for (int i = 0; i < nv; i++) 
 	{
-		pnum = pointnumlist[i];
-		pnt = &Segment_points[pnum];
+		int pnum = pointnumlist[i];
+		g3s_point* pnt = &Segment_points[pnum];
 
 		if (Rotated_last[pnum] != RL_framecount) 
 		{
@@ -633,47 +601,36 @@ g3s_codes rotate_list(int nv, short* pointnumlist)
 //Given a lit of point numbers, project any that haven't been projected
 void project_list(int nv, short* pointnumlist)
 {
-	int i, pnum;
-
-	for (i = 0; i < nv; i++) 
+	for (int i = 0; i < nv; i++) 
 	{
-		pnum = pointnumlist[i];
+		int pnum = pointnumlist[i];
 
 		if (!(Segment_points[pnum].p3_flags & PF_PROJECTED))
 			g3_project_point(&Segment_points[pnum]);
 	}
 }
 
-
 // -----------------------------------------------------------------------------------
 void render_segment(int segnum)
 {
 	segment* seg = &Segments[segnum];
-	g3s_codes 	cc;
-	int			sn;
 
 	Assert(segnum != -1 && segnum <= Highest_segment_index);
 
-	cc = rotate_list(8, &seg->verts[0]);
+	g3s_codes cc = rotate_list(8, &seg->verts[0]);
 
 	if (!cc.high) //all off screen?
 	{		
-//mprintf( (0, "!"));
+		//mprintf( (0, "!"));
 		//DEBUG mprintf( (0, "[Segment %d: ", segnum ));
-
-		// set_segment_local_light_value(segnum,INITIAL_LOCAL_LIGHT);
 
 		Automap_visited[segnum] = 1;
 
-		for (sn = 0; sn < MAX_SIDES_PER_SEGMENT; sn++)
+		for (int sn = 0; sn < MAX_SIDES_PER_SEGMENT; sn++)
 			render_side(seg, sn);
 	}
 
 	//draw any objects that happen to be in this segment
-
-	//sort objects!
-	//object_sort_segment_objects( seg );
-
 #ifndef NDEBUG
 	if (!migrate_objects) 
 	{
@@ -682,7 +639,6 @@ void render_segment(int segnum)
 			do_render_object(objnum);
 	}
 #endif
-	//DEBUG mprintf( (0, "]\n", segnum ));
 }
 
 #define CROSS_WIDTH  i2f(8)
@@ -693,15 +649,11 @@ void render_segment(int segnum)
 //draw outline for curside
 void outline_seg_side(segment* seg, int _side, int edge, int vert)
 {
-	g3s_codes cc;
+	g3s_codes cc = rotate_list(8, &seg->verts[0]);
 
-	cc = rotate_list(8, &seg->verts[0]);
-
-	if (!cc.high) {		//all off screen?
-		side* s;
-		g3s_point* pnt;
-
-		s = &seg->sides[_side];
+	if (!cc.high) //all off screen?
+	{
+		side* s = &seg->sides[_side];
 
 		//render curedge of curside of curseg in green
 
@@ -710,13 +662,9 @@ void outline_seg_side(segment* seg, int _side, int edge, int vert)
 
 		//draw a little cross at the current vert
 
-		pnt = &Segment_points[seg->verts[Side_to_verts[_side][vert]]];
+		g3s_point* pnt = &Segment_points[seg->verts[Side_to_verts[_side][vert]]];
 
 		g3_project_point(pnt);		//make sure projected
-
-//		gr_setcolor(BM_XRGB(0,0,63));
-//		gr_line(pnt->p3_sx-CROSS_WIDTH,pnt->p3_sy,pnt->p3_sx+CROSS_WIDTH,pnt->p3_sy);
-//		gr_line(pnt->p3_sx,pnt->p3_sy-CROSS_HEIGHT,pnt->p3_sx,pnt->p3_sy+CROSS_HEIGHT);
 
 		gr_line(pnt->p3_sx - CROSS_WIDTH, pnt->p3_sy, pnt->p3_sx, pnt->p3_sy - CROSS_HEIGHT);
 		gr_line(pnt->p3_sx, pnt->p3_sy - CROSS_HEIGHT, pnt->p3_sx + CROSS_WIDTH, pnt->p3_sy);
@@ -727,10 +675,10 @@ void outline_seg_side(segment* seg, int _side, int edge, int vert)
 
 #endif
 
-typedef struct window 
+struct window
 {
 	short left, top, right, bot;
-} window;
+};
 
 uint8_t code_window_point(fix x, fix y, window* w)
 {
@@ -748,11 +696,9 @@ uint8_t code_window_point(fix x, fix y, window* w)
 #ifndef NDEBUG
 void draw_window_box(int color, short left, short top, short right, short bot)
 {
-	short l, t, r, b;
-
 	gr_setcolor(color);
 
-	l = left; t = top; r = right; b = bot;
+	short l = left; short t = top; short r = right; short b = bot;
 
 	if (r < 0 || b < 0 || l >= grd_curcanv->cv_bitmap.bm_w || t >= grd_curcanv->cv_bitmap.bm_h && b >= grd_curcanv->cv_bitmap.bm_h)
 		return;
@@ -780,15 +726,12 @@ short Render_list[MAX_RENDER_SEGS];
 short Seg_depth[MAX_RENDER_SEGS];		//depth for each seg in Render_list
 uint8_t processed[MAX_RENDER_SEGS];		//whether each entry has been processed
 int	lcnt_save, scnt_save;
-//@@short *persp_ptr;
 short render_pos[MAX_SEGMENTS];	//where in render_list does this segment appear?
-//uint8_t no_render_flag[MAX_RENDER_SEGS];
 window render_windows[MAX_RENDER_SEGS];
 
 short render_obj_list[MAX_RENDER_SEGS + N_EXTRA_OBJ_LISTS][OBJS_PER_SEG];
 
 //for objects
-
 #define RED   BM_XRGB(63,0,0)
 #define WHITE BM_XRGB(63,63,63)
 
@@ -797,7 +740,8 @@ extern int Window_clip_left, Window_clip_top, Window_clip_right, Window_clip_bot
 
 //Given two sides of segment, tell the two verts which form the 
 //edge between them
-int Two_sides_to_edge[6][6][2] = {
+int Two_sides_to_edge[6][6][2] = 
+{
 	{ {-1,-1}, {3,7}, {-1,-1}, {2,6}, {6,7}, {2,3} },
 	{ {3,7}, {-1,-1}, {0,4}, {-1,-1}, {4,7}, {0,3} },
 	{ {-1,-1}, {0,4}, {-1,-1}, {1,5}, {4,5}, {0,1} },
@@ -807,7 +751,8 @@ int Two_sides_to_edge[6][6][2] = {
 };
 
 //given an edge specified by two verts, give the two sides on that edge
-int Edge_to_sides[8][8][2] = {
+int Edge_to_sides[8][8][2] = 
+{
 	{ {-1,-1}, {2,5}, {-1,-1}, {1,5}, {1,2}, {-1,-1}, {-1,-1}, {-1,-1} },
 	{ {2,5}, {-1,-1}, {3,5}, {-1,-1}, {-1,-1}, {2,3}, {-1,-1}, {-1,-1} },
 	{ {-1,-1}, {3,5}, {-1,-1}, {0,5}, {-1,-1}, {-1,-1}, {0,3}, {-1,-1} },
@@ -821,22 +766,15 @@ int Edge_to_sides[8][8][2] = {
 //given an edge, tell what side is on that edge
 int find_seg_side(segment* seg, short* verts, int notside)
 {
-	int i;
 	int vv0 = -1, vv1 = -1;
-	int side0, side1;
-	int* eptr;
-	int	v0, v1;
-	short* vp;
 
-	//@@	check_check();
+	int v0 = verts[0];
+	int v1 = verts[1];
+	short* vp = seg->verts;
 
-	v0 = verts[0];
-	v1 = verts[1];
-	vp = seg->verts;
-
-	for (i = 0; i < 8; i++) 
+	for (int i = 0; i < 8; i++) 
 	{
-		int svv = *vp++;	// seg->verts[i];
+		int svv = *vp++;
 
 		if (vv0 == -1 && svv == v0)
 		{
@@ -855,10 +793,10 @@ int find_seg_side(segment* seg, short* verts, int notside)
 
 	Assert(vv0 != -1 && vv1 != -1);
 
-	eptr = Edge_to_sides[vv0][vv1];
+	int* eptr = Edge_to_sides[vv0][vv1];
 
-	side0 = eptr[0];
-	side1 = eptr[1];
+	int side0 = eptr[0];
+	int side1 = eptr[1];
 
 	Assert(side0 != -1 && side1 != -1);
 
@@ -878,28 +816,22 @@ int find_seg_side(segment* seg, short* verts, int notside)
 //the sides of those segments the abut. 
 int find_joining_side_norms(vms_vector* norm0_0, vms_vector* norm0_1, vms_vector* norm1_0, vms_vector* norm1_1, vms_vector** pnt0, vms_vector** pnt1, segment* seg, int s0, int s1)
 {
-	segment* seg0, * seg1;
-	short edge_verts[2];
-	int notside0, notside1;
-	int edgeside0, edgeside1;
-
 	Assert(s0 != -1 && s1 != -1);
 
-	seg0 = &Segments[seg->children[s0]];
-	seg1 = &Segments[seg->children[s1]];
+	segment* seg0 = &Segments[seg->children[s0]];
+	segment* seg1 = &Segments[seg->children[s1]];
 
-	edge_verts[0] = seg->verts[Two_sides_to_edge[s0][s1][0]];
-	edge_verts[1] = seg->verts[Two_sides_to_edge[s0][s1][1]];
+	short edge_verts[2] = { seg->verts[Two_sides_to_edge[s0][s1][0]], seg->verts[Two_sides_to_edge[s0][s1][1]] };
 
 	Assert(edge_verts[0] != -1 && edge_verts[1] != -1);
 
-	notside0 = find_connect_side(seg, seg0);
+	int notside0 = find_connect_side(seg, seg0);
 	Assert(notside0 != -1);
-	notside1 = find_connect_side(seg, seg1);
+	int notside1 = find_connect_side(seg, seg1);
 	Assert(notside1 != -1);
 
-	edgeside0 = find_seg_side(seg0, edge_verts, notside0);
-	edgeside1 = find_seg_side(seg1, edge_verts, notside1);
+	int edgeside0 = find_seg_side(seg0, edge_verts, notside0);
+	int edgeside1 = find_seg_side(seg1, edge_verts, notside1);
 
 	//deal with the case where an edge is shared by more than two segments
 
@@ -918,32 +850,25 @@ int find_joining_side_norms(vms_vector* norm0_0, vms_vector* norm0_1, vms_vector
 //returns 0 if order doesn't matter, 1 if c0 before c1, -1 if c1 before c0
 int compare_children(segment* seg, short c0, short c1)
 {
-	vms_vector norm0_0, norm0_1, * pnt0, temp;
-	vms_vector norm1_0, norm1_1, * pnt1;
-	fix d0_0, d0_1, d1_0, d1_1, d0, d1;
-	int t;
-
 	if (Side_opposite[c0] == c1) return 0;
 
 	Assert(c0 != -1 && c1 != -1);
 
 	//find normals of adjoining sides
-
-	t = find_joining_side_norms(&norm0_0, &norm0_1, &norm1_0, &norm1_1, &pnt0, &pnt1, seg, c0, c1);
-
-	//if (!t)
-	// return 0;
+	vms_vector norm0_0, norm0_1, * pnt0, temp;
+	vms_vector norm1_0, norm1_1, * pnt1;
+	int t = find_joining_side_norms(&norm0_0, &norm0_1, &norm1_0, &norm1_1, &pnt0, &pnt1, seg, c0, c1);
 
 	vm_vec_sub(&temp, &Viewer_eye, pnt0);
-	d0_0 = vm_vec_dot(&norm0_0, &temp);
-	d0_1 = vm_vec_dot(&norm0_1, &temp);
+	fix d0_0 = vm_vec_dot(&norm0_0, &temp);
+	fix d0_1 = vm_vec_dot(&norm0_1, &temp);
 
 	vm_vec_sub(&temp, &Viewer_eye, pnt1);
-	d1_0 = vm_vec_dot(&norm1_0, &temp);
-	d1_1 = vm_vec_dot(&norm1_1, &temp);
+	fix d1_0 = vm_vec_dot(&norm1_0, &temp);
+	fix d1_1 = vm_vec_dot(&norm1_1, &temp);
 
-	d0 = (d0_0 < 0 || d0_1 < 0) ? -1 : 1;
-	d1 = (d1_0 < 0 || d1_1 < 0) ? -1 : 1;
+	fix d0 = (d0_0 < 0 || d0_1 < 0) ? -1 : 1;
+	fix d1 = (d1_0 < 0 || d1_1 < 0) ? -1 : 1;
 
 	if (d0 < 0 && d1 < 0)
 		return 0;
@@ -954,7 +879,6 @@ int compare_children(segment* seg, short c0, short c1)
 		return -1;
 	else
 		return 0;
-
 }
 
 int ssc_total = 0, ssc_swaps = 0;
@@ -963,10 +887,6 @@ int ssc_total = 0, ssc_swaps = 0;
 //returns non-zero if swaps were made
 int sort_seg_children(segment* seg, int n_children, short* child_list)
 {
-	int i, j;
-	int r;
-	int made_swaps, count;
-
 	if (n_children == 0) return 0;
 
 	ssc_total++;
@@ -974,23 +894,23 @@ int sort_seg_children(segment* seg, int n_children, short* child_list)
 	//for each child,  compare with other children and see if order matters
 	//if order matters, fix if wrong
 
-	count = 0;
+	int count = 0;
+	bool made_swaps = false;
 
-	do {
-		made_swaps = 0;
-
-		for (i = 0; i < n_children - 1; i++)
-			for (j = i + 1; child_list[i] != -1 && j < n_children; j++)
+	do 
+	{
+		for (int i = 0; i < n_children - 1; i++)
+			for (int j = i + 1; child_list[i] != -1 && j < n_children; j++)
 				if (child_list[j] != -1) 
 				{
-					r = compare_children(seg, child_list[i], child_list[j]);
+					int r = compare_children(seg, child_list[i], child_list[j]);
 
 					if (r == 1) 
 					{
 						int temp = child_list[i];
 						child_list[i] = child_list[j];
 						child_list[j] = temp;
-						made_swaps = 1;
+						made_swaps = true;
 					}
 				}
 	} while (made_swaps && ++count < n_children);
@@ -1003,11 +923,11 @@ int sort_seg_children(segment* seg, int n_children, short* child_list)
 
 void add_obj_to_seglist(int objnum, int listnum)
 {
-	int i, checkn, marker;
-	checkn = listnum;
-	//first, find a slot
-//mprintf((0,"adding obj %d to %d",objnum,listnum));
+	int checkn = listnum;
+	//mprintf((0,"adding obj %d to %d",objnum,listnum));
 
+	//first, find a slot
+	int marker, i;
 	do 
 	{
 		for (i = 0; render_obj_list[checkn][i] >= 0; i++);
@@ -1032,11 +952,9 @@ void add_obj_to_seglist(int objnum, int listnum)
 	//mprintf((0,"  slot %d,%d",checkn,i));
 
 
-		//now we have found a slot.  put object in it
-
+	//now we have found a slot.  put object in it
 	if (i != OBJS_PER_SEG - 1) 
 	{
-
 		render_obj_list[checkn][i] = objnum;
 		render_obj_list[checkn][i + 1] = -1;
 	}
@@ -1064,11 +982,11 @@ void add_obj_to_seglist(int objnum, int listnum)
 
 #define SORT_LIST_SIZE 50
 
-typedef struct sort_item 
+struct sort_item
 {
 	int objnum;
 	fix dist;
-} sort_item;
+};
 
 sort_item sort_list[SORT_LIST_SIZE];
 int n_sort_items;
@@ -1077,13 +995,11 @@ int n_sort_items;
 int sort_func(const void* ai, const void* bi)
 {
 	sort_item* a = (sort_item*)ai; sort_item* b = (sort_item*)bi;
-	fix delta_dist;
-	object* obj_a, * obj_b;
 
-	delta_dist = a->dist - b->dist;
+	fix delta_dist = a->dist - b->dist;
 
-	obj_a = &Objects[a->objnum];
-	obj_b = &Objects[b->objnum];
+	object* obj_a = &Objects[a->objnum];
+	object* obj_b = &Objects[b->objnum];
 
 	if (abs(delta_dist) < (obj_a->size + obj_b->size)) //same position
 	{
@@ -1113,22 +1029,16 @@ void build_object_lists(int n_segs)
 	for (nn = 0; nn < MAX_RENDER_SEGS + N_EXTRA_OBJ_LISTS; nn++)
 		render_obj_list[nn][0] = -1;
 
-	for (nn = 0; nn < n_segs; nn++) {
-		int segnum;
-
-		segnum = Render_list[nn];
+	for (nn = 0; nn < n_segs; nn++) 
+	{
+		int segnum = Render_list[nn];
 
 		//mprintf((0,"nn=%d seg=%d ",nn,segnum));
-
 		if (segnum != -1) 
 		{
-			int objnum;
 			object* obj;
-
-			for (objnum = Segments[segnum].objects; objnum != -1; objnum = obj->next) 
+			for (int objnum = Segments[segnum].objects; objnum != -1; objnum = obj->next) 
 			{
-				int new_segnum, did_migrate, list_pos;
-
 				obj = &Objects[objnum];
 
 				Assert(obj->segnum == segnum);
@@ -1136,24 +1046,23 @@ void build_object_lists(int n_segs)
 				if (obj->flags & OF_ATTACHED)
 					continue;		//ignore this object
 
-				new_segnum = segnum;
-				list_pos = nn;
+				int new_segnum = segnum;
+				int list_pos = nn;
 
+				bool did_migrate;
 				//mprintf((0,"objnum=%d ",objnum));
 				if (obj->type != OBJ_CNTRLCEN)		//don't migrate controlcen
 					do 
 					{
 						segmasks m;
 
-						did_migrate = 0;
+						did_migrate = false;
 
 						m = get_seg_masks(&obj->pos, new_segnum, obj->size);
 
 						if (m.sidemask) 
 						{
-							int sn, sf;
-
-							for (sn = 0, sf = 1; sn < 6; sn++, sf <<= 1)
+							for (int sn = 0, sf = 1; sn < 6; sn++, sf <<= 1)
 								if (m.sidemask & sf) 
 								{
 									segment* seg = &Segments[obj->segnum];
@@ -1169,7 +1078,7 @@ void build_object_lists(int n_segs)
 												//mprintf((0,"mig from %d to %d ",new_segnum,child));
 												new_segnum = child;
 												list_pos = checknp;
-												did_migrate = 1;
+												did_migrate = true;
 											}
 									}
 								}
@@ -1196,12 +1105,12 @@ void build_object_lists(int n_segs)
 
 		if (segnum != -1) 
 		{
-			int t, lookn, i, n;
 
 			//first count the number of objects & copy into sort list
 
-			lookn = nn;
-			i = n_sort_items = 0;
+			int lookn = nn;
+			int i = n_sort_items = 0;
+			int t;
 			while ((t = render_obj_list[lookn][i++]) != -1)
 				if (t < 0)
 				{
@@ -1225,7 +1134,7 @@ void build_object_lists(int n_segs)
 
 			lookn = nn;
 			i = 0;
-			n = n_sort_items;
+			int n = n_sort_items;
 			while ((t = render_obj_list[lookn][i]) != -1 && n > 0)
 				if (t < 0)
 				{
@@ -1246,9 +1155,6 @@ extern int Total_pixels;
 
 int Rear_view = 0;
 
-#ifdef JOHN_ZOOM
-fix Zoom_factor = F1_0;
-#endif
 //renders onto current canvas
 void render_frame(fix eye_offset)
 {
@@ -1278,9 +1184,6 @@ void render_frame(fix eye_offset)
 	g3_start_frame(Game_render_aspect);
 
 	Viewer_eye = Viewer->pos;
-
-	//	if (Viewer->type == OBJ_PLAYER && (Cockpit_mode!=CM_REAR_VIEW))
-	//		vm_vec_scale_add2(&Viewer_eye,&Viewer->orient.fvec,(Viewer->size*3)/4);
 
 	if (eye_offset) 
 	{
@@ -1316,19 +1219,7 @@ void render_frame(fix eye_offset)
 	}
 	else 
 	{
-#ifdef JOHN_ZOOM
-		if (keyd_pressed[KEY_RSHIFT]) {
-			Zoom_factor += FrameTime * 4;
-			if (Zoom_factor > F1_0 * 5) Zoom_factor = F1_0 * 5;
-		}
-		else {
-			Zoom_factor -= FrameTime * 4;
-			if (Zoom_factor < F1_0) Zoom_factor = F1_0;
-		}
-		g3_set_view_matrix(&Viewer_eye, &Viewer->orient, fixdiv(Render_zoom, Zoom_factor));
-#else
 		g3_set_view_matrix(&Viewer_eye, &Viewer->orient, Render_zoom);
-#endif
 	}
 
 	if (Clear_window == 1) 
@@ -1354,10 +1245,6 @@ int first_terminal_seg;
 //fills in Render_list & N_render_segs
 void build_segment_list(int start_seg_num)
 {
-	int	lcnt, scnt, ecnt;
-	int	l, c;
-	int	ch;
-
 	memset(visited, 0, sizeof(visited[0]) * (Highest_segment_index + 1));
 	memset(render_pos, -1, sizeof(render_pos[0]) * (Highest_segment_index + 1));
 	//memset(no_render_flag, 0, sizeof(no_render_flag[0])*(MAX_RENDER_SEGS));
@@ -1367,12 +1254,12 @@ void build_segment_list(int start_seg_num)
 	memset(visited2, 0, sizeof(visited2[0]) * (Highest_segment_index + 1));
 #endif
 
-	lcnt = scnt = 0;
+	int lcnt = 0; int scnt = 0;
 
 	Render_list[lcnt] = start_seg_num; visited[start_seg_num] = 1;
 	Seg_depth[lcnt] = 0;
 	lcnt++;
-	ecnt = lcnt;
+	int ecnt = lcnt;
 	render_pos[start_seg_num] = 0;
 
 #ifndef NDEBUG
@@ -1388,9 +1275,8 @@ void build_segment_list(int start_seg_num)
 
 	//build list
 
-	for (l = 0; l < Render_depth; l++) 
+	for (int l = 0; l < Render_depth; l++) 
 	{
-		//while (scnt < ecnt) {
 		for (scnt = 0; scnt < ecnt; scnt++) 
 		{
 			int rotated, segnum;
@@ -1419,11 +1305,11 @@ void build_segment_list(int start_seg_num)
 
 			//look at all sides of this segment.
 			//tricky code to look at sides in correct order follows
-			for (c = n_children = 0; c < MAX_SIDES_PER_SEGMENT; c++) //build list of sides
+			for (int c = n_children = 0; c < MAX_SIDES_PER_SEGMENT; c++) //build list of sides
 			{
 				int wid;
 				wid = WALL_IS_DOORWAY(seg, c);
-				ch = seg->children[c];
+				int ch = seg->children[c];
 
 				if ((window_check || !visited[ch]) && (wid & WID_RENDPAST_FLAG)) 
 				{
@@ -1451,15 +1337,12 @@ void build_segment_list(int start_seg_num)
 			if (new_seg_sorting)
 				sort_seg_children(seg, n_children, child_list);
 
-			//for (c=0;c<MAX_SIDES_PER_SEGMENT;c++)	{
-			//	ch=seg->children[c];
-
-			for (c = 0; c < n_children; c++) 
+			for (int c = 0; c < n_children; c++) 
 			{
 				int siden;
 
 				siden = child_list[c];
-				ch = seg->children[siden];
+				int ch = seg->children[siden];
 				//if ( (window_check || !visited[ch])&& (WALL_IS_DOORWAY(seg, c))) {
 				{
 					if (window_check) 
@@ -1598,15 +1481,11 @@ done_list:
 
 	first_terminal_seg = scnt;
 	N_render_segs = lcnt;
-
 }
 
 //renders onto current canvas
 void render_mine(int start_seg_num, fix eye_offset)
 {
-	int		i;
-	int		nn;
-
 	//	Initialize number of objects (actually, robots!) rendered this frame.
 	Num_rendered_objects = 0;
 
@@ -1615,7 +1494,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 #endif
 
 #ifndef NDEBUG
-	for (i = 0; i <= Highest_object_index; i++)
+	for (int i = 0; i <= Highest_object_index; i++)
 		object_rendered[i] = 0;
 #endif
 
@@ -1654,9 +1533,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 #ifndef NDEBUG
 	if (!(_search_mode || eye_offset > 0)) 
 	{
-		int i;
-
-		for (i = 0; i < N_render_segs; i++) 
+		for (int i = 0; i < N_render_segs; i++) 
 		{
 			int segnum;
 			segnum = Render_list[i];
@@ -1682,15 +1559,12 @@ void render_mine(int start_seg_num, fix eye_offset)
 	{
 		if (first_terminal_seg < N_render_segs) 
 		{
-			int i;
-
 			if (Clear_window_color == -1)
 				Clear_window_color = BM_XRGB(0, 0, 0);	//BM_XRGB(31, 15, 7);
 
 			gr_setcolor(Clear_window_color);
 
-
-			for (i = first_terminal_seg; i < N_render_segs; i++) 
+			for (int i = first_terminal_seg; i < N_render_segs; i++) 
 			{
 				if (Render_list[i] != -1) 
 				{
@@ -1706,13 +1580,10 @@ void render_mine(int start_seg_num, fix eye_offset)
 		}
 	}
 
-	for (nn = N_render_segs; nn--;) 
+	for (int nn = N_render_segs; nn--;) 
 	{
-		int segnum;
-		int objnp;
-
 		// Interpolation_method = 0;
-		segnum = Render_list[nn];
+		int segnum = Render_list[nn];
 		g3_global_inst.set_segment_depth(Seg_depth[nn]);
 
 		//if (!no_render_flag[nn])
@@ -1739,17 +1610,15 @@ void render_mine(int start_seg_num, fix eye_offset)
 
 			if (migrate_objects) 
 			{
-				//int n_expl_objs=0,expl_objs[5],i;
-				int listnum;
 				int save_linear_depth = Max_linear_depth;
 
 				Max_linear_depth = Max_linear_depth_objects;
 
-				listnum = nn;
+				int listnum = nn;
 
 				//mprintf((0,"render objs seg %d",segnum));
 
-				for (objnp = 0; render_obj_list[listnum][objnp] != -1;) 
+				for (int objnp = 0; render_obj_list[listnum][objnp] != -1;) 
 				{
 					int ObjNumber = render_obj_list[listnum][objnp];
 
@@ -1769,11 +1638,8 @@ void render_mine(int start_seg_num, fix eye_offset)
 		}
 	}
 
-	//mprintf((0,"\n"));
-
-	// -- commented out by mk on 09/14/94...did i do a good thing??  object_render_targets();
 #ifdef EDITOR
-#ifndef NDEUBG
+#ifndef _NDEBUG
 //draw curedge stuff
 	if (Outline_mode && Cursegp) outline_seg_side(Cursegp, Curside, Curedge, Curvert);
 #endif

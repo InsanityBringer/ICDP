@@ -22,4 +22,4 @@ extern int pcx_read_bitmap(const char* filename, grs_bitmap * bmp, int bitmap_ty
 
 extern int pcx_write_bitmap(const char* filename, grs_bitmap* bmp, uint8_t* palette);
 
-extern char* pcx_errormsg(int error_number);
+extern const char* pcx_errormsg(int error_number);

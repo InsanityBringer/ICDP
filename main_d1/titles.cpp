@@ -25,9 +25,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/joy.h"
 #include "arcade.h"
 #include "gameseq.h"
-#ifdef ARCADE
-#include "coindev.h"
-#endif
 #include "platform/mono.h"
 #include "gamefont.h"
 #include "cfile/cfile.h"
@@ -51,7 +48,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/platform.h"
 
 uint8_t New_pal[768];
-int	New_pal_254_bash;
+bool	New_pal_254_bash;
 
 char* Briefing_text;
 
@@ -74,9 +71,7 @@ grs_canvas* briefing_canvas;
 
 int local_key_inkey(void)
 {
-	int	rval;
-
-	rval = key_inkey();
+	int rval = key_inkey();
 
 	if (rval == KEY_ALTED + KEY_F2) 
 	{
@@ -95,11 +90,9 @@ int local_key_inkey(void)
 
 int show_title_screen(const char* filename, int allow_keys)
 {
-	fix timer;
-	int pcx_error;
-
 	grs_canvas* title_canvas = gr_create_canvas(320, 200);
 
+	int pcx_error;
 	if ((pcx_error = pcx_read_bitmap(filename, &title_canvas->cv_bitmap, BM_LINEAR, New_pal)) != PCX_ERROR_NONE)
 	{
 		printf("File '%s', PCX load error: %s (%i)\n  (No big deal, just no title screen.)\n", filename, pcx_errormsg(pcx_error), pcx_error);
@@ -117,7 +110,7 @@ int show_title_screen(const char* filename, int allow_keys)
 	}
 
 	gr_palette_load(New_pal);
-	timer = timer_get_fixed_seconds() + i2f(3);
+	fix timer = timer_get_fixed_seconds() + i2f(3);
 	while (1) 
 	{
 		timer_mark_start();
@@ -125,18 +118,6 @@ int show_title_screen(const char* filename, int allow_keys)
 		if (local_key_inkey() && allow_keys) break;
 		if (timer_get_fixed_seconds() > timer) break;
 
-#ifdef ARCADE
-		{
-			int coins;
-			coins = coindev_count(0);
-			if (coins > 0) {
-				Arcade_timer = F1_0 * ARCADE_FIRST_SECONDS;		// Two minutes to play...
-				if (coins > 1)
-					Arcade_timer += F1_0 * ARCADE_CONTINUE_SECONDS * (coins - 1);		// Two minutes to play...
-				break;
-			}
-		}
-#endif
 		plat_present_canvas(*title_canvas, ASPECT_4_3);
 		timer_mark_end(US_70FPS);
 	}
@@ -191,7 +172,6 @@ briefing_screen Briefing_screens[] =
 	{	"merc01.pcx",    6, 11,  10, 15, 300, 200 },	// level 6
 	{	"merc01.pcx",    7, 12,  10, 15, 300, 200 },	// level 7
 
-#ifndef SHAREWARE
 	{	"brief03.pcx",   8, 13,  20,  22, 257, 177 },
 	{	"mars01.pcx",    8, 14,  10, 100, 300,  200 },	// level 8
 	{	"mars01.pcx",    9, 15,  10, 100, 300,  200 },	// level 9
@@ -226,25 +206,20 @@ briefing_screen Briefing_screens[] =
 	{	"aster01.pcx",  -1, 38,  10, 90, 300,  200 },	// secret level -1
 	{	"aster01.pcx",  -2, 39,  10, 90, 300,  200 },	// secret level -2
 	{	"aster01.pcx",  -3, 40,  10, 90, 300,  200 }, 	// secret level -3
-#endif
 
 	{	"end01.pcx",   SHAREWARE_ENDING_LEVEL_NUM,  1,  23, 40, 320, 200 }, 	// shareware end
-#ifndef SHAREWARE
 	{	"end02.pcx",   REGISTERED_ENDING_LEVEL_NUM,  1,  5, 5, 300, 200 }, 		// registered end
 	{	"end01.pcx",   REGISTERED_ENDING_LEVEL_NUM,  2,  23, 40, 320, 200 }, 		// registered end
 	{	"end03.pcx",   REGISTERED_ENDING_LEVEL_NUM,  3,  5, 5, 300, 200 }, 		// registered end
-#endif
-
 };
 
 #define	MAX_BRIEFING_SCREEN	(sizeof(Briefing_screens) / sizeof(Briefing_screens[0]))
 
-
 char* get_briefing_screen(int level_num)
 {
-	int i, found_level = 0, last_level = 0;
+	int found_level = 0, last_level = 0;
 
-	for (i = 0; i < MAX_BRIEFING_SCREEN; i++) 
+	for (int i = 0; i < MAX_BRIEFING_SCREEN; i++) 
 	{
 		if (found_level && Briefing_screens[i].level_num != level_num)
 			return Briefing_screens[last_level].bs_name;
@@ -256,9 +231,6 @@ char* get_briefing_screen(int level_num)
 	}
 	return NULL;
 }
-
-
-
 
 int	Briefing_text_x, Briefing_text_y;
 
@@ -280,8 +252,7 @@ int8_t	Door_dir = 1, Door_div_count = 0, Animating_bitmap_type = 0;
 //	-----------------------------------------------------------------------------
 void show_bitmap_frame(void)
 {
-	grs_canvas* curcanv_save, * bitmap_canv = NULL;
-	grs_bitmap* bitmap_ptr;
+	grs_canvas* bitmap_canv = nullptr;
 
 	//	Only plot every nth frame.
 	if (Door_div_count) 
@@ -298,8 +269,9 @@ void show_bitmap_frame(void)
 		int		num, dig1, dig2;
 
 		//	Set supertransparency color to black
-		if (!New_pal_254_bash) {
-			New_pal_254_bash = 1;
+		if (!New_pal_254_bash) 
+		{
+			New_pal_254_bash = true;
 			New_pal[254 * 3] = 0;
 			New_pal[254 * 3 + 1] = 0;
 			New_pal[254 * 3 + 2] = 0;
@@ -308,20 +280,20 @@ void show_bitmap_frame(void)
 
 		switch (Animating_bitmap_type) 
 		{
-		case 0:	bitmap_canv = gr_create_sub_canvas(briefing_canvas, 220, 45, 64, 64);	break;
-		case 1:	bitmap_canv = gr_create_sub_canvas(briefing_canvas, 220, 45, 94, 94);	break;	//	Adam: Change here for your new animating bitmap thing. 94, 94 are bitmap size.
-		default:	Int3();	//	Impossible, illegal value for Animating_bitmap_type
+			case 0:	bitmap_canv = gr_create_sub_canvas(briefing_canvas, 220, 45, 64, 64);	break;
+			case 1:	bitmap_canv = gr_create_sub_canvas(briefing_canvas, 220, 45, 94, 94);	break;	//	Adam: Change here for your new animating bitmap thing. 94, 94 are bitmap size.
+			default:	Int3();	//	Impossible, illegal value for Animating_bitmap_type
 		}
 
 		if (!bitmap_canv) return;
 
-		curcanv_save = grd_curcanv;
+		grs_canvas* curcanv_save = grd_curcanv;
 		//grd_curcanv = bitmap_canv;
 
 		gr_set_current_canvas(bitmap_canv);
 
 		pound_signp = strchr(Bitmap_name, '#');
-		Assert(pound_signp != NULL);
+		Assert(pound_signp != nullptr);
 
 		dig1 = *(pound_signp + 1);
 		dig2 = *(pound_signp + 2);
@@ -334,11 +306,13 @@ void show_bitmap_frame(void)
 		{
 		case 0:
 			num += Door_dir;
-			if (num > EXIT_DOOR_MAX) {
+			if (num > EXIT_DOOR_MAX) 
+			{
 				num = EXIT_DOOR_MAX;
 				Door_dir = -1;
 			}
-			else if (num < 0) {
+			else if (num < 0) 
+			{
 				num = 0;
 				Door_dir = 1;
 			}
@@ -363,12 +337,9 @@ void show_bitmap_frame(void)
 			*(pound_signp + 2) = 0;
 		}
 
-		{
-			bitmap_index bi;
-			bi = piggy_find_bitmap(Bitmap_name);
-			bitmap_ptr = &GameBitmaps[bi.index];
-			PIGGY_PAGE_IN(bi);
-		}
+		bitmap_index bi = piggy_find_bitmap(Bitmap_name);
+		grs_bitmap* bitmap_ptr = &GameBitmaps[bi.index];
+		PIGGY_PAGE_IN(bi);
 
 		gr_bitmapm(0, 0, bitmap_ptr);
 		gr_set_current_canvas(curcanv_save);
@@ -447,16 +418,13 @@ void init_briefing_bitmap(void)
 //	If show_robot_flag set, then show a frame of the spinning robot.
 int show_char_delay(char the_char, int delay, int robot_num, int cursor_flag)
 {
-	int	w, h, aw;
-	char	message[2];
-	fix	start_time;
-	int	i;
+	fix start_time = timer_get_fixed_seconds();
 
-	start_time = timer_get_fixed_seconds();
-
+	char message[2];
 	message[0] = the_char;
 	message[1] = 0;
 
+	int	w, h, aw;
 	gr_get_string_size(message, &w, &h, &aw);
 
 	Assert((Current_color >= 0) && (Current_color < MAX_BRIEFING_COLORS));
@@ -467,7 +435,7 @@ int show_char_delay(char the_char, int delay, int robot_num, int cursor_flag)
 		gr_set_fontcolor(Briefing_foreground_colors[Current_color], -1);
 		gr_printf(Briefing_text_x + 1, Briefing_text_y, "_");
 	}
-	for (i = 0; i < 2; i++) 
+	for (int i = 0; i < 2; i++) 
 	{
 		if ((robot_num != -1) && (delay != 0))
 			show_spinning_robot_frame(robot_num);
@@ -508,19 +476,15 @@ int show_char_delay(char the_char, int delay, int robot_num, int cursor_flag)
 }
 
 //	-----------------------------------------------------------------------------
-int load_briefing_screen(int screen_num)
+void load_briefing_screen(int screen_num)
 {
 	int	pcx_error;
 
 	if ((pcx_error = pcx_read_bitmap(&Briefing_screens[screen_num].bs_name[0], &briefing_canvas->cv_bitmap, briefing_canvas->cv_bitmap.bm_type, New_pal)) != PCX_ERROR_NONE)
 	{
 		printf("File '%s', PCX load error: %s\n  (It's a briefing screen.  Does this cause you pain?)\n", Briefing_screens[screen_num].bs_name, pcx_errormsg(pcx_error));
-		printf(0, "File '%s', PCX load error: %s (%i)\n  (It's a briefing screen.  Does this cause you pain?)\n", Briefing_screens[screen_num].bs_name, pcx_errormsg(pcx_error), pcx_error);
 		Int3();
-		return 0;
 	}
-
-	return 0;
 }
 
 #define	KEY_DELAY_DEFAULT	((F1_0*28)/1000)
@@ -594,9 +558,9 @@ void get_message_name(char** message, char* result)
 }
 
 //	-----------------------------------------------------------------------------
-void flash_cursor(int cursor_flag)
+void flash_cursor(bool cursor_flag)
 {
-	if (cursor_flag == 0)
+	if (!cursor_flag)
 		return;
 
 	if ((timer_get_fixed_seconds() % (F1_0 / 2)) > (F1_0 / 4))
@@ -610,18 +574,18 @@ void flash_cursor(int cursor_flag)
 
 //	-----------------------------------------------------------------------------
 //	Return true if message got aborted by user (pressed ESC), else return false.
-int show_briefing_message(int screen_num, char* message)
+bool show_briefing_message(int screen_num, char* message)
 {
 	int	prev_ch = -1;
-	int	ch, done = 0;
+	int	ch;
 	briefing_screen* bsp = &Briefing_screens[screen_num];
 	int	delay_count = KEY_DELAY_DEFAULT;
 	int	key_check;
 	int	robot_num = -1;
-	int	rval = 0;
+	bool rval = false, done = false;
 	int	tab_stop = 0;
-	int	flashing_cursor = 0;
-	int	new_page = 0;
+	bool flashing_cursor = false;
+	int new_page = 0;
 
 	Bitmap_name[0] = 0;
 
@@ -713,14 +677,6 @@ int show_briefing_message(int screen_num, char* message)
 				show_briefing_bitmap(&guy_bitmap);
 				free(guy_bitmap.bm_data);
 				prev_ch = 10;
-				//			} else if (ch == 'B') {
-				//				if (Robot_canv != NULL)
-				//					{free(Robot_canv); Robot_canv=NULL;}
-				//
-				//				bitmap_num = get_message_num(&message);
-				//				if (bitmap_num != -1)
-				//					show_briefing_bitmap(Textures[bitmap_num]);
-				//				prev_ch = 10;							//	read to eoln
 			}
 			else if (ch == 'S') 
 			{
@@ -755,10 +711,10 @@ int show_briefing_message(int screen_num, char* message)
 					Int3();
 #endif
 				if (keypress == KEY_ESC)
-					rval = 1;
+					rval = true;
 
 				flashing_cursor = 0;
-				done = 1;
+				done = true;
 			}
 			else if (ch == 'P') //	New page.
 			{		
@@ -817,8 +773,8 @@ int show_briefing_message(int screen_num, char* message)
 		key_check = local_key_inkey();
 		if (key_check == KEY_ESC) 
 		{
-			rval = 1;
-			done = 1;
+			rval = true;
+			done = true;
 		}
 
 		if (key_check == KEY_ALTED + KEY_F2)
@@ -869,8 +825,8 @@ int show_briefing_message(int screen_num, char* message)
 #endif
 			if (keypress == KEY_ESC) 
 			{
-				rval = 1;
-				done = 1;
+				rval = true;
+				done = true;
 			}
 
 			load_briefing_screen(screen_num);
@@ -894,13 +850,14 @@ char* get_briefing_message(int screen_num)
 {
 	char* tptr = Briefing_text;
 	int	cur_screen = 0;
-	int	ch;
 
 	Assert(screen_num >= 0);
 
-	while ((*tptr != 0) && (screen_num != cur_screen)) {
-		ch = *tptr++;
-		if (ch == '$') {
+	while ((*tptr != 0) && (screen_num != cur_screen)) 
+	{
+		int ch = *tptr++;
+		if (ch == '$') 
+		{
 			ch = *tptr++;
 			if (ch == 'S')
 				cur_screen = get_message_num(&tptr);
@@ -917,9 +874,10 @@ void load_screen_text(const char* filename, char** buf)
 	CFILE* tfile;
 	CFILE* ifile;
 	int	len, i;
-	int	have_binary = 0;
+	bool	have_binary = false;
 
-	if ((tfile = cfopen(filename, "rb")) == NULL) {
+	if ((tfile = cfopen(filename, "rb")) == NULL) 
+	{
 		char nfilename[30], * ptr;
 
 		strcpy(nfilename, filename);
@@ -929,27 +887,29 @@ void load_screen_text(const char* filename, char** buf)
 		strcat(nfilename, ".txb");
 		if ((ifile = cfopen(nfilename, "rb")) == NULL)
 			Error("Cannot open file %s or %s", filename, nfilename);
-		have_binary = 1;
+		have_binary = true;
 
 		len = cfilelength(ifile);
-		MALLOC(*buf,char, len);//Unable to get this to compile...is it a case issue? -KRB
-		//*buf = (char*)malloc(len * sizeof(char));//My hack -KRB
+		MALLOC(*buf,char, len);
 		cfread(*buf, 1, len, ifile);
 		cfclose(ifile);
 	}
-	else {
+	else 
+	{
 		len = cfilelength(tfile);
-		MALLOC(*buf, char, len);//-KRB
-		//*buf = (char*)malloc(len * sizeof(char));//-KRB
+		MALLOC(*buf, char, len);
 		cfread(*buf, 1, len, tfile);
 		cfclose(tfile);
 	}
 
-	if (have_binary) {
+	if (have_binary) 
+	{
 		char* ptr;
 
-		for (i = 0, ptr = *buf; i < len; i++, ptr++) {
-			if (*ptr != '\n') {
+		for (i = 0, ptr = *buf; i < len; i++, ptr++) 
+		{
+			if (*ptr != '\n') 
+			{
 				encode_rotate_left(ptr);
 				*ptr = *ptr ^ BITMAP_TBL_XOR;
 				encode_rotate_left(ptr);
@@ -961,12 +921,8 @@ void load_screen_text(const char* filename, char** buf)
 
 //	-----------------------------------------------------------------------------
 //	Return true if message got aborted, else return false.
-int show_briefing_text(int screen_num)
+bool show_briefing_text(int screen_num)
 {
-	char* message_ptr;
-
-	// briefing_screen	*bsp = &Briefing_screens[screen_num];
-
 	Briefing_foreground_colors[0] = gr_find_closest_color_current(0, 54, 0);
 	Briefing_background_colors[0] = gr_find_closest_color_current(0, 19, 0);
 
@@ -975,44 +931,46 @@ int show_briefing_text(int screen_num)
 
 	Erase_color = gr_find_closest_color_current(0, 0, 0);
 
-	message_ptr = get_briefing_message(Briefing_screens[screen_num].message_num);
+	char* message_ptr = get_briefing_message(Briefing_screens[screen_num].message_num);
 
 	return show_briefing_message(screen_num, message_ptr);
 }
 
 //	-----------------------------------------------------------------------------
 //	Return true if screen got aborted by user, else return false.
-int show_briefing_screen(int screen_num, int allow_keys)
+bool show_briefing_screen(int screen_num, int allow_keys)
 {
-	int	rval = 0;
+	bool rval = false;
 	int	pcx_error;
 	grs_bitmap briefing_bm;
 
-	New_pal_254_bash = 0;
+	New_pal_254_bash = false;
 
-	if (Skip_briefing_screens) {
+	if (Skip_briefing_screens) 
+	{
 		mprintf((0, "Skipping briefing screen [%s]\n", &Briefing_screens[screen_num].bs_name));
 		return 0;
 	}
 
 	briefing_bm.bm_data = NULL;
-	if ((pcx_error = pcx_read_bitmap(&Briefing_screens[screen_num].bs_name[0], &briefing_bm, BM_LINEAR, New_pal)) != PCX_ERROR_NONE) {
+	if ((pcx_error = pcx_read_bitmap(&Briefing_screens[screen_num].bs_name[0], &briefing_bm, BM_LINEAR, New_pal)) != PCX_ERROR_NONE) 
+	{
 		printf("PCX load error: %s.  File '%s'\n\n", pcx_errormsg(pcx_error), Briefing_screens[screen_num].bs_name);
 		mprintf((0, "File '%s', PCX load error: %s (%i)\n  (It's a briefing screen.  Does this cause you pain?)\n", Briefing_screens[screen_num].bs_name, pcx_errormsg(pcx_error), pcx_error));
 		Int3();
-		return 0;
+		return false;
 	}
 
 	gr_palette_clear();
 	gr_bitmap(0, 0, &briefing_bm);
 
 	if (gr_palette_fade_in(New_pal, 32, allow_keys))
-		return 1;
+		return true;
 
 	rval = show_briefing_text(screen_num);
 
 	if (gr_palette_fade_out(New_pal, 32, allow_keys))
-		return 1;
+		return true;
 
 	free(briefing_bm.bm_data);
 
@@ -1023,7 +981,7 @@ int show_briefing_screen(int screen_num, int allow_keys)
 //	-----------------------------------------------------------------------------
 void do_briefing_screens(int level_num)
 {
-	int	abort_briefing_screens = 0;
+	bool abort_briefing_screens = false;
 	int	cur_briefing_screen = 0;
 
 	if (Skip_briefing_screens) 
@@ -1073,8 +1031,6 @@ void do_briefing_screens(int level_num)
 #ifndef SHAREWARE
 void do_registered_end_game(void)
 {
-	int	cur_briefing_screen;
-
 	if (!Ending_text_filename[0])		//no filename?
 		return;
 
@@ -1083,14 +1039,13 @@ void do_registered_end_game(void)
 		// Special ending for deathmatch!!
 		int len = 40;
 
-		//MALLOC(Briefing_text, char, len);//Unable to compile -KRB
-		Briefing_text = (char*)malloc(len * sizeof(char));//my hack -KRB
+		MALLOC(Briefing_text, char, len);
 		sprintf(Briefing_text, "Test");
 	}
 
 	load_screen_text(Ending_text_filename, &Briefing_text);
 
-	for (cur_briefing_screen = 0; cur_briefing_screen < MAX_BRIEFING_SCREEN; cur_briefing_screen++)
+	for (int cur_briefing_screen = 0; cur_briefing_screen < MAX_BRIEFING_SCREEN; cur_briefing_screen++)
 		if (Briefing_screens[cur_briefing_screen].level_num == REGISTERED_ENDING_LEVEL_NUM)
 			if (show_briefing_screen(cur_briefing_screen, 0))
 				break;
@@ -1163,7 +1118,8 @@ void do_end_game(void)
 #endif
 #endif
 
-	if (Briefing_text) {
+	if (Briefing_text) 
+	{
 		free(Briefing_text);
 		Briefing_text = NULL;
 	}

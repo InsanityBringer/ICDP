@@ -1,3 +1,15 @@
+/*
+THE COMPUTER CODE CONTAINED HEREIN IS THE SOLE PROPERTY OF PARALLAX
+SOFTWARE CORPORATION ("PARALLAX").  PARALLAX, IN DISTRIBUTING THE CODE TO
+END-USERS, AND SUBJECT TO ALL OF THE TERMS AND CONDITIONS HEREIN, GRANTS A
+ROYALTY-FREE, PERPETUAL LICENSE TO SUCH END-USERS FOR USE BY SUCH END-USERS
+IN USING, DISPLAYING,  AND CREATING DERIVATIVE WORKS THEREOF, SO LONG AS
+SUCH USE, DISPLAY OR CREATION IS FOR NON-COMMERCIAL, ROYALTY OR REVENUE
+FREE PURPOSES.  IN NO EVENT SHALL THE END-USER USE THE COMPUTER CODE
+CONTAINED HEREIN FOR REVENUE-BEARING PURPOSES.  THE END-USER UNDERSTANDS
+AND AGREES TO THE TERMS HEREIN AND ACCEPTS THE SAME BY USE OF THIS FILE.
+COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
+*/
 
 #pragma once
 
@@ -9,85 +21,87 @@
 
  //Animation states
 #define AS_REST			0
-#define AS_ALERT			1
+#define AS_ALERT		1
 #define AS_FIRE			2
-#define AS_RECOIL			3
-#define AS_FLINCH			4
+#define AS_RECOIL		3
+#define AS_FLINCH		4
 #define N_ANIM_STATES	5
 
-#define	RI_CLOAKED_NEVER					0
-#define	RI_CLOAKED_ALWAYS					1
+#define	RI_CLOAKED_NEVER				0
+#define	RI_CLOAKED_ALWAYS				1
 #define	RI_CLOAKED_EXCEPT_FIRING		2
 
 //describes the position of a certain joint
-typedef struct jointpos {
+struct jointpos
+{
 	short jointnum;
 	vms_angvec angles;
-} jointpos;
+};
 
 //describes a list of joint positions
-typedef struct jointlist {
+struct jointlist 
+{
 	short n_joints;
 	short offset;
-} jointlist;
+};
 
 //	Robot information
-typedef struct robot_info {
+struct robot_info
+{
 	int			model_num;							// which polygon model?
 	int			n_guns;								// how many different gun positions
-	vms_vector	gun_points[MAX_GUNS];			// where each gun model is
-	uint8_t			gun_submodels[MAX_GUNS];		// which submodel is each gun in?
+	vms_vector	gun_points[MAX_GUNS];				// where each gun model is
+	uint8_t		gun_submodels[MAX_GUNS];			// which submodel is each gun in?
 	short 		exp1_vclip_num;
-	short			exp1_sound_num;
+	short		exp1_sound_num;
 	short 		exp2_vclip_num;
-	short			exp2_sound_num;
-	short			weapon_type;
-	int8_t			contains_id;						//	ID of powerup this robot can contain.
-	int8_t			contains_count;					//	Max number of things this instance can contain.
-	int8_t			contains_prob;						//	Probability that this instance will contain something in N/16
-	int8_t			contains_type;						//	Type of thing contained, robot or powerup, in bitmaps.tbl, !0=robot, 0=powerup
+	short		exp2_sound_num;
+	short		weapon_type;
+	int8_t		contains_id;						//	ID of powerup this robot can contain.
+	int8_t		contains_count;						//	Max number of things this instance can contain.
+	int8_t		contains_prob;						//	Probability that this instance will contain something in N/16
+	int8_t		contains_type;						//	Type of thing contained, robot or powerup, in bitmaps.tbl, !0=robot, 0=powerup
 	int			score_value;						//	Score from this robot.
 	fix			lighting;							// should this be here or with polygon model?
 	fix			strength;							// Initial shields of robot
 
-	fix		mass;										// how heavy is this thing?
-	fix		drag;										// how much drag does it have?
+	fix			mass;								// how heavy is this thing?
+	fix			drag;								// how much drag does it have?
 
-	fix		field_of_view[NDL];					// compare this value with forward_vector.dot.vector_to_player, if field_of_view <, then robot can see player
-	fix		firing_wait[NDL];						//	time in seconds between shots
-	fix		turn_time[NDL];						// time in seconds to rotate 360 degrees in a dimension
-	fix		fire_power[NDL];						//	damage done by a hit from this robot
-	fix		shield[NDL];							//	shield strength of this robot
-	fix		max_speed[NDL];						//	maximum speed attainable by this robot
-	fix		circle_distance[NDL];				//	distance at which robot circles player
+	fix			field_of_view[NDL];					// compare this value with forward_vector.dot.vector_to_player, if field_of_view <, then robot can see player
+	fix			firing_wait[NDL];					//	time in seconds between shots
+	fix			turn_time[NDL];						// time in seconds to rotate 360 degrees in a dimension
+	fix			fire_power[NDL];					//	damage done by a hit from this robot
+	fix			shield[NDL];						//	shield strength of this robot
+	fix			max_speed[NDL];						//	maximum speed attainable by this robot
+	fix			circle_distance[NDL];				//	distance at which robot circles player
 
 	int8_t		rapidfire_count[NDL];				//	number of shots fired rapidly
-	int8_t		evade_speed[NDL];						//	rate at which robot can evade shots, 0=none, 4=very fast
-	int8_t		cloak_type;								//	0=never, 1=always, 2=except-when-firing
-	int8_t		attack_type;							//	0=firing, 1=charge (like green guy)
-	int8_t		boss_flag;								//	0 = not boss, 1 = boss.  Is that surprising?
-	uint8_t		see_sound;								//	sound robot makes when it first sees the player
-	uint8_t		attack_sound;							//	sound robot makes when it attacks the player
-	uint8_t		claw_sound;								//	sound robot makes as it claws you (attack_type should be 1)
+	int8_t		evade_speed[NDL];					//	rate at which robot can evade shots, 0=none, 4=very fast
+	int8_t		cloak_type;							//	0=never, 1=always, 2=except-when-firing
+	int8_t		attack_type;						//	0=firing, 1=charge (like green guy)
+	int8_t		boss_flag;							//	0 = not boss, 1 = boss.  Is that surprising?
+	uint8_t		see_sound;							//	sound robot makes when it first sees the player
+	uint8_t		attack_sound;						//	sound robot makes when it attacks the player
+	uint8_t		claw_sound;							//	sound robot makes as it claws you (attack_type should be 1)
 
 	//animation info
-	jointlist anim_states[MAX_GUNS + 1][N_ANIM_STATES];
+	jointlist	anim_states[MAX_GUNS + 1][N_ANIM_STATES];
 
-	int		always_0xabcd;							// debugging
+	int			always_0xabcd;						// debugging
 
-} robot_info;
+};
 
-
-#define	MAX_ROBOT_TYPES	30				// maximum number of robot types
+#define	MAX_ROBOT_TYPES	30		// maximum number of robot types
 
 #define	ROBOT_NAME_LENGTH	16
 extern char	Robot_names[MAX_ROBOT_TYPES][ROBOT_NAME_LENGTH];
 
 //the array of robots types
-extern robot_info Robot_info[];			// Robot info for AI system, loaded from bitmaps.tbl.
+extern robot_info Robot_info[];	// Robot info for AI system, loaded from bitmaps.tbl.
 
 //how many kinds of robots
-extern	int	N_robot_types;		// Number of robot types.  We used to assume this was the same as N_polygon_models.
+extern int	N_robot_types;		// Number of robot types.  We used to assume this was the same as N_polygon_models.
 
 //test data for one robot
 #define MAX_ROBOT_JOINTS 600
@@ -97,7 +111,6 @@ extern int	N_robot_joints;
 //given an object and a gun number, return position in 3-space of gun
 //fills in gun_point
 void calc_gun_point(vms_vector* gun_point, object* obj, int gun_num);
-//void calc_gun_point(vms_vector *gun_point,int objnum,int gun_num);
 
 //	Tells joint positions for a gun to be in a specified state.
 //	A gun can have associated with it any number of joints.  In order to tell whether a gun is a certain

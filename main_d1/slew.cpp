@@ -33,12 +33,13 @@ object* slew_obj = NULL;	//what object is slewing, or NULL if none
 
 short old_joy_x, old_joy_y;	//position last time around
 
-int slew_stop()
+int slew_stop() //has to return int because it's part of the editor function table. 
 {
-	if (!slew_obj || slew_obj->control_type != CT_SLEW) return 0;
+	if (!slew_obj || slew_obj->control_type != CT_SLEW) 
+		return 0;
 
 	vm_vec_zero(&slew_obj->mtype.phys_info.velocity);
-	return 1;
+	return 0;
 }
 
 //say start slewing with this object
@@ -60,22 +61,17 @@ void slew_reset_orient()
 
 	slew_obj->orient.rvec.y = slew_obj->orient.rvec.z = slew_obj->orient.uvec.x =
 		slew_obj->orient.uvec.z = slew_obj->orient.fvec.x = slew_obj->orient.fvec.y = 0;
-
 }
 
-int do_slew_movement(object* obj, int check_keys, int check_joy)
+bool do_slew_movement(object* obj, bool check_keys, bool check_joy)
 {
-	int moved = 0;
-	vms_vector svel, movement;				//scaled velocity (per this frame)
-	vms_matrix rotmat, new_pm;
-	int joy_x, joy_y, btns;
-	int joyx_moved, joyy_moved;
-	vms_angvec rotang;
-
 	if (!slew_obj || slew_obj->control_type != CT_SLEW) return 0;
 
-	if (check_keys) {
-		if (Function_mode == FMODE_EDITOR) {
+	vms_angvec rotang;
+	if (check_keys) 
+	{
+		if (Function_mode == FMODE_EDITOR) 
+		{
 			obj->mtype.phys_info.velocity.x += VEL_SPEED * (key_down_time(KEY_PAD9) - key_down_time(KEY_PAD7));
 			obj->mtype.phys_info.velocity.y += VEL_SPEED * (key_down_time(KEY_PADMINUS) - key_down_time(KEY_PADPLUS));
 			obj->mtype.phys_info.velocity.z += VEL_SPEED * (key_down_time(KEY_PAD8) - key_down_time(KEY_PAD2));
@@ -84,7 +80,8 @@ int do_slew_movement(object* obj, int check_keys, int check_joy)
 			rotang.b = (fixang)((key_down_time(KEY_PAD1) - key_down_time(KEY_PAD3)) / ROT_SPEED);
 			rotang.h = (fixang)((key_down_time(KEY_PAD6) - key_down_time(KEY_PAD4)) / ROT_SPEED);
 		}
-		else {
+		else 
+		{
 			obj->mtype.phys_info.velocity.x += VEL_SPEED * Controls.sideways_thrust_time;
 			obj->mtype.phys_info.velocity.y += VEL_SPEED * Controls.vertical_thrust_time;
 			obj->mtype.phys_info.velocity.z += VEL_SPEED * Controls.forward_thrust_time;
@@ -99,12 +96,14 @@ int do_slew_movement(object* obj, int check_keys, int check_joy)
 
 	//check for joystick movement
 
-	if (check_joy && joy_present && (Function_mode == FMODE_EDITOR)) {
+	if (check_joy && joy_present && (Function_mode == FMODE_EDITOR)) 
+	{
+		int joy_x, joy_y;
 		joy_get_pos(&joy_x, &joy_y);
-		btns = joy_get_btns();
+		int btns = joy_get_btns();
 
-		joyx_moved = (abs(joy_x - old_joy_x) > JOY_NULL);
-		joyy_moved = (abs(joy_y - old_joy_y) > JOY_NULL);
+		int joyx_moved = (abs(joy_x - old_joy_x) > JOY_NULL);
+		int joyy_moved = (abs(joy_y - old_joy_y) > JOY_NULL);
 
 		if (abs(joy_x) < JOY_NULL) joy_x = 0;
 		if (abs(joy_y) < JOY_NULL) joy_y = 0;
@@ -120,23 +119,25 @@ int do_slew_movement(object* obj, int check_keys, int check_joy)
 		if (joyy_moved) old_joy_y = joy_y;
 	}
 
-	moved = rotang.p | rotang.b | rotang.h;
+	bool moved = (rotang.p | rotang.b | rotang.h) != 0;
 
+	vms_matrix rotmat, new_pm;
 	vm_angles_2_matrix(&rotmat, &rotang);
 	vm_matrix_x_matrix(&new_pm, &obj->orient, &rotmat);
 	obj->orient = new_pm;
 	vm_transpose_matrix(&new_pm);		//make those columns rows
 
-	moved |= obj->mtype.phys_info.velocity.x | obj->mtype.phys_info.velocity.y | obj->mtype.phys_info.velocity.z;
+	moved |= (obj->mtype.phys_info.velocity.x | obj->mtype.phys_info.velocity.y | obj->mtype.phys_info.velocity.z) != 0;
 
-	svel = obj->mtype.phys_info.velocity;
+	vms_vector svel = obj->mtype.phys_info.velocity;
+	vms_vector movement; //scaled velocity (per this frame)
 	vm_vec_scale(&svel, FrameTime);		//movement in this frame
 	vm_vec_rotate(&movement, &svel, &new_pm);
 
 	//	obj->last_pos = obj->pos;
 	vm_vec_add2(&obj->pos, &movement);
 
-	moved |= (movement.x || movement.y || movement.z);
+	moved |= (movement.x | movement.y | movement.z) != 0;
 
 	if (moved)
 		update_object_seg(obj);	//update segment id
@@ -145,7 +146,7 @@ int do_slew_movement(object* obj, int check_keys, int check_joy)
 }
 
 //do slew for this frame
-int slew_frame(int check_keys)
+bool slew_frame(bool check_keys)
 {
-	return do_slew_movement(slew_obj, !check_keys, 1);
+	return do_slew_movement(slew_obj, !check_keys, true);
 }

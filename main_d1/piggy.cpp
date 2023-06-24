@@ -49,15 +49,15 @@ int piggy_is_substitutable_bitmap(char* name, char* subst_name);
 uint8_t* BitmapBits = NULL;
 uint8_t* SoundBits = NULL;
 
-typedef struct BitmapFile 
+struct BitmapFile 
 {
 	char			name[15];
-} BitmapFile;
+};
 
-typedef struct SoundFile 
+struct SoundFile 
 {
 	char			name[15];
-} SoundFile;
+};
 
 hashtable AllBitmapsNames;
 hashtable AllDigiSndNames;
@@ -92,7 +92,7 @@ int piggy_page_flushed = 0;
 
 bool warn_on_late_cache = false;
 
-typedef struct DiskBitmapHeader 
+struct DiskBitmapHeader 
 {
 	char name[8];
 	uint8_t dflags;
@@ -101,22 +101,22 @@ typedef struct DiskBitmapHeader
 	uint8_t flags;
 	uint8_t avg_color;
 	int offset;
-} DiskBitmapHeader;
+};
 
 //[ISB]: The above structure size can vary from system to system, but the size on disk is constant. Calculate that instead. 
 #define BITMAP_HEADER_SIZE 17
 
-typedef struct DiskSoundHeader 
+struct DiskSoundHeader 
 {
 	char name[8];
 	int length;
 	int data_length;
 	int offset;
-} DiskSoundHeader;
+};
 
 #define SOUND_HEADER_SIZE 20
 
-uint8_t BigPig = 0;
+bool BigPig = false;
 
 void piggy_get_bitmap_name(int i, char* name)
 {
@@ -133,7 +133,8 @@ bitmap_index piggy_register_bitmap(grs_bitmap* bmp, const char* name, int in_fil
 
 	if (!in_file) 
 	{
-		if (!BigPig)	gr_bitmap_rle_compress(bmp);
+		if (!BigPig)	
+			gr_bitmap_rle_compress(bmp);
 		Num_bitmap_files_new++;
 	}
 
@@ -152,8 +153,6 @@ bitmap_index piggy_register_bitmap(grs_bitmap* bmp, const char* name, int in_fil
 
 int piggy_register_sound(digi_sound* snd, const char* name, int in_file)
 {
-	int i;
-
 	Assert(Num_sound_files < MAX_SOUND_FILES);
 
 	strncpy(AllSounds[Num_sound_files].name, name, 12);
@@ -164,7 +163,7 @@ int piggy_register_sound(digi_sound* snd, const char* name, int in_file)
 		SoundOffset[Num_sound_files] = 0;
 	}
 
-	i = Num_sound_files;
+	int i = Num_sound_files;
 
 	if (!in_file)
 		Num_sound_files_new++;
@@ -176,11 +175,9 @@ int piggy_register_sound(digi_sound* snd, const char* name, int in_file)
 bitmap_index piggy_find_bitmap(char* name)
 {
 	bitmap_index bmp;
-	int i;
-
 	bmp.index = 0;
 
-	i = hashtable_search(&AllBitmapsNames, name);
+	int i = hashtable_search(&AllBitmapsNames, name);
 	Assert(i != 0);
 	if (i < 0)
 		return bmp;
@@ -191,9 +188,7 @@ bitmap_index piggy_find_bitmap(char* name)
 
 int piggy_find_sound(const char* name)
 {
-	int i;
-
-	i = hashtable_search(&AllDigiSndNames, const_cast<char*>(name));
+	int i = hashtable_search(&AllDigiSndNames, const_cast<char*>(name));
 
 	if (i < 0)
 		return 255;
@@ -401,13 +396,10 @@ int piggy_init()
 	if (SoundBits == NULL)
 		Error("Not enough memory to load DESCENT.PIG sounds\n");
 
-//#ifdef EDITOR
 	//[ISB] Temp hack for ICDP, keep the piggy cache size large enough to touch every bitmap. 
 	Piggy_bitmap_cache_size = size - header_size - sbytes + 16;
 	Assert(Piggy_bitmap_cache_size > 0);
-/*#else
-	Piggy_bitmap_cache_size = PIGGY_BUFFER_SIZE;
-#endif*/
+
 	BitmapBits = (uint8_t*)malloc(Piggy_bitmap_cache_size);
 	if (BitmapBits == NULL)
 		Error("Not enough memory to load DESCENT.PIG bitmaps\n");
@@ -437,11 +429,9 @@ int piggy_init()
 
 int piggy_is_needed(int soundnum)
 {
-	int i;
-
 	if (!digi_lomem) return 1;
 
-	for (i = 0; i < MAX_SOUNDS; i++) 
+	for (int i = 0; i < MAX_SOUNDS; i++) 
 	{
 		if ((AltSounds[i] < 255) && (Sounds[AltSounds[i]] == soundnum))
 			return 1;
@@ -451,13 +441,10 @@ int piggy_is_needed(int soundnum)
 
 void piggy_read_sounds()
 {
-	uint8_t* ptr;
-	int i, sbytes;
+	uint8_t* ptr = SoundBits;
+	int sbytes = 0;
 
-	ptr = SoundBits;
-	sbytes = 0;
-
-	for (i = 0; i < Num_sound_files; i++)
+	for (int i = 0; i < Num_sound_files; i++)
 	{
 		digi_sound* snd = &GameSounds[i];
 		if (SoundOffset[i] > 0) 
@@ -476,39 +463,13 @@ void piggy_read_sounds()
 	}
 
 	mprintf((0, "\nActual Sound usage: %d KB\n", sbytes / 1024));
-
-}
-
-extern int descent_critical_error;
-extern unsigned descent_critical_deverror;
-extern unsigned descent_critical_errcode;
-
-const char* crit_errors[16] = { "Write Protected", "Unknown Unit", "Drive Not Ready", "Unknown Command", "CRC Error", \
-"Bad struct length", "Seek Error", "Unknown media type", "Sector not found", "Printer out of paper", "Write Fault", \
-"Read fault", "General Failure", "", "", "" };
-
-void piggy_critical_error()
-{
-	grs_canvas* save_canv;
-	grs_font* save_font;
-	int i;
-	save_canv = grd_curcanv;
-	save_font = grd_curcanv->cv_font;
-	gr_palette_load(gr_palette);
-	i = nm_messagebox("Disk Error", 2, "Retry", "Exit", "%s\non drive %c:", crit_errors[descent_critical_errcode & 0xf], (descent_critical_deverror & 0xf) + 'A');
-	if (i == 1)
-		Error("You chose to abort. Rip.\n");
-		//exit(1);
-	gr_set_current_canvas(save_canv);
-	grd_curcanv->cv_font = save_font;
 }
 
 void piggy_bitmap_page_in(bitmap_index bitmap)
 {
-	grs_bitmap* bmp;
-	int i, org_i, temp;
+	int org_i, temp;
 
-	i = bitmap.index;
+	int i = bitmap.index;
 	Assert(i >= 0);
 	Assert(i < MAX_BITMAP_FILES);
 	Assert(i < Num_bitmap_files);
@@ -530,20 +491,14 @@ void piggy_bitmap_page_in(bitmap_index bitmap)
 		org_i = i;
 		i = GameBitmapXlat[i];		// Xlat for low-memory settings!
 	}
-	bmp = &GameBitmaps[i];
+	grs_bitmap* bmp = &GameBitmaps[i];
 
 	if (bmp->bm_flags & BM_FLAG_PAGED_OUT) 
 	{
 		stop_time();
 
 	ReDoIt:
-		descent_critical_error = 0;
 		cfseek(Piggy_fp, GameBitmapOffset[i], SEEK_SET);
-		if (descent_critical_error) 
-		{
-			piggy_critical_error();
-			goto ReDoIt;
-		}
 
 		bmp->bm_data = &Piggy_bitmap_cache_data[Piggy_bitmap_cache_next];
 		bmp->bm_flags = GameBitmapFlags[i];
@@ -551,14 +506,7 @@ void piggy_bitmap_page_in(bitmap_index bitmap)
 		if (bmp->bm_flags & BM_FLAG_RLE) 
 		{
 			int zsize = 0;
-			descent_critical_error = 0;
-			//temp = cfread(&zsize, 1, sizeof(int), Piggy_fp);
 			zsize = cfile_read_int(Piggy_fp);
-			if (descent_critical_error) 
-			{
-				piggy_critical_error();
-				goto ReDoIt;
-			}
 
 			// GET JOHN NOW IF YOU GET THIS ASSERT!!!
 			Assert(Piggy_bitmap_cache_next + zsize < Piggy_bitmap_cache_size);
@@ -569,13 +517,7 @@ void piggy_bitmap_page_in(bitmap_index bitmap)
 			}
 			memcpy(&Piggy_bitmap_cache_data[Piggy_bitmap_cache_next], &zsize, sizeof(int));
 			Piggy_bitmap_cache_next += sizeof(int);
-			descent_critical_error = 0;
 			temp = cfread(&Piggy_bitmap_cache_data[Piggy_bitmap_cache_next], 1, zsize - 4, Piggy_fp);
-			if (descent_critical_error)
-			{
-				piggy_critical_error();
-				goto ReDoIt;
-			}
 			Piggy_bitmap_cache_next += zsize - 4;
 		}
 		else 
@@ -587,13 +529,7 @@ void piggy_bitmap_page_in(bitmap_index bitmap)
 				piggy_bitmap_page_out_all();
 				goto ReDoIt;
 			}
-			descent_critical_error = 0;
 			temp = cfread(&Piggy_bitmap_cache_data[Piggy_bitmap_cache_next], 1, bmp->bm_h * bmp->bm_w, Piggy_fp);
-			if (descent_critical_error) 
-			{
-				piggy_critical_error();
-				goto ReDoIt;
-			}
 			Piggy_bitmap_cache_next += bmp->bm_h * bmp->bm_w;
 		}
 
@@ -660,44 +596,6 @@ void piggy_dump_all()
 	Num_sound_files_new = 0;
 #endif
 
-	//	{
-	//	bitmap_index bi;
-	//	bi.index = 614;
-	//	PIGGY_PAGE_IN( bi );
-	//	count_colors( bi.index, &GameBitmaps[bi.index] );
-	//	key_getch();
-	//	}
-	//	{
-	//	bitmap_index bi;
-	//	bi.index = 478;
-	//	PIGGY_PAGE_IN( bi );
-	//	Int3();
-	//	count_colors( bi.index, &GameBitmaps[bi.index] );
-	//	key_getch();
-	//	}
-	//	{
-	//	bitmap_index bi;
-	//	bi.index = 1398;
-	//	PIGGY_PAGE_IN( bi );
-	//	count_colors( bi.index, &GameBitmaps[bi.index] );
-	//	key_getch();
-	//	}
-	//	{
-	//	bitmap_index bi;
-	//	bi.index = 642;
-	//	PIGGY_PAGE_IN( bi );
-	//	count_colors( bi.index, &GameBitmaps[bi.index] );
-	//	key_getch();
-	//	}
-	//	{
-	//	bitmap_index bi;
-	//	bi.index = 529;
-	//	PIGGY_PAGE_IN( bi );
-	//	count_colors( bi.index, &GameBitmaps[bi.index] );
-	//	key_getch();
-	//	}
-	//	exit(0);
-	//
 	if ((Num_bitmap_files_new == 0) && (Num_sound_files_new == 0))
 		return;
 
@@ -942,15 +840,13 @@ void piggy_close()
 
 int piggy_does_bitmap_exist_slow(char* name)
 {
-	int i;
-
-	for (i = 0; i < Num_bitmap_files; i++) {
+	for (int i = 0; i < Num_bitmap_files; i++)
+	{
 		if (!strcmp(AllBitmaps[i].name, name))
 			return 1;
 	}
 	return 0;
 }
-
 
 #define NUM_GAUGE_BITMAPS 10
 const char* gauge_bitmap_names[NUM_GAUGE_BITMAPS] = { "gauge01", "gauge02", "gauge06", "targ01", "targ02", "targ03", "targ04", "targ05", "targ06", "gauge18" };

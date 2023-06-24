@@ -15,18 +15,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "object.h"
 
-#ifndef RELEASE
-
-void	slew_init(object* obj);					//say this is slew obj
-int	slew_stop();								// Stops object
-void	slew_reset_orient();						// Resets orientation
-int	slew_frame(int dont_check_keys);		// Does slew frame
-
-#else
-
-#define slew_init(obj)
-#define slew_stop(obj)
-#define slew_reset_orient()
-//#define slew_frame(dont_check_keys) //KRB hack
-int	slew_frame(int dont_check_keys);		// Does slew frame
-#endif
+//[ISB] this used to be ifdef to release only, but all call sites have ifdefs already. 
+void	slew_init(object* obj);	//say this is slew obj
+int		slew_stop(); // Stops object
+void	slew_reset_orient(); // Resets orientation
+bool	slew_frame(bool check_keys); // Does slew frame

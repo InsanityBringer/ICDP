@@ -19,10 +19,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 int state_save_all(int between_levels);
 int state_restore_all(int in_game);
 
-extern int state_save_old_game(int slotnum, char* sg_name, player* sg_player,
-	int sg_difficulty_level, int sg_primary_weapon,
-	int sg_secondary_weapon, int sg_next_level_num);
-
 int state_save_all_sub(char* filename, char* desc, int between_levels);
 int state_restore_all_sub(char* filename, int multi);
 

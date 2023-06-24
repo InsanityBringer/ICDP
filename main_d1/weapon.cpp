@@ -198,11 +198,9 @@ void do_weapon_select(int weapon_num, int secondary_flag)
 // Weapon type: 0==primary, 1==secondary
 void auto_select_weapon(int weapon_type)
 {
-	int	r;
-
 	if (weapon_type == 0) 
 	{
-		r = player_has_weapon(Primary_weapon, 0);
+		int r = player_has_weapon(Primary_weapon, 0);
 		if (r != HAS_ALL) 
 		{
 			int	cur_weapon;
@@ -269,9 +267,7 @@ void auto_select_weapon(int weapon_type)
 //	Looks like a debug screen now because it writes to mono screen, but that will change... [ISB] well it didn't rip
 void show_weapon_status(void)
 {
-	int	i;
-
-	for (i = 0; i < MAX_PRIMARY_WEAPONS; i++) 
+	for (int i = 0; i < MAX_PRIMARY_WEAPONS; i++) 
 	{
 		if (Players[Player_num].primary_weapon_flags & (1 << i))
 			mprintf((0, "HAVE"));
@@ -282,7 +278,7 @@ void show_weapon_status(void)
 	}
 
 	mprintf((0, "\n"));
-	for (i = 0; i < MAX_SECONDARY_WEAPONS; i++) 
+	for (int i = 0; i < MAX_SECONDARY_WEAPONS; i++) 
 	{
 		if (Players[Player_num].secondary_weapon_flags & (1 << i))
 			mprintf((0, "HAVE"));
@@ -314,20 +310,18 @@ void secondary_pickup_autoselect(int new_index)
 //called when one of these weapons is picked up
 //when you pick up a secondary, you always get the weapon & ammo for it
 //	Returns true if powerup picked up, else returns false.
-int pick_up_secondary(int weapon_index, int count)
+bool pick_up_secondary(int weapon_index, int count)
 {
-	int	num_picked_up;
-
 	if (Players[Player_num].secondary_ammo[weapon_index] >= Secondary_ammo_max[weapon_index]) 
 	{
 		HUD_init_message_leveled(MSG_ALL, "%s %i %ss!", TXT_ALREADY_HAVE, Players[Player_num].secondary_ammo[weapon_index], SECONDARY_WEAPON_NAMES(weapon_index));
-		return 0;
+		return false;
 	}
 
 	Players[Player_num].secondary_weapon_flags |= (1 << weapon_index);
 	Players[Player_num].secondary_ammo[weapon_index] += count;
 
-	num_picked_up = count;
+	int num_picked_up = count;
 	if (Players[Player_num].secondary_ammo[weapon_index] > Secondary_ammo_max[weapon_index]) 
 	{
 		num_picked_up = count - (Players[Player_num].secondary_ammo[weapon_index] - Secondary_ammo_max[weapon_index]);
@@ -356,7 +350,7 @@ int pick_up_secondary(int weapon_index, int count)
 		HUD_init_message("%s!", SECONDARY_WEAPON_NAMES(weapon_index));
 	}
 
-	return 1;
+	return true;
 }
 
 void primary_pickup_autoselect(int new_index)
@@ -372,7 +366,7 @@ void primary_pickup_autoselect(int new_index)
 
 //called when a primary weapon is picked up
 //returns true if actually picked up
-int pick_up_primary(int weapon_index)
+bool pick_up_primary(int weapon_index)
 {
 	uint8_t old_flags = Players[Player_num].primary_weapon_flags;
 	uint8_t flag = 1 << weapon_index;
@@ -380,7 +374,7 @@ int pick_up_primary(int weapon_index)
 	if (Players[Player_num].primary_weapon_flags & flag) //already have
 	{
 		HUD_init_message_leveled(MSG_ALL, "%s %s!", TXT_ALREADY_HAVE_THE, PRIMARY_WEAPON_NAMES(weapon_index));
-		return 0;
+		return false;
 	}
 
 	Players[Player_num].primary_weapon_flags |= flag;
@@ -391,19 +385,19 @@ int pick_up_primary(int weapon_index)
 	PALETTE_FLASH_ADD(7, 14, 21);
 	HUD_init_message("%s!", PRIMARY_WEAPON_NAMES(weapon_index));
 
-	return 1;
+	return true;
 }
 
 //called when ammo (for the vulcan cannon) is picked up
 //	Return true if ammo picked up, else return false.
-int pick_up_ammo(int class_flag, int weapon_index, int ammo_count)
+bool pick_up_ammo(int class_flag, int weapon_index, int ammo_count)
 {
 	int old_ammo = class_flag;		//kill warning
 
 	Assert(class_flag == CLASS_PRIMARY && weapon_index == VULCAN_INDEX);
 
 	if (Players[Player_num].primary_ammo[weapon_index] == Primary_ammo_max[weapon_index])
-		return 0;
+		return false;
 
 	old_ammo = Players[Player_num].primary_ammo[weapon_index];
 
@@ -415,5 +409,5 @@ int pick_up_ammo(int class_flag, int weapon_index, int ammo_count)
 	if (Players[Player_num].primary_weapon_flags & (1 << weapon_index) && weapon_index > Primary_weapon && old_ammo == 0)
 		primary_pickup_autoselect(weapon_index);
 
-	return 1;
+	return true;
 }

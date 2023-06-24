@@ -46,7 +46,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define	CONTROL_LIGHTS_ON			  16	// If Trigger turns on lights in a certain area
 #define	CONTROL_LIGHTS_OFF		  32	// If Trigger turns off lights in a certain area
 
-typedef struct trigger {
+struct trigger
+{
 	int8_t		type;
 	short		flags;
 	fix		value;
@@ -55,23 +56,15 @@ typedef struct trigger {
 	short 	num_links;
 	short 	seg[MAX_WALLS_PER_LINK];
 	short		side[MAX_WALLS_PER_LINK];
-} trigger;
-
-//typedef struct link {
-//	short 	num_walls;
-//	short 	seg[MAX_WALLS_PER_LINK];
-//	short		side[MAX_WALLS_PER_LINK];
-//	} link;
+};
 
 extern trigger Triggers[MAX_TRIGGERS];
-//extern link Links[MAX_WALL_LINKS];
 
 extern int Num_triggers;
-//extern int Num_links;
 
 extern void trigger_init();
 
 extern void check_trigger(segment* seg, short side, short objnum);
-extern int check_trigger_sub(int trigger_num, int player_num);
+extern bool check_trigger_sub(int trigger_num, int player_num);
 
 extern void triggers_frame_process();
