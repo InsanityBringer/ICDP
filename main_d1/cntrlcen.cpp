@@ -170,8 +170,9 @@ void do_controlcen_frame(object* obj)
 			// person to go through ai_do_frame.  But since a no-robots game
 			// never goes through ai_do_frame, I'm making it so the control
 			// center can spot cloaked dudes.  
-
-			if (Game_mode & GM_MULTI)
+			// [ISB] I've extended this to allow seeing uncloaked players in single player.
+			// Otherwise if you kill all the robots on a level the reactor can stop seeing you.
+			if (Game_mode & GM_MULTI || !(Players[Player_num].flags & PLAYER_FLAGS_CLOAKED))
 				Believed_player_pos = Objects[Players[Player_num].objnum].pos;
 
 			//	Hack for special control centers which are isolated and not reachable because the
