@@ -20,7 +20,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "ai.h"
 #include "aistruct.h"
 
-void P_WriteAILocals(ai_local* info, FILE* fp)
+void ai_write_locals(ai_local* info, FILE* fp)
 {
 	int i;
 
@@ -60,7 +60,7 @@ void P_WriteAILocals(ai_local* info, FILE* fp)
 		file_write_byte(fp, info->achieved_state[i]);
 }
 
-void P_WriteSegPoint(point_seg* point, FILE* fp)
+void ai_write_seg_point(point_seg* point, FILE* fp)
 {
 	file_write_int(fp, point->segnum);
 	file_write_int(fp, point->point.x);
@@ -68,7 +68,7 @@ void P_WriteSegPoint(point_seg* point, FILE* fp)
 	file_write_int(fp, point->point.z);
 }
 
-void P_WriteCloakInfo(ai_cloak_info* info, FILE* fp)
+void ai_write_cloak_info(ai_cloak_info* info, FILE* fp)
 {
 	file_write_int(fp, info->last_time);
 	file_write_int(fp, info->last_position.x);
@@ -76,7 +76,7 @@ void P_WriteCloakInfo(ai_cloak_info* info, FILE* fp)
 	file_write_int(fp, info->last_position.z);
 }
 
-void P_ReadAILocals(ai_local* info, FILE* fp)
+void ai_read_locals(ai_local* info, FILE* fp)
 {
 	int i;
 
@@ -116,7 +116,7 @@ void P_ReadAILocals(ai_local* info, FILE* fp)
 		info->achieved_state[i] = file_read_byte(fp);
 }
 
-void P_ReadSegPoint(point_seg* point, FILE* fp)
+void ai_read_seg_point(point_seg* point, FILE* fp)
 {
 	point->segnum = file_read_int(fp);
 	point->point.x = file_read_int(fp);
@@ -124,7 +124,7 @@ void P_ReadSegPoint(point_seg* point, FILE* fp)
 	point->point.z = file_read_int(fp);
 }
 
-void P_ReadCloakInfo(ai_cloak_info *info, FILE* fp)
+void ai_read_cloak_info(ai_cloak_info *info, FILE* fp)
 {
 	info->last_time = file_read_int(fp);
 	info->last_position.x = file_read_int(fp);

@@ -160,6 +160,16 @@ void G3Drawer::clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 	(*p0)->p3_flags &= ~(PF_UVS | PF_LS);
 	(*p1)->p3_flags &= ~(PF_UVS | PF_LS);
 
+	/*fix right_save = clip_ratios[0];
+	fix top_save = clip_ratios[1];
+	fix left_save = clip_ratios[2];
+	fix bot_save = clip_ratios[3];
+
+	set_clip_ratios(-F1_0, F1_0, F1_0, -F1_0);
+
+	g3_code_point(*p0); g3_code_point(*p1); 
+	codes_or = (*p0)->p3_codes | (*p1)->p3_codes;*/
+
 	for (int plane_flag = 1; plane_flag < 16; plane_flag <<= 1)
 	{
 		if (codes_or & plane_flag)
@@ -182,6 +192,8 @@ void G3Drawer::clip_line(g3s_point** p0, g3s_point** p1, uint8_t codes_or)
 			codes_or = (*p0)->p3_codes | (*p1)->p3_codes;
 		}
 	}
+
+	//set_clip_ratios(left_save, top_save, right_save, bot_save);
 }
 
 int G3Drawer::clip_plane(int plane_flag, g3s_point** src, g3s_point** dest, int* nv, g3s_codes* cc)

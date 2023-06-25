@@ -56,6 +56,49 @@ int gr_disk(fix xc1, fix yc1, fix r1)
 	return 0;
 }
 
+int gr_disk_explicit_clip(fix xc1, fix yc1, fix r1, int color, int xmin, int ymin, int xmax, int ymax)
+{
+	int p, x, y, xc, yc, r;
+
+	r = f2i(r1);
+	xc = f2i(xc1);
+	yc = f2i(yc1);
+	p = 3 - (r * 2);
+	x = 0;
+	y = r;
+
+	// Big clip
+	if ((xc + r) < xmin) return 1;
+	if ((xc - r) > xmax) return 1;
+	if ((yc + r) < ymin) return 1;
+	if ((yc - r) > ymax) return 1;
+
+	while (x < y)
+	{
+		// Draw the first octant
+		gr_scanline_explicit_clip(xc - y, xc + y, yc - x, color, xmin, ymin, xmax, ymax);
+		gr_scanline_explicit_clip(xc - y, xc + y, yc + x, color, xmin, ymin, xmax, ymax);
+
+		if (p < 0)
+			p = p + (x << 2) + 6;
+		else 
+		{
+			// Draw the second octant
+			gr_scanline_explicit_clip(xc - x, xc + x, yc - y, color, xmin, ymin, xmax, ymax);
+			gr_scanline_explicit_clip(xc - x, xc + x, yc + y, color, xmin, ymin, xmax, ymax);
+			p = p + ((x - y) << 2) + 10;
+			y--;
+		}
+		x++;
+	}
+	if (x == y) 
+	{
+		gr_scanline_explicit_clip(xc - x, xc + x, yc - y, color, xmin, ymin, xmax, ymax);
+		gr_scanline_explicit_clip(xc - x, xc + x, yc + y, color, xmin, ymin, xmax, ymax);
+	}
+	return 0;
+}
+
 int gr_udisk(fix xc1, fix yc1, fix r1)
 {
 	int p, x, y, xc, yc, r;

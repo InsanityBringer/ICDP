@@ -166,7 +166,7 @@ public:
 
 	//draw a sortof sphere - i.e., the 2d radius is proportional to the 3d
 	//radius, but not to the distance from the eye
-	void draw_sphere(g3s_point* pnt, fix rad);
+	void draw_sphere(g3s_point* pnt, fix rad, int color);
 
 	bool draw_line(g3s_point* p0, g3s_point* p1, int color);
 	//Draws a line with exactly the points specified. They are not copied or recoded. 

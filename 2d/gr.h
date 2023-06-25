@@ -242,6 +242,7 @@ void gr_urect(int left, int top, int right, int bot);
 // Draw a filled circle
 int gr_disk(fix x, fix y, fix r);
 int gr_udisk(fix x, fix y, fix r);
+int gr_disk_explicit_clip(fix xc1, fix yc1, fix r1, int color, int xmin, int ymin, int xmax, int ymax);
 
 // Draw an outline circle
 int gr_circle(fix x, fix y, fix r);
@@ -253,7 +254,7 @@ void gr_ubox(int left, int top, int right, int bot);
 
 void gr_scanline(int x1, int x2, int y);
 void gr_uscanline(int x1, int x2, int y);
-
+void gr_scanline_explicit_clip(int x1, int x2, int y, int color, int xmin, int ymin, int xmax, int ymax);
 
 // Reads in a font file... current font set to this one.
 grs_font* gr_init_font(const char* fontfile);

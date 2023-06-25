@@ -3551,11 +3551,11 @@ int ai_save_state(FILE* fp)
 	file_write_int(fp, Ai_initialized);
 	file_write_int(fp, Overall_agitation);
 	for (i = 0; i < MAX_OBJECTS; i++)
-		P_WriteAILocals(&Ai_local_info[i], fp);
+		ai_write_locals(&Ai_local_info[i], fp);
 	for (i = 0; i < MAX_POINT_SEGS; i++)
-		P_WriteSegPoint(&Point_segs[i], fp);
+		ai_write_seg_point(&Point_segs[i], fp);
 	for (i = 0; i < MAX_AI_CLOAK_INFO; i++)
-		P_WriteCloakInfo(&Ai_cloak_info[i], fp);
+		ai_write_cloak_info(&Ai_cloak_info[i], fp);
 
 	file_write_int(fp, Boss_cloak_start_time);
 	file_write_int(fp, Boss_cloak_end_time);
@@ -3599,11 +3599,11 @@ int ai_restore_state(FILE* fp)
 	Ai_initialized = file_read_int(fp);
 	Overall_agitation = file_read_int(fp);
 	for (i = 0; i < MAX_OBJECTS; i++)
-		P_ReadAILocals(&Ai_local_info[i], fp);
+		ai_read_locals(&Ai_local_info[i], fp);
 	for (i = 0; i < MAX_POINT_SEGS; i++)
-		P_ReadSegPoint(&Point_segs[i], fp);
+		ai_read_seg_point(&Point_segs[i], fp);
 	for (i = 0; i < MAX_AI_CLOAK_INFO; i++)
-		P_ReadCloakInfo(&Ai_cloak_info[i], fp);
+		ai_read_cloak_info(&Ai_cloak_info[i], fp);
 
 	Boss_cloak_start_time = file_read_int(fp);
 	Boss_cloak_end_time = file_read_int(fp);

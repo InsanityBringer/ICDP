@@ -398,22 +398,22 @@ void G3Drawer::draw_tmap_direct(int nv, g3s_point* pointlist, g3s_uvl* uvl_list,
 int checkmuldiv(fix* r, fix a, fix b, fix c);
 //draw a sortof sphere - i.e., the 2d radius is proportional to the 3d
 //radius, but not to the distance from the eye
-void G3Drawer::draw_sphere(g3s_point* pnt, fix rad)
+void G3Drawer::draw_sphere(g3s_point* pnt, fix rad, int color)
 {
-	/*if (!(pnt->p3_codes & CC_BEHIND))
+	g3s_point copy = *pnt;
+
+	if (!(pnt->p3_codes & CC_BEHIND))
 	{
 		if (!(pnt->p3_flags & PF_PROJECTED))
 			project_point(pnt);
 
 		if (!(pnt->p3_codes & PF_OVERFLOW))
 		{
-			fix r2, t;
-
-			r2 = fixmul(rad, Matrix_scale.x);
-			if (checkmuldiv(&t, r2, Canv_w2, pnt->p3_z))
-				return gr_disk(pnt->p3_sx, pnt->p3_sy, t);
+			fix t;
+			if (checkmuldiv(&t, rad, Canv_w2, pnt->p3_z))
+				gr_disk_explicit_clip(pnt->p3_sx, pnt->p3_sy, t, color, window_left, window_top, window_right, window_bottom);
 		}
-	}*/
+	}
 }
 
 //like g3_draw_poly(), but checks to see if facing.  If surface normal is

@@ -115,6 +115,7 @@ void G3CommandBuffer::cmd_draw_sphere(g3s_point* pnt, fix rad)
 	cmd->base.length = cmd_size;
 	cmd->point = *pnt;
 	cmd->radius = rad;
+	cmd->color = grd_curcanv->cv_color;
 
 	commit_space();
 }
@@ -127,6 +128,8 @@ void G3CommandBuffer::cmd_draw_line(g3s_point* p0, g3s_point* p1)
 	cmd->base.length = cmd_size;
 	cmd->p1 = *p0; cmd->p2 = *p1;
 	cmd->color = grd_curcanv->cv_color;
+
+	commit_space();
 }
 
 void G3CommandBuffer::cmd_draw_bitmap(g3s_point* pnt, fix width, fix height, grs_bitmap* bm, int orientation)
@@ -280,10 +283,13 @@ dbool G3Instance::draw_line(g3s_point* p0, g3s_point* p1)
 
 int G3Instance::draw_sphere(g3s_point* pnt, fix rad)
 {
+	//Scaled radius needs to be calculated ahead of time, because the drawers don't have access to the modelview matrix. 
+	fix r2 = fixmul(rad, Matrix_scale.x);
+
 	if (Use_multithread)
-		g3_command_buffer.cmd_draw_sphere(pnt, rad);
+		g3_command_buffer.cmd_draw_sphere(pnt, r2);
 	else
-		drawer.draw_sphere(pnt, rad);
+		drawer.draw_sphere(pnt, r2, grd_curcanv->cv_color);
 	return 0;
 }
 
@@ -368,7 +374,10 @@ void G3Drawer::decode_command_buffer()
 			}
 				break;
 			case G3CmdType::draw_sphere:
-				//TODO
+			{
+				G3CmdDrawSphere* sphere_p = (G3CmdDrawSphere*)cmd_p;
+				draw_sphere(&sphere_p->point, sphere_p->radius, sphere_p->color);
+			}
 				break;
 			case G3CmdType::set_lighting:
 			{
@@ -406,6 +415,9 @@ void G3Drawer::decode_command_buffer()
 				texmap_instance.SetDarkening(var_p->value);
 			}
 			break;
+			default:
+				Int3(); //An invalid command snuck in?
+				break;
 			}
 
 			num_commands_decoded++;

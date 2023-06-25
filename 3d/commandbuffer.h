@@ -57,6 +57,7 @@ struct G3CmdDrawSphere
 	G3CmdBase base;
 	g3s_point point;
 	fix radius;
+	int color;
 };
 
 struct G3CmdDrawLine

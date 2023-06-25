@@ -64,8 +64,10 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define EF_NO_FADE		32		// An edge that doesn't fade with distance
 #define EF_TOO_FAR		64		// An edge that is too far away
 
-typedef struct Edge_info {
-	union {
+struct Edge_info
+{
+	union
+	{
 		short	verts[2];		// 4 bytes
 		int32_t vv;
 	};
@@ -74,7 +76,7 @@ typedef struct Edge_info {
 	uint8_t flags;				// 1 bytes 	// See the EF_??? defines above.
 	uint8_t color;				// 1 bytes
 	uint8_t num_faces;			// 1 bytes	// 19 bytes...
-} Edge_info;
+};
 
 //OLD BUT GOOD -- #define MAX_EDGES_FROM_VERTS(v)   ((v*5)/2)
 // THE following was determined by John by loading levels 1-14 and recording
@@ -169,7 +171,6 @@ void draw_player(object* obj)
 	g3_draw_line(&sphere_point, &arrow_point);
 }
 
-
 void draw_automap()
 {
 	int i;
@@ -182,7 +183,8 @@ void draw_automap()
 
 	gr_clear_canvas(0);
 
-	g3_start_frame(ASPECT_4_3);
+	//Disable_multithread = true;
+	g3_start_frame(1080.f / 1600.0f);
 	render_start_frame();
 
 	vm_vec_scale_add(&viewer_position, &view_target, &ViewMatrix.fvec, -ViewDist);
@@ -203,10 +205,13 @@ void draw_automap()
 
 	// Draw player(s)...
 #ifdef NETWORK
-	if ((Game_mode & (GM_TEAM | GM_MULTI_COOP)) || (Netgame.game_flags & NETGAME_FLAG_SHOW_MAP)) {
-		for (i = 0; i < N_players; i++) {
+	if ((Game_mode & (GM_TEAM | GM_MULTI_COOP)) || (Netgame.game_flags & NETGAME_FLAG_SHOW_MAP)) 
+	{
+		for (i = 0; i < N_players; i++) 
+		{
 			if ((i != Player_num) && ((Game_mode & GM_MULTI_COOP) || (get_team(Player_num) == get_team(i)) || (Netgame.game_flags & NETGAME_FLAG_SHOW_MAP))) {
-				if (Objects[Players[i].objnum].type == OBJ_PLAYER) {
+				if (Objects[Players[i].objnum].type == OBJ_PLAYER) 
+				{
 					if (Game_mode & GM_TEAM)
 						color = get_team(i);
 					else
@@ -248,6 +253,7 @@ void draw_automap()
 	}
 
 	g3_end_frame();
+	//Disable_multithread = false;
 
 	gr_bitmapm(5, 5, &name_canv->cv_bitmap);
 

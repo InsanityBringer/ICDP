@@ -81,3 +81,27 @@ void gr_scanline(int x1, int x2, int y)
 		gr_linear_darken(DATA + ROWSIZE * y + x1, Gr_scanline_darkening_level, x2 - x1 + 1, gr_fade_table);
 	}
 }
+
+void gr_scanline_explicit_clip(int x1, int x2, int y, int color, int xmin, int ymin, int xmax, int ymax)
+{
+	if ((y < ymin) || (y > ymax)) return;
+
+	if (x2 < x1) x2 ^= x1 ^= x2;
+
+	if (x1 > xmax) return;
+	if (x2 < xmin) return;
+
+	if (x1 < xmin) x1 = xmin;
+	if (x2 > xmax) x2 = xmax;
+
+	//	memset(DATA + ROWSIZE*y + x1, COLOR, x2-x1+1);
+	//	
+	if (Gr_scanline_darkening_level >= GR_FADE_LEVELS) 
+	{
+		gr_linear_stosd(DATA + ROWSIZE * y + x1, (uint8_t)color, x2 - x1 + 1);
+	}
+	else 
+	{
+		gr_linear_darken(DATA + ROWSIZE * y + x1, Gr_scanline_darkening_level, x2 - x1 + 1, gr_fade_table);
+	}
+}
