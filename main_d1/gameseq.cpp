@@ -1255,6 +1255,7 @@ void StartNewLevelSub(int level_num, int page_in_textures)
 	init_morphs();
 	init_all_matcens();
 	reset_palette_add();
+	Laser_init_for_level();
 
 	if (!(Game_mode & GM_MULTI) && !Cheats_enabled)
 		set_highest_level(Current_level_num);
@@ -1284,7 +1285,8 @@ void StartNewLevelSub(int level_num, int page_in_textures)
 //called when the player is starting a new level for normal game model
 void StartNewLevel(int level_num)
 {
-	if (!(Game_mode & GM_MULTI)) {
+	if (!(Game_mode & GM_MULTI)) 
+	{
 		do_briefing_screens(level_num);
 	}
 	StartNewLevelSub(level_num, 1);

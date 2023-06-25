@@ -68,10 +68,6 @@ struct weapon_info
 
 #define	WEAPON_DEFAULT_LIFETIME	(F1_0*12)	//	Lifetime of an object if a bozo forgets to define it.
 
-#define WEAPON_TYPE_WEAK_LASER		0
-#define WEAPON_TYPE_STRONG_LASER	1
-#define WEAPON_TYPE_CANNON_BALL		2
-#define WEAPON_TYPE_MISSILE			3
 #define MAX_WEAPON_TYPES 			30
 
 #define WEAPON_RENDER_NONE			-1

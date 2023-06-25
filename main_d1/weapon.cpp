@@ -24,6 +24,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "multi.h"
 #include "playsave.h"
 #include "kconfig.h"
+#include "laser.h"
 
 //	Convert primary weapons to indices in Weapon_info array.
 uint8_t Primary_weapon_to_weapon_info[MAX_PRIMARY_WEAPONS] = { 0, 11, 12, 13, 14 };

@@ -66,24 +66,25 @@ struct cheat_code
 //std::array is good but the size is fixed by the template, and I want to grow this without worrying about that.
 cheat_code all_cheat_codes[] =
 {
-	{"gabbagabbahey", cheat_effect::EnableCheats, false, false},
-	{"scourge", cheat_effect::AllWeaponsSW, false, true},
-	{"bigred", cheat_effect::AllWeapons, false, true},
-	{"racerx", cheat_effect::Invulnerability, false, true},
-	{"guile", cheat_effect::Cloak, false, true},
-	{"mitzi", cheat_effect::AllKeys, false, true},
-	{"twilight", cheat_effect::FullShield, false, true},
-	{"farmerjoe", cheat_effect::LevelWarp, false, true},
-	{"astral", cheat_effect::Immaterial, false, true},
-	{"buggin", cheat_effect::Turbo, false, true},
-	{"bruin", cheat_effect::ExtraLife, false, true},
-	{"flash", cheat_effect::ShowExitPath, false, true},
-	{"ahimsa", cheat_effect::RobotFire, false, true},
-	{"poboys", cheat_effect::DestroyReactor, false, true},
-	{"porgys", cheat_effect::AllWeaponsSuper, false, true},
-	{"lunacy", cheat_effect::Lunacy, false, true},
-	{"pletchxxx", cheat_effect::RobotPainting, false, true},
-	{"frametime", cheat_effect::Frametime, true, false},
+	//input sequence    effect                          no penalty  requires gabbagabbahey
+	{"gabbagabbahey",	cheat_effect::EnableCheats,		false,		false},
+	{"scourge",			cheat_effect::AllWeaponsSW,		false,		true},
+	{"bigred",			cheat_effect::AllWeapons,		false,		true},
+	{"racerx",			cheat_effect::Invulnerability,	false,		true},
+	{"guile",			cheat_effect::Cloak,			false,		true},
+	{"mitzi",			cheat_effect::AllKeys,			false,		true},
+	{"twilight",		cheat_effect::FullShield,		false,		true},
+	{"farmerjoe",		cheat_effect::LevelWarp,		false,		true},
+	{"astral",			cheat_effect::Immaterial,		false,		true},
+	{"buggin",			cheat_effect::Turbo,			false,		true},
+	{"bruin",			cheat_effect::ExtraLife,		false,		true},
+	{"flash",			cheat_effect::ShowExitPath,		false,		true},
+	{"ahimsa",			cheat_effect::RobotFire,		false,		true},
+	{"poboys",			cheat_effect::DestroyReactor,	false,		true},
+	{"porgys",			cheat_effect::AllWeaponsSuper,	false,		true},
+	{"lunacy",			cheat_effect::Lunacy,			false,		true},
+	{"pletchxxx",		cheat_effect::RobotPainting,	false,		true},
+	{"frametime",		cheat_effect::Frametime,		true,		false},
 };
 
 #define NUM_CHEAT_CODES sizeof(all_cheat_codes) / sizeof(all_cheat_codes[0])

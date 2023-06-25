@@ -101,28 +101,28 @@ void check_start_repair_center(object *obj);
 void abort_repair_center();
 #endif
 
-typedef struct control_center_triggers {
+struct control_center_triggers
+{
 	short		num_links;
-	short 	seg[MAX_WALLS_PER_LINK];
+	short 		seg[MAX_WALLS_PER_LINK];
 	short		side[MAX_WALLS_PER_LINK];
-} control_center_triggers;
+};
 
 // An array of pointers to segments with fuel centers.
-typedef struct FuelCenter {
+struct FuelCenter
+{
 	int			Type;
 	int			segnum;
-	int8_t			Flag;
-	int8_t			Enabled;
-	int8_t			Lives;			//	Number of times this can be enabled.
-	int8_t			dum1;
-	fix 			Capacity;
+	int8_t		Flag;
+	int8_t		Enabled;
+	int8_t		Lives;			//	Number of times this can be enabled.
+	int8_t		dum1;
+	fix 		Capacity;
 	fix			MaxCapacity;
 	fix			Timer;
-	fix			Disable_time;		//	Time until center disabled.
-//	object *		last_created_obj;
-//	int 			last_created_sig;
+	fix			Disable_time;	//	Time until center disabled.
 	vms_vector	Center;
-} FuelCenter;
+};
 
 extern control_center_triggers ControlCenterTriggers;
 
@@ -131,13 +131,14 @@ extern control_center_triggers ControlCenterTriggers;
 
 extern int Num_robot_centers;
 
-typedef struct matcen_info {
+struct matcen_info
+{
 	int			robot_flags;		// Up to 32 different robots
 	fix			hit_points;			// How hard it is to destroy this particular matcen
 	fix			interval;			// Interval between materialogrifizations
-	short			segnum;				// Segment this is attached to.
-	short			fuelcen_num;		// Index in fuelcen array.
-} matcen_info;
+	short		segnum;				// Segment this is attached to.
+	short		fuelcen_num;		// Index in fuelcen array.
+};
 
 extern matcen_info RobotCenters[MAX_ROBOT_CENTERS];
 

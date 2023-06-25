@@ -201,7 +201,8 @@ void do_controlcen_frame(object* obj)
 		else
 			best_gun_num = calc_best_gun(N_controlcen_guns, Gun_pos, Gun_dir, &ConsoleObject->pos);
 
-		if (best_gun_num != -1) {
+		if (best_gun_num != -1) 
+		{
 			vms_vector	vec_to_goal;
 			fix			dist_to_player;
 			fix			delta_fire_time;

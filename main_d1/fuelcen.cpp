@@ -53,6 +53,8 @@ fix Fuelcen_max_amount = i2f(100);
 // by this amount... when capacity gets to 0, no more morphers...
 fix EnergyToCreateOneRobot = i2f(1);
 
+fix Fuelcen_play_sound_time;
+
 int Fuelcen_control_center_destroyed = 0;
 int Fuelcen_seconds_left = 0;
 
@@ -93,6 +95,8 @@ void fuelcen_reset()
 
 	Fuelcen_control_center_destroyed = 0;
 	Num_robot_centers = 0;
+
+	Fuelcen_play_sound_time = 0;
 }
 
 #ifndef NDEBUG		//this is sometimes called by people from the debugger
@@ -712,6 +716,8 @@ void fuelcen_update_all()
 //--unused-- 
 //--unused-- }
 
+#define FUELCEN_SOUND_DELAY (f1_0/4)		//play every half second
+
 //-------------------------------------------------------------
 fix fuelcen_give_fuel(segment* segp, fix MaxAmountCanTake)
 {
@@ -721,44 +727,29 @@ fix fuelcen_give_fuel(segment* segp, fix MaxAmountCanTake)
 
 	if ((segp) && (segp->special == SEGMENT_IS_FUELCEN)) 
 	{
-		fix amount;
-
-		//		if (Station[segp->value].MaxCapacity<=0)	{
-		//			HUD_init_message( "Fuelcenter %d is destroyed.", segp->value );
-		//			return 0;
-		//		}
-
-		//		if (Station[segp->value].Capacity<=0)	{
-		//			HUD_init_message( "Fuelcenter %d is empty.", segp->value );
-		//			return 0;
-		//		}
-
-		if (MaxAmountCanTake <= 0) {
-			//			//gauge_message( "Fueled up!");
+		if (MaxAmountCanTake <= 0) 
+		{
 			return 0;
 		}
 
-		amount = fixmul(FrameTime, Fuelcen_give_amount);
+		fix amount = fixmul(FrameTime, Fuelcen_give_amount);
 
 		if (amount > MaxAmountCanTake)
 			amount = MaxAmountCanTake;
 
-		//		if (!(Game_mode & GM_MULTI))
-		//			if ( Station[segp->value].Capacity < amount  )	{
-		//				amount = Station[segp->value].Capacity;
-		//				Station[segp->value].Capacity = 0;
-		//			} else {
-		//				Station[segp->value].Capacity -= amount;
-		//			}
-
-		digi_play_sample(SOUND_REFUEL_STATION_GIVING_FUEL, F1_0 / 2);
+		//[ISB] limit time like Descent 2.
+		//This uses level time rather than GameTime since it is less likely to have wraparound problems. 
+		if (Players[Player_num].time_level > Fuelcen_play_sound_time)
+		{
+			digi_play_sample(SOUND_REFUEL_STATION_GIVING_FUEL, F1_0 / 2);
 
 #ifdef NETWORK
-		if (Game_mode & GM_MULTI)
-			multi_send_play_sound(SOUND_REFUEL_STATION_GIVING_FUEL, F1_0 / 2);
+			if (Game_mode & GM_MULTI)
+				multi_send_play_sound(SOUND_REFUEL_STATION_GIVING_FUEL, F1_0 / 2);
 #endif
+			Fuelcen_play_sound_time = Players[Player_num].time_level + FUELCEN_SOUND_DELAY;
+		}
 
-		//HUD_init_message( "Fuelcen %d has %d/%d fuel", segp->value,f2i(Station[segp->value].Capacity),f2i(Station[segp->value].MaxCapacity) );
 		return amount;
 
 	}
@@ -767,63 +758,6 @@ fix fuelcen_give_fuel(segment* segp, fix MaxAmountCanTake)
 		return 0;
 	}
 }
-
-//--unused-- //-----------------------------------------------------------
-//--unused-- // Damages a fuel center
-//--unused-- void fuelcen_damage(segment *segp, fix damage )
-//--unused-- {
-//--unused-- 	//int i;
-//--unused-- 	// int	station_num = segp->value;
-//--unused-- 
-//--unused-- 	Assert( segp != NULL );
-//--unused-- 	if ( segp == NULL ) return;
-//--unused-- 
-//--unused-- 	mprintf((0, "Obsolete function fuelcen_damage() called with seg=%i, damage=%7.3f\n", segp-Segments, f2fl(damage)));
-//--unused-- 	switch( segp->special )	{
-//--unused-- 	case SEGMENT_IS_NOTHING:
-//--unused-- 		return;
-//--unused-- 	case SEGMENT_IS_ROBOTMAKER:
-//--unused-- //--		// Robotmaker hit by laser
-//--unused-- //--		if (Station[station_num].MaxCapacity<=0 )	{
-//--unused-- //--			// Shooting a already destroyed materializer
-//--unused-- //--		} else {
-//--unused-- //--			Station[station_num].MaxCapacity -= damage;
-//--unused-- //--			if (Station[station_num].Capacity > Station[station_num].MaxCapacity )	{
-//--unused-- //--				Station[station_num].Capacity = Station[station_num].MaxCapacity;
-//--unused-- //--			}
-//--unused-- //--			if (Station[station_num].MaxCapacity <= 0 )	{
-//--unused-- //--				Station[station_num].MaxCapacity = 0;
-//--unused-- //--				// Robotmaker dead
-//--unused-- //--				for (i=0; i<6; i++ )
-//--unused-- //--					segp->sides[i].tmap_num2 = 0;
-//--unused-- //--			}
-//--unused-- //--		}
-//--unused-- //--		//mprintf( (0, "Materializatormografier has %x capacity left\n", Station[station_num].MaxCapacity ));
-//--unused-- 		break;
-//--unused-- 	case SEGMENT_IS_FUELCEN:	
-//--unused-- //--		digi_play_sample( SOUND_REFUEL_STATION_HIT );
-//--unused-- //--		if (Station[station_num].MaxCapacity>0 )	{
-//--unused-- //--			Station[station_num].MaxCapacity -= damage;
-//--unused-- //--			if (Station[station_num].Capacity > Station[station_num].MaxCapacity )	{
-//--unused-- //--				Station[station_num].Capacity = Station[station_num].MaxCapacity;
-//--unused-- //--			}
-//--unused-- //--			if (Station[station_num].MaxCapacity <= 0 )	{
-//--unused-- //--				Station[station_num].MaxCapacity = 0;
-//--unused-- //--				digi_play_sample( SOUND_REFUEL_STATION_DESTROYED );
-//--unused-- //--			}
-//--unused-- //--		} else {
-//--unused-- //--			Station[station_num].MaxCapacity = 0;
-//--unused-- //--		}
-//--unused-- //--		HUD_init_message( "Fuelcenter %d damaged", station_num );
-//--unused-- 		break;
-//--unused-- 	case SEGMENT_IS_REPAIRCEN:
-//--unused-- 		break;
-//--unused-- 	case SEGMENT_IS_CONTROLCEN:
-//--unused-- 		break;
-//--unused-- 	default:
-//--unused-- 		Error( "Invalid type in fuelcen.c" );
-//--unused-- 	}
-//--unused-- }
 
 #ifdef RESTORE_REPAIRCENTER
 //	----------------------------------------------------------------------------------------------------------
