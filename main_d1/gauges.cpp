@@ -648,7 +648,7 @@ void show_homing_warning(void)
 		return;
 	}
 
-	gr_set_current_canvas(get_current_game_screen());
+	//gr_set_current_canvas(get_co());
 
 	if (Players[Player_num].homing_object_dist >= 0) 
 	{
