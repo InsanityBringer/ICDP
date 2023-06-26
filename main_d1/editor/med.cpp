@@ -1030,11 +1030,7 @@ void editor(void)
 		ModeFlag = 0;
 
 		// Update the windows
-
-		// Only update if there is no key waiting and we're not in
-		// fast play mode.
-		if (!key_peekkey()) //-- && (MacroStatus != UI_STATUS_FASTPLAY))
-			medlisp_update_screen();
+		medlisp_update_screen();
 
 		//do editor stuff
 		gr_set_curfont(editor_font);

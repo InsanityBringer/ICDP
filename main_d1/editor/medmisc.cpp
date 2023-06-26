@@ -273,7 +273,7 @@ int med_keypad_goto()
 	return 0;
 }
 
-bool render_3d_in_big_window = 0;
+bool render_3d_in_big_window = false;
 
 int medlisp_update_screen()
 {
