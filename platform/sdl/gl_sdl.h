@@ -36,6 +36,8 @@ void I_ShutdownGL();
 void GL_Clear();
 void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds, bool blend = false);
 
+void GL_UpdateSwapInterval();
+
 //GL API
 //Literally done just to avoid pulling in a lightweight library. This was a dumb idea but for a good reason.
 //There's gotta be a simple permissively licenced thing you can drop right into your code to do this.

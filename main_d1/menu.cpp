@@ -1024,6 +1024,7 @@ void do_video_menu()
 	char vsync_buffer[64];
 	char aspect_buffer[64];
 	int i = 0;
+	int set_swap_interval = 0;
 
 	snprintf(window_res_string, 64, "%dx%d", WindowWidth, WindowHeight);
 	window_res_string[63] = '\0';
@@ -1052,7 +1053,7 @@ void do_video_menu()
 
 		if (i == 3)
 		{
-			SwapInterval = (SwapInterval + 1) % 3;
+			set_swap_interval = SwapInterval = (SwapInterval + 1) % 3;
 		}
 
 		else if (i == 7)
@@ -1114,4 +1115,8 @@ void do_video_menu()
 	}
 
 	plat_update_window();
+
+	//The platform code will have changed SwapInterval if an option was picked that wasn't supported
+	if (SwapInterval != 2 && set_swap_interval == 2)
+		nm_messagebox(TXT_ERROR, 1, TXT_OK, "Adaptive vsync is not available.\nNormal vsync has been enabled.");
 }

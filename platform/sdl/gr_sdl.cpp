@@ -145,6 +145,7 @@ void plat_update_window()
 	SDL_SetWindowPosition(gameWindow, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
 
 	plat_toggle_fullscreen();
+	GL_UpdateSwapInterval();
 }
 
 void I_SetScreenRect(int w, int h, float aspect)
@@ -307,8 +308,10 @@ void plat_read_palette(uint8_t* dest)
 
 void plat_wait_for_vbl()
 {
-	//Now what is a VBL, anyways?
-	//SDL_Delay(1000 / 70);
+	//If the display is fullscreen and vsync is enabled, don't bother waiting because vsync will keep your CPU cool
+	if (Fullscreen && SwapInterval != 0)
+		return;
+
 	timer_mark_end(refreshDuration);
 	timer_mark_start();
 }
