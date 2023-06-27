@@ -82,7 +82,7 @@ int plat_create_window()
 	int flags = SDL_WINDOW_HIDDEN | SDL_WINDOW_OPENGL;
 
 	if (Fullscreen)
-		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP | SDL_WINDOW_BORDERLESS;
+		flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 	//SDL is good, create a game window
 	gameWindow = SDL_CreateWindow(titleMsg, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WindowWidth, WindowHeight, flags);
 	//int result = SDL_CreateWindowAndRenderer(WindowWidth, WindowHeight, flags, &gameWindow, &renderer);
