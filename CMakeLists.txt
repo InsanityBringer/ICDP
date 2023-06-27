@@ -113,6 +113,8 @@ set(SHARED_SOURCES
 	misc/parsarg.h
 	misc/rand.h
 	misc/rand.cpp
+	misc/scanner.cpp
+	misc/scanner.h
 	misc/stb_vorbis.h
 	misc/types.h
 	platform/disk.h

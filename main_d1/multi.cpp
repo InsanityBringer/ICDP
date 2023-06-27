@@ -19,6 +19,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 
 #include "game.h"
 #include "network.h"
@@ -53,6 +54,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "config.h"
 #include "state.h"
 #include "netmisc.h"
+#include "misc/scanner.h"
 
 //*******************************************
 //
@@ -65,7 +67,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 void reset_player_object(void); // In object.c but not in object.h
 void drop_player_eggs(object* player); // from collide.c
-void StartLevel(void); // From gameseq.c
 void GameLoop(int, int); // From game.c
 
 //
@@ -2959,6 +2960,76 @@ std::string multi_generate_config_string()
 		multi_append_config_string(config_string, separator, "extra_sec", std::to_string(Multi_num_extra_secondaries));
 
 	return config_string;
+}
+
+int multi_parse_int_key(scanner& sc, const std::string& keyname)
+{
+	//must get an equals sign
+	if (!sc.read_string())
+		Error("multi_parse_int_key: Key %s doesn't have a value", keyname.c_str());
+
+	sc_token& token = sc.get_last_token();
+	if (token.get_chars().compare("="))
+		Error("multi_parse_int_key: Key %s: Expected =, got %s\n", keyname.c_str(), token.get_chars().c_str());
+
+	//Must get an integer
+	if (!sc.read_string())
+		Error("multi_parse_int_key: Key %s doesn't have a value", keyname.c_str());
+
+	token = sc.get_last_token();
+	if (token.get_token_type() != token_type::number)
+		Error("multi_parse_int_key: Key %s: Expected number, got %s\n", keyname.c_str(), token.get_chars().c_str());
+
+	return token.get_integer();
+}
+
+std::string multi_parse_string_key(scanner& sc, const std::string& keyname)
+{
+	//must get an equals sign
+	if (!sc.read_string())
+		Error("multi_parse_int_key: Key %s doesn't have a value", keyname.c_str());
+
+	sc_token& token = sc.get_last_token();
+	if (token.get_chars().compare("="))
+		Error("multi_parse_int_key: Key %s: Expected =, got %s", keyname.c_str(), token.get_chars().c_str());
+
+	//Must get a string
+	if (!sc.read_string())
+		Error("multi_parse_int_key: Key %s doesn't have a value", keyname.c_str());
+
+	token = sc.get_last_token();
+	if (token.get_token_type() != token_type::string && token.get_token_type() != token_type::quoted_string)
+		Error("multi_parse_int_key: Key %s: Expected string, got %s", keyname.c_str(), token.get_chars().c_str());
+
+	//Return a copy of the string so it doesn't get messed up
+	return std::string(token.get_chars());
+}
+
+void multi_parse_config_string(std::string_view& config_string)
+{
+	scanner sc(config_string);
+
+	while (sc.read_string())
+	{
+		//Check what token was read
+		sc_token& token = sc.get_last_token();
+
+		//Must be a string
+		if (token.get_token_type() != token_type::string)
+			Error("multi_parse_config_string: Expected string, got %s", token.get_chars().c_str());
+
+		//Check which string was identified
+		if (!token.get_chars().compare("mission"))
+		{
+			std::string mission_name = multi_parse_string_key(sc, token.get_chars());
+		}
+		else if (!token.get_chars().compare("extra_prim"))
+			Multi_num_extra_primaries = multi_parse_int_key(sc, token.get_chars());
+		else if (!token.get_chars().compare("extra_sec"))
+			Multi_num_extra_secondaries = multi_parse_int_key(sc, token.get_chars());
+		else
+			Error("multi_parse_config_string: Unexpected value %s", token.get_chars().c_str());
+	}
 }
 
 #endif
