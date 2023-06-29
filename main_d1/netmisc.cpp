@@ -107,6 +107,59 @@ void netmisc_encode_angvec(uint8_t* ptr, int* offset, vms_angvec* vec)
 	netmisc_encode_int16(ptr, offset, vec->h);
 }
 
+void netmisc_encode_int8(uint8_t* ptr, uint8_t v)
+{
+	*ptr = v;
+}
+
+void netmisc_encode_int16(uint8_t* ptr, short v)
+{
+	ptr[0] = (uint8_t)v & 255;
+	ptr[1] = (uint8_t)(v >> 8) & 255;
+}
+
+void netmisc_encode_int32(uint8_t* ptr, int v)
+{
+	ptr[0] = (uint8_t)v & 255;
+	ptr[1] = (uint8_t)(v >> 8) & 255;
+	ptr[2] = (uint8_t)(v >> 16) & 255;
+	ptr[3] = (uint8_t)(v >> 24) & 255;
+}
+
+void netmisc_encode_vector(uint8_t* ptr, vms_vector* vec)
+{
+	netmisc_encode_int32(&ptr[0], vec->x);
+	netmisc_encode_int32(&ptr[4], vec->y);
+	netmisc_encode_int32(&ptr[8], vec->z);
+}
+
+void netmisc_encode_matrix(uint8_t* ptr, vms_matrix* mat)
+{
+	netmisc_encode_vector(&ptr[0], &mat->fvec);
+	netmisc_encode_vector(&ptr[12], &mat->rvec);
+	netmisc_encode_vector(&ptr[24], &mat->uvec);
+}
+
+void netmisc_encode_shortpos(uint8_t* ptr, shortpos* v)
+{
+	ptr[0] = v->bytemat[0];
+	ptr[1] = v->bytemat[1];
+	ptr[2] = v->bytemat[2];
+	ptr[3] = v->bytemat[3];
+	ptr[4] = v->bytemat[4];
+	ptr[5] = v->bytemat[5];
+	ptr[6] = v->bytemat[6];
+	ptr[7] = v->bytemat[7];
+	ptr[8] = v->bytemat[8];
+	netmisc_encode_int16(&ptr[9], v->xo);
+	netmisc_encode_int16(&ptr[11], v->yo);
+	netmisc_encode_int16(&ptr[13], v->zo);
+	netmisc_encode_int16(&ptr[15], v->segment);
+	netmisc_encode_int16(&ptr[17], v->velx);
+	netmisc_encode_int16(&ptr[19], v->vely);
+	netmisc_encode_int16(&ptr[21], v->velz);
+}
+
 void netmisc_encode_string(uint8_t* ptr, int* offset, int buffer_size, std::string& str)
 {
 	int size = str.size();
@@ -181,6 +234,55 @@ void netmisc_decode_angvec(uint8_t* ptr, int* offset, vms_angvec* vec)
 	netmisc_decode_int16(ptr, offset, &vec->h);
 }
 
+void netmisc_decode_int8(uint8_t* ptr, uint8_t* v)
+{
+	*v = *ptr;
+}
+
+void netmisc_decode_int16(uint8_t* ptr, short* v)
+{
+	*v = (short)(ptr[0] | (ptr[1] << 8));
+}
+
+void netmisc_decode_int32(uint8_t* ptr, int* v)
+{
+	*v = (int)(ptr[0] | (ptr[1] << 8) | (ptr[2] << 16) | (ptr[3] << 24));
+}
+
+void netmisc_decode_shortpos(uint8_t* ptr, shortpos* v)
+{
+	v->bytemat[0] = ptr[0];
+	v->bytemat[1] = ptr[1];
+	v->bytemat[2] = ptr[2];
+	v->bytemat[3] = ptr[3];
+	v->bytemat[4] = ptr[4];
+	v->bytemat[5] = ptr[5];
+	v->bytemat[6] = ptr[6];
+	v->bytemat[7] = ptr[7];
+	v->bytemat[8] = ptr[8];
+	netmisc_decode_int16(&ptr[9], &v->xo);
+	netmisc_decode_int16(&ptr[11], &v->yo);
+	netmisc_decode_int16(&ptr[13], &v->zo);
+	netmisc_decode_int16(&ptr[15], &v->segment);
+	netmisc_decode_int16(&ptr[17], &v->velx);
+	netmisc_decode_int16(&ptr[19], &v->vely);
+	netmisc_decode_int16(&ptr[21], &v->velz);
+}
+
+void netmisc_decode_vector(uint8_t* ptr, vms_vector* vec)
+{
+	netmisc_decode_int32(&ptr[0], &vec->x);
+	netmisc_decode_int32(&ptr[4], &vec->y);
+	netmisc_decode_int32(&ptr[8], &vec->z);
+}
+
+void netmisc_decode_matrix(uint8_t* ptr, vms_matrix* mat)
+{
+	netmisc_decode_vector(&ptr[0], &mat->fvec);
+	netmisc_decode_vector(&ptr[12], &mat->rvec);
+	netmisc_decode_vector(&ptr[24], &mat->uvec);
+}
+
 std::string netmisc_decode_string(uint8_t* ptr, int* offset, int packet_length)
 {
 	unsigned short size;
@@ -196,6 +298,8 @@ std::string netmisc_decode_string(uint8_t* ptr, int* offset, int packet_length)
 		netmisc_decode_int8(ptr, offset, &c);
 		str[i] = c;
 	}
+
+	mprintf((0, "Decoded string %s\n", str.c_str()));
 }
 
 void netmisc_encode_netplayer_info(uint8_t* ptr, int* offset, netplayer_info* info)

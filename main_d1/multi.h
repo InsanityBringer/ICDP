@@ -87,7 +87,6 @@ int objnum_local_to_remote(int local_obj, int8_t* owner);
 void map_objnum_local_to_remote(int local, int remote, int owner);
 void map_objnum_local_to_local(int objnum);
 
-void multi_init_objects(void);
 void multi_show_player_list(void);
 void multi_do_frame(void);
 
@@ -108,7 +107,6 @@ void multi_send_cloak(void);
 void multi_send_decloak(void);
 void multi_send_create_powerup(int powerup_type, int segnum, int objnum, vms_vector* pos);
 void multi_send_play_sound(int sound_num, fix volume);
-void multi_send_audio_taunt(int taunt_num);
 void multi_send_score(void);
 void multi_send_trigger(int trigger);
 void multi_send_hostage_door_status(int wallnum);
@@ -201,45 +199,45 @@ extern bitmap_index multi_player_textures[MAX_NUM_NET_PLAYERS][N_PLAYER_SHIP_TEX
 
 #define NETGAME_NAME_LEN				15
 
-typedef struct netplayer_info 
+struct netplayer_info
 {
 	char		callsign[CALLSIGN_LEN + 1];
 	uint8_t		node[4];
 	uint16_t	socket;
 	int8_t 		connected;
 	uint32_t	identifier; //TODO: This is a hack. Each node gets a random identifier, since on the internet using IP addresses to check uniqueness gets weird on the client. Can collide!
-} netplayer_info;
+};
 
 struct netgame_info
 {
-	uint8_t					type;
-	uint8_t					protocol_version;
-	char					game_name[NETGAME_NAME_LEN + 1];
-	char					team_name[2][CALLSIGN_LEN + 1];
-	uint8_t					gamemode;
-	uint8_t					difficulty;
-	uint8_t 				game_status;
-	uint8_t					numplayers;
-	uint8_t					max_numplayers;
-	uint8_t					game_flags;
+	uint8_t				type;
+	uint8_t				protocol_version;
+	char				game_name[NETGAME_NAME_LEN + 1];
+	char				team_name[2][CALLSIGN_LEN + 1];
+	uint8_t				gamemode;
+	uint8_t				difficulty;
+	uint8_t 			game_status;
+	uint8_t				numplayers;
+	uint8_t				max_numplayers;
+	uint8_t				game_flags;
 	netplayer_info		players[MAX_PLAYERS];
 	int					locations[MAX_PLAYERS];
-	short					kills[MAX_PLAYERS][MAX_PLAYERS];
+	short				kills[MAX_PLAYERS][MAX_PLAYERS];
 	int					levelnum;
-	uint8_t					team_vector;
-	uint16_t				segments_checksum;
-	short					team_kills[2];
-	short					killed[MAX_PLAYERS];
-	short					player_kills[MAX_PLAYERS];
+	uint8_t				team_vector;
+	uint16_t			segments_checksum;
+	short				team_kills[2];
+	short				killed[MAX_PLAYERS];
+	short				player_kills[MAX_PLAYERS];
 	fix					level_time;
 	int					control_invul_time;
-	int 					monitor_vector;
+	int 				monitor_vector;
 	int					player_score[MAX_PLAYERS];
-	uint8_t					player_flags[MAX_PLAYERS];
-	char					mission_name[9];
-	char					mission_title[MISSION_NAME_LEN + 1];
+	uint8_t				player_flags[MAX_PLAYERS];
+	char				mission_name[9];
+	char				mission_title[MISSION_NAME_LEN + 1];
 
-	std::string				config_string; //Decoded from another packet
+	std::string			config_string; //Decoded from another packet
 
 	void clear()
 	{
@@ -286,5 +284,6 @@ void change_playernum_to(int new_pnum);
 //Gets a configuration string for the current game mode. This will be sent to all players.
 //This simple keyvalue string will be parsed by all nodes to get information about current loaded missions and game settings
 std::string multi_generate_config_string();
+void multi_parse_config_string(std::string_view& config_string);
 
 #endif

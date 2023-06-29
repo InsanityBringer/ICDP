@@ -114,6 +114,8 @@ extern int Network_allow_socket_changes;
 #include "netmisc.h"
 #endif
 
+extern void multi_test_packet_serialization();
+
 //[ISB] Okay, the trouble is that SDL redefines main. I don't want to include SDL here. Solution is to rip off doom
 //and add a separate main function
 int D_DescentMain(int argc, const char** argv)
@@ -131,6 +133,8 @@ int D_DescentMain(int argc, const char** argv)
 	setbuf(stdout, NULL);	// unbuffered output via printf
 
 	InitArgs(argc, argv);
+
+	multi_test_packet_serialization();
 
 	int initStatus = plat_init();
 	if (initStatus)

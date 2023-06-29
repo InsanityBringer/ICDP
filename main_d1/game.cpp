@@ -2431,6 +2431,7 @@ void ReadControls()
 #endif
 			break;		// send taunt macros
 
+#if 0 //Keeping this around for reference, if I ever decide to support audio taunts..
 		case KEY_ALTED + KEY_F9:
 #ifdef NETWORK
 			multi_send_audio_taunt(0);
@@ -2451,6 +2452,7 @@ void ReadControls()
 			multi_send_audio_taunt(3);
 #endif
 			break;
+#endif
 
 		case KEY_SHIFTED + KEY_F9:
 		case KEY_SHIFTED + KEY_F10:

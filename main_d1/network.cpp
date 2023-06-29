@@ -1361,8 +1361,6 @@ void network_process_packet(uint8_t* data, int length)
 
 	case PID_GAME_INFO:
 		mprintf((0, "GOT a PID_GAME_INFO!\n"));
-		if (length != sizeof(netgame_info))
-			mprintf((0, " Invalid size %d for netgame packet.\n", length));
 		if (Network_status == NETSTAT_BROWSING)
 			network_process_gameinfo(data);
 		break;
@@ -2068,9 +2066,7 @@ void network_read_sync_packet(netgame_info* sp)
 	Network_status = sp->game_status;
 
 	Assert(Function_mode != FMODE_GAME);
-
-	// New code, 11/27
-
+	
 	mprintf((1, "Netgame.checksum = %d, calculated checksum = %d.\n", Netgame.segments_checksum, my_segments_checksum));
 
 	if (Netgame.segments_checksum != my_segments_checksum)
@@ -2453,7 +2449,9 @@ network_start_game(void)
 
 	N_players = 0;
 
-	// LoadLevel(level); Old, no longer used.
+	//Bugfix from a 25 year old message from Arne, MaxNumNetPlayers is set by the call to network_set_game_mode,
+	//but it was used while making the netgame. 
+	network_set_game_mode(Netgame.gamemode);
 
 	Netgame.difficulty = Difficulty_level;
 	Netgame.gamemode = chosen_game_mode;
@@ -2467,8 +2465,6 @@ network_start_game(void)
 	strcpy(Netgame.game_name, game_name);
 
 	Network_status = NETSTAT_STARTING;
-
-	network_set_game_mode(Netgame.gamemode);
 
 	if (network_select_players())
 	{
@@ -2838,6 +2834,10 @@ remenu:
 		goto remenu;
 	}
 
+	//Get the properties from this netgame that are stored in the config string
+	std::string_view config_string(Active_games[choice].config_string);
+	multi_parse_config_string(config_string);
+
 #ifndef SHAREWARE
 	{
 		// Check for valid mission name
@@ -2938,6 +2938,10 @@ void network_join_game_at(uint8_t* address)
 		nm_messagebox(TXT_SORRY, 1, TXT_OK, TXT_VERSION_MISMATCH);
 		return;
 	}
+
+	//Get the properties from this netgame that are stored in the config string
+	std::string_view config_string(Active_games[0].config_string);
+	multi_parse_config_string(config_string);
 
 #ifndef SHAREWARE
 	{

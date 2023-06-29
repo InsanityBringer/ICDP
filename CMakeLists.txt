@@ -218,6 +218,8 @@ set(DESCENT1_SOURCES
 	main_d1/multi.h
 	main_d1/multibot.cpp
 	main_d1/multibot.h
+	main_d1/multi_packet.cpp
+	main_d1/multi_packet.h
 	main_d1/netmisc.cpp
 	main_d1/netmisc.h
 	main_d1/network.cpp
