@@ -161,6 +161,11 @@ public:
 		}
 	}
 
+	size_t buf_size() const
+	{
+		return packed_size;
+	}
+
 	void from_buf(void* dest, uint8_t* buf, size_t offset, size_t total) const
 	{
 		Assert(total - offset >= packed_size);
@@ -254,7 +259,8 @@ public:
 	static netmisc_field_list netmisc_fields; \
 	netmisc_field_list& get_field_map() { return netmisc_fields; } \
 	void to_buf(uint8_t* buf, size_t offset, size_t total); \
-	void from_buf(uint8_t* buf, size_t offset, size_t total); 
+	void from_buf(uint8_t* buf, size_t offset, size_t total); \
+	size_t buf_size() const { size_t size = netmisc_fields.buf_size(); Assert(size != 0); return size; }
 
 #define NETMISC_DEFINE_DATA(classname) \
 	static netmisc_field_list classname##_generate_field_list();\
