@@ -162,3 +162,30 @@ struct multi_play_sound
 	uint8_t sound_num;
 	uint8_t volume;
 };
+
+struct multi_score_value
+{
+	NETMISC_DECLARE_DATA;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	int score;
+};
+
+struct multi_triggernum
+{
+	NETMISC_DECLARE_DATA;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	uint8_t trigger_num;
+};
+
+struct multi_wall_damage
+{
+	NETMISC_DECLARE_DATA;
+
+	uint8_t packet_type;
+	short wallnum;
+	fix damage;
+};

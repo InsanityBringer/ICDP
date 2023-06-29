@@ -1136,16 +1136,15 @@ void multi_do_death(int objnum)
 
 void multi_do_fire(uint8_t* buf)
 {
-	uint8_t weapon;
-	char pnum;
-	int8_t flags;
 	fix save_charge = Fusion_charge;
 
 	// Act out the actual shooting
-	pnum = buf[1];
-	weapon = (int)buf[2];
-	flags = buf[4];
-	Network_laser_track = *(short*)(buf + 6);
+	multi_fire_packet packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
+	int pnum = packet.player_num;
+	uint8_t weapon = packet.gun_num;
+	int8_t flags = packet.flags;
+	Network_laser_track = packet.track_target;
 
 	Assert(pnum < N_players);
 
@@ -1176,38 +1175,35 @@ void multi_do_fire(uint8_t* buf)
 	}
 }
 
-void
-multi_do_message(uint8_t* buf)
+void multi_do_message(uint8_t* buf)
 {
-	char* colon;
+	multi_message_packet packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-#ifdef SHAREWARE
-	int loc = 3;
-#else
-	int loc = 2;
-#endif
-
-	if (((colon = strrchr((char*)buf + loc, ':')) == NULL) || (colon - (char*)(buf + loc) < 1) || (colon - (char*)(buf + loc) > CALLSIGN_LEN))
+	char* colon = strrchr(packet.message, ':');
+	if ((colon == NULL) || (colon - &packet.message[0] < 1) || (colon - &packet.message[0] > CALLSIGN_LEN))
 	{
 		digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
-		HUD_init_message_leveled(MSG_ONLYPLAYER, "%s %s '%s'", Players[buf[1]].callsign, TXT_SAYS, buf + loc);
+		HUD_init_message_leveled(MSG_ONLYPLAYER, "%s %s '%s'", Players[packet.player_num].callsign, TXT_SAYS, packet.message);
 	}
 	else
 	{
-		if ((!_strnicmp(Players[Player_num].callsign, (char*)buf + loc, colon - (char*)(buf + loc))) ||
-			((Game_mode & GM_TEAM) && ((get_team(Player_num) == atoi((char*)buf + loc) - 1) || !_strnicmp(Netgame.team_name[get_team(Player_num)], (char*)buf + loc, colon - (char*)(buf + loc)))))
+		if ((!_strnicmp(Players[Player_num].callsign, packet.message, colon - &packet.message[0])) ||
+			((Game_mode & GM_TEAM) && ((get_team(Player_num) == atoi(&packet.message[0]) - 1) || !_strnicmp(Netgame.team_name[get_team(Player_num)], packet.message, colon - &packet.message[0]))))
 		{
 			digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
-			HUD_init_message_leveled(MSG_ONLYPLAYER, "%s %s '%s'", Players[buf[1]].callsign, TXT_TELLS_YOU, (colon + 1));
+			HUD_init_message_leveled(MSG_ONLYPLAYER, "%s %s '%s'", Players[packet.player_num].callsign, TXT_TELLS_YOU, (colon + 1));
 		}
 	}
 }
 
 void multi_do_position(uint8_t* buf)
 {
-	// This routine does only player positions, mode game only
+	// This routine does only player positions, modem game only
 	//	mprintf((0, "Got position packet.\n"));
-	shortpos pos;
+	Int3();
+
+	/*shortpos pos;
 	int loc = 1;
 
 	int pnum = (Player_num + 1) % 2;
@@ -1220,23 +1216,22 @@ void multi_do_position(uint8_t* buf)
 	extract_shortpos(&Objects[Players[pnum].objnum], &pos);
 
 	if (Objects[Players[pnum].objnum].movement_type == MT_PHYSICS)
-		set_thrust_from_velocity(&Objects[Players[pnum].objnum]);
+		set_thrust_from_velocity(&Objects[Players[pnum].objnum]);*/
 }
 
 void multi_do_reappear(uint8_t* buf)
 {
-	int temp = 1;
-	short objnum; 
-	netmisc_decode_int16(buf, &temp, &objnum);
+	multi_reappear packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-	Assert(objnum >= 0);
+	Assert(packet.objnum >= 0);
 	//	Assert(Players[Objects[objnum].id]].objnum == objnum);
 
 	// mprintf((0, "Switching rendering back on for object %d.\n", objnum));
 
-	multi_make_ghost_player(Objects[objnum].id);
+	multi_make_ghost_player(Objects[packet.objnum].id);
 
-	create_player_appearance_effect(&Objects[objnum]);
+	create_player_appearance_effect(&Objects[packet.objnum]);
 }
 
 void multi_do_player_explode(uint8_t* buf)
@@ -1245,12 +1240,11 @@ void multi_do_player_explode(uint8_t* buf)
 	// Object number.
 
 	object* objp;
-	int count;
-	int pnum;
-	int i;
 	char remote_created;
 
-	pnum = buf[1];
+	multi_player_death packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
+	int pnum = packet.player_num;
 
 #ifdef NDEBUG
 	if ((pnum < 0) || (pnum >= N_players))
@@ -1271,41 +1265,31 @@ void multi_do_player_explode(uint8_t* buf)
 
 	// Stuff the Players structure to prepare for the explosion
 
-	count = 2;
-	Players[pnum].primary_weapon_flags = buf[count]; 				count++;
-	Players[pnum].secondary_weapon_flags = buf[count];				count++;
-	Players[pnum].laser_level = buf[count];							count++;
-	Players[pnum].secondary_ammo[HOMING_INDEX] = buf[count];		count++;
-	Players[pnum].secondary_ammo[CONCUSSION_INDEX] = buf[count]; count++;
-	Players[pnum].secondary_ammo[SMART_INDEX] = buf[count];		count++;
-	Players[pnum].secondary_ammo[MEGA_INDEX] = buf[count];		count++;
-	Players[pnum].secondary_ammo[PROXIMITY_INDEX] = buf[count]; count++;
-	netmisc_decode_int16(buf, &count, (short*)&Players[pnum].primary_ammo[VULCAN_INDEX]);
-	netmisc_decode_int32(buf, &count, (int*)&Players[pnum].flags);
+	Players[pnum].primary_weapon_flags = packet.primary_weapon_flags;
+	Players[pnum].secondary_weapon_flags = packet.secondary_weapon_flags;
+	Players[pnum].laser_level = packet.laser_level;
+	Players[pnum].secondary_ammo[HOMING_INDEX] = packet.num_homing;
+	Players[pnum].secondary_ammo[CONCUSSION_INDEX] = packet.num_concussion;
+	Players[pnum].secondary_ammo[SMART_INDEX] = packet.num_smart;
+	Players[pnum].secondary_ammo[MEGA_INDEX] = packet.num_mega;
+	Players[pnum].secondary_ammo[PROXIMITY_INDEX] = packet.num_prox;
+	Players[pnum].primary_ammo[VULCAN_INDEX] = packet.num_vulcan_bullets;
+	Players[pnum].flags = packet.player_flags;
 
 	objp = Objects + Players[pnum].objnum;
 
-	//	objp->phys_info.velocity = *(vms_vector *)(buf+16); // 12 bytes
-	//	objp->pos = *(vms_vector *)(buf+28);                // 12 bytes
-
-	remote_created = buf[count++]; // How many did the other guy create?
+	remote_created = packet.num_created; // How many did the other guy create?
 
 	Net_create_loc = 0;
 
 	drop_player_eggs(objp);
 
 	// Create mapping from remote to local numbering system
-
 	mprintf((0, "I Created %d powerups, remote created %d.\n", Net_create_loc, remote_created));
 
-	// We now handle this situation gracefully, Int3 not required
-	//	if (Net_create_loc != remote_created)
-	//		Int3(); // Probably out of object array space, see Rob
-
-	for (i = 0; i < remote_created; i++)
+	for (int i = 0; i < remote_created; i++)
 	{
-		short create_num;
-		netmisc_decode_int16(multibuf, &count, &create_num);
+		short create_num = packet.create_objnum[i];
 
 		if ((i < Net_create_loc) && (create_num > 0))
 			map_objnum_local_to_remote((short)Net_create_objnums[i], create_num, pnum);
@@ -1320,7 +1304,7 @@ void multi_do_player_explode(uint8_t* buf)
 		//		Assert(*(short *)(buf+count) > 0);
 	}
 
-	for (i = remote_created; i < Net_create_loc; i++) 
+	for (int i = remote_created; i < Net_create_loc; i++) 
 	{
 		mprintf((0, "WARNING: I Created more powerups than player %d, deleting.\n", pnum));
 		Objects[Net_create_objnums[i]].flags |= OF_SHOULD_BE_DEAD;
@@ -1344,51 +1328,35 @@ void multi_do_player_explode(uint8_t* buf)
 
 void multi_do_kill(uint8_t* buf)
 {
-	short killer, killed;
-	int count = 1;
+	int killer, killed;
 
-#ifndef SHAREWARE
-	int pnum;
-	pnum = buf[count];
+	multi_kill packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
+	int pnum = packet.player_num;
+
 	if ((pnum < 0) || (pnum >= N_players))
 	{
 		Int3(); // Invalid player number killed
 		return;
 	}
 	killed = Players[pnum].objnum;
-	count += 1;
-#else
-	killed = objnum_remote_to_local(*(short*)(buf + count), (int8_t)buf[count + 2]);
-	count += 3;
-#endif
-	//killer = *(short*)(buf + count);
-	netmisc_decode_int16(multibuf, &count, &killer);
-	if (killer > 0)
-		killer = objnum_remote_to_local(killer, (int8_t)buf[count + 2]);
 
-#ifdef SHAREWARE
-	if ((Objects[killed].type != OBJ_PLAYER) && (Objects[killed].type != OBJ_GHOST))
-	{
-		Int3();
-		mprintf((1, "SOFT INT3: MULTI.C Non-player object %d of type %d killed! (JOHN)\n", killed, Objects[killed].type));
-		return;
-	}
-#endif		
+	killer = packet.objnum;
+	if (killer > 0)
+		killer = objnum_remote_to_local(killer, packet.owner);	
 
 	multi_compute_kill(killer, killed);
-
 }
-
 
 //	Changed by MK on 10/20/94 to send NULL as object to net_destroy_controlcen if it got -1
 // which means not a controlcen object, but contained in another object
 void multi_do_controlcen_destroy(uint8_t* buf)
 {
-	int8_t who;
-	short objnum;
+	multi_destroy_reactor packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-	objnum = *(short*)(buf + 1);
-	who = buf[3];
+	short objnum = packet.objnum;
+	int8_t who = packet.player_num;
 
 	if (Fuelcen_control_center_destroyed != 1)
 	{
@@ -1408,42 +1376,40 @@ void multi_do_controlcen_destroy(uint8_t* buf)
 	}
 }
 
-void
-multi_do_escape(uint8_t* buf)
+void multi_do_escape(uint8_t* buf)
 {
-	int objnum;
-
-	objnum = Players[buf[1]].objnum;
+	multi_start_endlevel packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
+	int objnum = Players[packet.player_num].objnum;
 
 	digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
 
-	if (buf[2] == 0)
+	if (packet.secret == 0)
 	{
-		HUD_init_message("%s %s", Players[buf[1]].callsign, TXT_HAS_ESCAPED);
+		HUD_init_message("%s %s", Players[packet.player_num].callsign, TXT_HAS_ESCAPED);
 #ifndef SHAREWARE
 		if (Game_mode & GM_NETWORK)
-			Players[buf[1]].connected = CONNECT_ESCAPE_TUNNEL;
+			Players[packet.player_num].connected = CONNECT_ESCAPE_TUNNEL;
 #endif
 		if (!multi_goto_secret)
 			multi_goto_secret = 2;
 	}
-	else if (buf[2] == 1)
+	else if (packet.secret == 1)
 	{
-		HUD_init_message("%s %s", Players[buf[1]].callsign, TXT_HAS_FOUND_SECRET);
+		HUD_init_message("%s %s", Players[packet.player_num].callsign, TXT_HAS_FOUND_SECRET);
 #ifndef SHAREWARE
 		if (Game_mode & GM_NETWORK)
-			Players[buf[1]].connected = CONNECT_FOUND_SECRET;
+			Players[packet.player_num].connected = CONNECT_FOUND_SECRET;
 #endif
 		if (!multi_goto_secret)
 			multi_goto_secret = 1;
 	}
 	create_player_appearance_effect(&Objects[objnum]);
-	multi_make_player_ghost(buf[1]);
+	multi_make_player_ghost(packet.player_num]);
 }
 
 
-void
-multi_do_remobj(uint8_t* buf)
+void multi_do_remobj(uint8_t* buf)
 {
 	short objnum; // which object to remove
 	short local_objnum;
