@@ -45,7 +45,7 @@ void multi_test_packet_serialization()
 	multi_fire_packet fire_packet;
 	size_t test = fire_packet.buf_size();
 
-	Int3();
+	//Int3();
 }
 
 NETMISC_DEFINE_DATA(multi_fire_packet)

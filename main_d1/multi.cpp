@@ -1405,27 +1405,24 @@ void multi_do_escape(uint8_t* buf)
 			multi_goto_secret = 1;
 	}
 	create_player_appearance_effect(&Objects[objnum]);
-	multi_make_player_ghost(packet.player_num]);
+	multi_make_player_ghost(packet.player_num);
 }
 
 
 void multi_do_remobj(uint8_t* buf)
 {
-	short objnum; // which object to remove
-	short local_objnum;
-	int loc = 1;
-	int8_t obj_owner; // which remote list is it entered in
+	multi_remove_object packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-	//objnum = *(short*)(buf + 1);
-	netmisc_decode_int16(buf, &loc, &objnum);
-	obj_owner = buf[3];
+	short objnum = packet.objnum; // which object to remove
+	int8_t obj_owner = packet.owner; // which remote list is it entered in
 
 	Assert(objnum >= 0);
 
 	if (objnum < 1)
 		return;
 
-	local_objnum = objnum_remote_to_local(objnum, obj_owner); // translate to local objnum
+	short local_objnum = objnum_remote_to_local(objnum, obj_owner); // translate to local objnum
 
 //	mprintf((0, "multi_do_remobj: %d owner %d = %d.\n", objnum, obj_owner, local_objnum));
 
@@ -1448,28 +1445,27 @@ void multi_do_remobj(uint8_t* buf)
 	}
 
 	Objects[local_objnum].flags |= OF_SHOULD_BE_DEAD; // quick and painless
-
 }
 
-void
-multi_do_quit(uint8_t* buf)
+void multi_do_quit(uint8_t* buf)
 {
-
 	if (Game_mode & GM_NETWORK)
 	{
-		int i, n = 0;
-
+		multi_playernum packet;
+		packet.from_buf(buf, 0, sizeof(multibuf));
 		digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
 
-		HUD_init_message("%s %s", Players[buf[1]].callsign, TXT_HAS_LEFT_THE_GAME);
+		HUD_init_message("%s %s", Players[packet.player_num].callsign, TXT_HAS_LEFT_THE_GAME);
 
-		network_disconnect_player(buf[1]);
+		network_disconnect_player(packet.player_num);
 
 		if (multi_in_menu)
 			return;
 
-		for (i = 0; i < N_players; i++)
+		int n = 0;
+		for (int i = 0; i < N_players; i++)
 			if (Players[i].connected) n++;
+
 		if (n == 1)
 		{
 			nm_messagebox(NULL, 1, TXT_OK, TXT_YOU_ARE_ONLY);
@@ -1479,140 +1475,105 @@ multi_do_quit(uint8_t* buf)
 	return;
 }
 
-void
-multi_do_cloak(uint8_t* buf)
+void multi_do_cloak(uint8_t* buf)
 {
-	int pnum;
+	multi_playernum packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-	pnum = buf[1];
+	Assert(packet.player_num < N_players);
 
-	Assert(pnum < N_players);
+	mprintf((0, "Cloaking player %d\n", packet.player_num));
 
-	mprintf((0, "Cloaking player %d\n", pnum));
-
-	Players[pnum].flags |= PLAYER_FLAGS_CLOAKED;
-	Players[pnum].cloak_time = GameTime;
+	Players[packet.player_num].flags |= PLAYER_FLAGS_CLOAKED;
+	Players[packet.player_num].cloak_time = GameTime;
 	ai_do_cloak_stuff();
 
 #ifndef SHAREWARE
 	if (Game_mode & GM_MULTI_ROBOTS)
-		multi_strip_robots(pnum);
+		multi_strip_robots(packet.player_num);
 #endif
 
 	if (Newdemo_state == ND_STATE_RECORDING)
-		newdemo_record_multi_cloak(pnum);
+		newdemo_record_multi_cloak(packet.player_num);
 }
 
-void
-multi_do_decloak(uint8_t* buf)
+void multi_do_decloak(uint8_t* buf)
 {
-	int pnum;
-
-	pnum = buf[1];
+	multi_playernum packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
 	if (Newdemo_state == ND_STATE_RECORDING)
-		newdemo_record_multi_decloak(pnum);
-
+		newdemo_record_multi_decloak(packet.player_num);
 }
 
-void
-multi_do_door_open(uint8_t* buf)
+void multi_do_door_open(uint8_t* buf)
 {
-	int segnum;
-	short side;
-	segment* seg;
-	wall* w;
-
-#ifdef SHAREWARE
-	segnum = *(int*)(buf + 1);
-	side = *(short*)(buf + 5);
-#else
-	segnum = *(short*)(buf + 1);
-	side = buf[3];
-
-#endif
+	multi_segnum_sidenum packet;
+	packet.from_buf(buf, 0, sizeof(buf));
 
 	//	mprintf((0, "Opening door on side %d of segment # %d.\n", side, segnum));
 
-	if ((segnum < 0) || (segnum > Highest_segment_index) || (side < 0) || (side > 5))
+	if ((packet.segnum < 0) || (packet.segnum > Highest_segment_index) || (packet.sidenum < 0) || (packet.sidenum > 5))
 	{
 		Int3();
 		return;
 	}
 
-	seg = &Segments[segnum];
+	segment* seg = &Segments[packet.segnum];
 
-	if (seg->sides[side].wall_num == -1) {	//Opening door on illegal wall
+	if (seg->sides[packet.sidenum].wall_num == -1) //Opening door on illegal wall
+	{
 		Int3();
 		return;
 	}
 
-	w = &Walls[seg->sides[side].wall_num];
+	wall* w = &Walls[seg->sides[packet.sidenum].wall_num];
 
 	if (w->type == WALL_BLASTABLE)
 	{
 		if (!(w->flags & WALL_BLASTED))
 		{
 			mprintf((0, "Blasting wall by remote command.\n"));
-			wall_destroy(seg, side);
+			wall_destroy(seg, packet.sidenum);
 		}
 		return;
 	}
 	else if (w->state != WALL_DOOR_OPENING)
 	{
-		wall_open_door(seg, side);
+		wall_open_door(seg, packet.sidenum);
 	}
-	//	else
-	//		mprintf((0, "Door already opening!\n"));
 }
 
-void
-multi_do_create_explosion(uint8_t* buf)
+void multi_do_create_explosion(uint8_t* buf)
 {
-	int pnum;
-	int count = 1;
-
-	pnum = buf[count++];
-
+	multi_playernum packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 	//	mprintf((0, "Creating small fireball.\n"));
-	create_small_fireball_on_object(&Objects[Players[pnum].objnum], F1_0, 1);
+	create_small_fireball_on_object(&Objects[Players[packet.player_num].objnum], F1_0, 1);
 }
 
-void
-multi_do_controlcen_fire(uint8_t* buf)
+void multi_do_controlcen_fire(uint8_t* buf)
 {
-	vms_vector to_target;
-	char gun_num;
-	short objnum;
-	int count = 1;
+	multi_reactor_fire packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-	memcpy(&to_target, buf + count, 12);	count += 12;
-	gun_num = buf[count];					count += 1;
-	objnum = *(short*)(buf + count);		count += 2;
-
-	Laser_create_new_easy(&to_target, &Gun_pos[gun_num], objnum, CONTROLCEN_WEAPON_NUM, 1);
+	Laser_create_new_easy(&packet.to_dest, &Gun_pos[packet.gun_num], packet.objnum, CONTROLCEN_WEAPON_NUM, 1);
 }
 
-void
-multi_do_create_powerup(uint8_t* buf)
+void multi_do_create_powerup(uint8_t* buf)
 {
-	short segnum;
-	short objnum;
 	int my_objnum;
-	char pnum;
 	int count = 1;
 	vms_vector new_pos;
-	char powerup_type;
 
 	if (Endlevel_sequence || Fuelcen_control_center_destroyed)
 		return;
 
-	pnum = buf[count++];
-	powerup_type = buf[count++];
-	segnum = *(short*)(buf + count); count += 2;
-	objnum = *(short*)(buf + count); count += 2;
+	multi_create_powerup packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-	if ((segnum < 0) || (segnum > Highest_segment_index)) {
+	if ((packet.segnum < 0) || (packet.segnum > Highest_segment_index)) 
+	{
 		Int3();
 		return;
 	}
@@ -1624,9 +1585,10 @@ multi_do_create_powerup(uint8_t* buf)
 #endif
 
 	Net_create_loc = 0;
-	my_objnum = call_object_create_egg(&Objects[Players[pnum].objnum], 1, OBJ_POWERUP, powerup_type);
+	my_objnum = call_object_create_egg(&Objects[Players[packet.player_num].objnum], 1, OBJ_POWERUP, packet.powerup_type);
 
-	if (my_objnum < 0) {
+	if (my_objnum < 0) 
+	{
 		mprintf((0, "Could not create new powerup!\n"));
 		return;
 	}
@@ -1641,101 +1603,89 @@ multi_do_create_powerup(uint8_t* buf)
 
 	vm_vec_zero(&Objects[my_objnum].mtype.phys_info.velocity);
 
-	obj_relink(my_objnum, segnum);
+	obj_relink(my_objnum, packet.segnum);
 
-	map_objnum_local_to_remote(my_objnum, objnum, pnum);
+	map_objnum_local_to_remote(my_objnum, packet.objnum, packet.powerup_type);
 
-	object_create_explosion(segnum, &new_pos, i2f(5), VCLIP_POWERUP_DISAPPEARANCE);
-	mprintf((0, "Creating powerup type %d in segment %i.\n", powerup_type, segnum));
+	object_create_explosion(packet.segnum, &new_pos, i2f(5), VCLIP_POWERUP_DISAPPEARANCE);
+	mprintf((0, "Creating powerup type %d in segment %i.\n", packet.powerup_type, packet.segnum));
 }
 
-void
-multi_do_play_sound(uint8_t* buf)
+void multi_do_play_sound(uint8_t* buf)
 {
-	int pnum = buf[1];
-#ifdef SHAREWARE
-	int sound_num = *(int*)(buf + 2);
-	fix volume = *(fix*)(buf + 6);
-#else
-	int sound_num = buf[2];
-	fix volume = buf[3] << 12;
-#endif
+	multi_play_sound packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
+	fix volume = packet.volume << 12;
 
-	if (!Players[pnum].connected)
+	if (!Players[packet.player_num].connected)
 		return;
 
-	Assert(Players[pnum].objnum >= 0);
-	Assert(Players[pnum].objnum <= Highest_object_index);
+	Assert(Players[packet.player_num].objnum >= 0);
+	Assert(Players[packet.player_num].objnum <= Highest_object_index);
 
-	digi_link_sound_to_object(sound_num, Players[pnum].objnum, 0, volume);
+	digi_link_sound_to_object(packet.sound_num, Players[packet.player_num].objnum, 0, volume);
 }
 
 #ifndef SHAREWARE
-void
-multi_do_score(uint8_t* buf)
+void multi_do_score(uint8_t* buf)
 {
-	int pnum = buf[1];
+	multi_score_value packet;
+	packet.from_buf(buf, 0, sizeof(buf));
 
-	if ((pnum < 0) || (pnum >= N_players))
+	if ((packet.player_num < 0) || (packet.player_num >= N_players))
 	{
 		Int3(); // Non-terminal, see rob
 		return;
 	}
 
 	if (Newdemo_state == ND_STATE_RECORDING)
-		newdemo_record_multi_score(pnum, *(int*)(buf + 2));
+		newdemo_record_multi_score(packet.player_num, packet.score);
 
-	Players[pnum].score = *(int*)(buf + 2);
+	Players[packet.player_num].score = packet.score;
 
 	multi_sort_kill_list();
 }
 
-void
-multi_do_trigger(uint8_t* buf)
+void multi_do_trigger(uint8_t* buf)
 {
-	int pnum = buf[1];
-	int trigger = buf[2];
+	multi_triggernum packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-	if ((pnum < 0) || (pnum >= N_players) || (pnum == Player_num))
+	if ((packet.player_num < 0) || (packet.player_num >= N_players) || (packet.player_num == Player_num))
 	{
 		Int3(); // Got trigger from illegal playernum
 		return;
 	}
-	if ((trigger < 0) || (trigger >= Num_triggers))
+	if ((packet.trigger_num < 0) || (packet.trigger_num >= Num_triggers))
 	{
 		Int3(); // Illegal trigger number in multiplayer
 		return;
 	}
-	check_trigger_sub(trigger, pnum);
+	check_trigger_sub(packet.trigger_num, packet.player_num);
 }
 
 void multi_do_hostage_door_status(uint8_t* buf)
 {
 	// Update hit point status of a door
+	multi_wall_damage packet;
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
-	int count = 1;
-	int wallnum;
-	fix hps;
-
-	wallnum = *(short*)(buf + count);		count += 2;
-	hps = *(fix*)(buf + count);		count += 4;
-
-	if ((wallnum < 0) || (wallnum > Num_walls) || (hps < 0) || (Walls[wallnum].type != WALL_BLASTABLE))
+	if ((packet.wallnum < 0) || (packet.wallnum > Num_walls) || (packet.damage < 0) || (Walls[packet.wallnum].type != WALL_BLASTABLE))
 	{
 		Int3(); // Non-terminal, see Rob
 		return;
 	}
 
 	//	mprintf((0, "Damaging wall number %d to %f points.\n", wallnum, f2fl(hps)));
-
-	if (hps < Walls[wallnum].hps)
-		wall_damage(&Segments[Walls[wallnum].segnum], Walls[wallnum].sidenum, Walls[wallnum].hps - hps);
+	if (packet.damage < Walls[packet.wallnum].hps)
+		wall_damage(&Segments[Walls[packet.wallnum].segnum], Walls[packet.wallnum].sidenum, Walls[packet.wallnum].hps - packet.damage);
 }
 #endif
 
 void multi_do_save_game(uint8_t* buf)
 {
-	int count = 1;
+	Int3();
+	/*int count = 1;
 	uint8_t slot;
 	uint32_t id;
 	char desc[25];
@@ -1744,19 +1694,20 @@ void multi_do_save_game(uint8_t* buf)
 	id = *(uint32_t*)(buf + count);		count += 4;
 	memcpy(desc, &buf[count], 20);	count += 20;
 
-	multi_save_game(slot, id, desc);
+	multi_save_game(slot, id, desc);*/
 }
 
 void multi_do_restore_game(uint8_t* buf)
 {
-	int count = 1;
+	Int3();
+	/*int count = 1;
 	uint8_t slot;
 	uint32_t id;
 
 	slot = *(uint8_t*)(buf + count);		count += 1;
 	id = *(uint32_t*)(buf + count);		count += 4;
 
-	multi_restore_game(slot, id);
+	multi_restore_game(slot, id);*/
 }
 
 // 
