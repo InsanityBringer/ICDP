@@ -460,7 +460,7 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 	float dldx = fx_dl_dx;
 	uint8_t* dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
 	if (dldx < 0)
-		dldx++; //round towards 0 for negative deltas
+		dldx += f2fl(1); //round towards 0 for negative deltas
 
 	loop_count = fx_xright - fx_xleft + 1;
 
@@ -564,57 +564,138 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 	}
 }
 
-#define zonk 1
+#define zonk 255
 
-//[ISB] TODO: This isn't 100% correct to the original editor, since that based the editor tmap off of the per 16 texture mapper
+#define C_TMAP_SCANLINE_PLN_EDITOR_LOOP 	*dest = zonk;\
+										dest++;\
+										ut += ui;\
+										vt += vi;\
+										l += dldx;\
+
+#define C_TMAP_SCANLINE_PLT_EDITOR_LOOP 	c = pixptr[(((int)vt & 63) * 64) + ((int)ut & 63)];\
+										if (c != 255)\
+										*dest = zonk;\
+										dest++;\
+										ut += ui;\
+										vt += vi;\
+										l += dldx;\
+
 void Texmap::DrawScanlineEditor()
 {
-	uint8_t* dest;
 	uint32_t c;
 	int x;
-	fix u, v, z, l, dudx, dvdx, dzdx, dldx;
 
 	//godawful hack
 	if (fx_xleft < 0) fx_xleft = 0;
 
-	u = fx_u;
-	v = fx_v;
-	z = fx_z;
-	dudx = fx_du_dx;
-	dvdx = fx_dv_dx;
-	dzdx = fx_dz_dx;
+	float u = fx_u;
+	float v = fx_v;
+	float z = fx_z;
+	float dudx = fx_du_dx;
+	float dvdx = fx_dv_dx;
+	float dzdx = fx_dz_dx;
 
-	l = fx_l;
-	dldx = fx_dl_dx;
-	dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
+	float l = fx_l;
+	float dldx = fx_dl_dx;
+	uint8_t* dest = write_buffer + y_pointers[fx_y] + fx_xleft;
 	if (dldx < 0)
-		dldx++; //round towards 0 for negative deltas
+		dldx += f2fl(1); //round towards 0 for negative deltas
+
+	loop_count = fx_xright - fx_xleft + 1;
+
+	num_left_over = (loop_count & ((1 << NBITS) - 1));
+	loop_count >>= NBITS;
+
+	V0 = v / z;
+	U0 = u / z;
+
+	dudx = fx_du_dx * 16;
+	dvdx = fx_dv_dx * 16;
+	dzdx = fx_dz_dx * 16;
+
+	for (x = loop_count; x > 0; x--)
+	{
+		u += dudx;
+		v += dvdx;
+		z += dzdx;
+		if (z == 0) return;
+
+		V1 = v / z;
+		U1 = u / z;
+
+		ut = U0; vt = V0;
+		ui = (U1 - U0) / 16; vi = (V1 - V0) / 16;
+
+		U0 = U1;
+		V0 = V1;
+
+		if (!Transparency_on)
+		{
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLN_EDITOR_LOOP
+		}
+		else
+		{
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+			C_TMAP_SCANLINE_PLT_EDITOR_LOOP
+		}
+	}
+
+	if (num_left_over == 0) return;
 
 	if (!Transparency_on)
 	{
-		for (x = fx_xright - fx_xleft + 1; x > 0; --x)
+		for (x = num_left_over; x > 0; --x)
 		{
 			*dest = zonk;
 			dest++;
 			l += dldx;
-			u += dudx;
-			v += dvdx;
-			z += dzdx;
+			u += fx_du_dx;
+			v += fx_dv_dx;
+			z += fx_dz_dx;
 			if (z == 0) return;
 		}
 	}
 	else
 	{
-		for (x = fx_xright - fx_xleft + 1; x > 0; --x)
+		for (x = num_left_over; x > 0; --x)
 		{
-			c = (uint32_t)pixptr[(((v / z) & 63) * 64) + ((u / z) & 63)];
+			c = (uint32_t)pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)];
 			if (c != 255)
 				*dest = zonk;
 			dest++;
 			l += dldx;
-			u += dudx;
-			v += dvdx;
-			z += dzdx;
+			u += fx_du_dx;
+			v += fx_dv_dx;
+			z += fx_dz_dx;
 			if (z == 0) return;
 		}
 	}
