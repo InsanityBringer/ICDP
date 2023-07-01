@@ -126,7 +126,7 @@ void Texmap::DrawScanlineLinear()
 	if (dldx < 0)
 		dldx += f2fl(1); //round towards 0 for negative deltas
 
-	dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
+	dest = write_buffer + y_pointers[fx_y] + fx_xleft;
 
 	if (!Transparency_on) 
 	{

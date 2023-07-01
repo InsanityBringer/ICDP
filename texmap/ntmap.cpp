@@ -356,7 +356,6 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 {
 	int	vlt, vrt, vlb, vrb;	// vertex left top, vertex right top, vertex left bottom, vertex right bottom
 	int	topy, boty, y;
-	float	dy;
 	float	dx_dy_left, dx_dy_right;
 	float	du_dy_left, du_dy_right;
 	float	dv_dy_left, dv_dy_right;
@@ -386,22 +385,22 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 		boty = Window_clip_bot;
 
 	// Set amount to change x coordinate for each advance to next scanline.
-	dy = t->verts[vlb].y2d - t->verts[vlt].y2d;
-	/*if (dy < FIX_RECIP_TABLE_SIZE)
-	recip_dyl = fix_recip[dy];
-	else*/
-	recip_dyl = 1.0f / dy;
+	int dy = (int)t->verts[vlb].y2d - (int)t->verts[vlt].y2d;
+	if (dy < FIX_RECIP_TABLE_SIZE)
+		recip_dyl = fix_recip[dy];
+	else
+		recip_dyl = 1.0f / dy;
 
 	dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dyl);
 	du_dy_left = compute_du_dy(t, vlt, vlb, recip_dyl);
 	dv_dy_left = compute_dv_dy(t, vlt, vlb, recip_dyl);
 	dz_dy_left = compute_dz_dy(t, vlt, vlb, recip_dyl);
 
-	dy = t->verts[vrb].y2d - t->verts[vrt].y2d;
-	/*if (dy < FIX_RECIP_TABLE_SIZE)
+	dy = (int)t->verts[vrb].y2d - (int)t->verts[vrt].y2d;
+	if (dy < FIX_RECIP_TABLE_SIZE)
 		recip_dyr = fix_recip[dy];
-	else*/
-	recip_dyr = 1.0f / dy;
+	else
+		recip_dyr = 1.0f / dy;
 
 	du_dy_right = compute_du_dy(t, vrt, vrb, recip_dyr);
 	dx_dy_right = compute_dx_dy(t, vrt, vrb, recip_dyr);
@@ -449,8 +448,12 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 			}
 			next_break_left = (int)v3d[vlb].y2d;
 
-			dy = t->verts[vlb].y2d - t->verts[vlt].y2d;
-			float recip_dy = 1.0f / dy;
+			dy = (int)t->verts[vlb].y2d - (int)t->verts[vlt].y2d;
+			float recip_dy;
+			if (dy < FIX_RECIP_TABLE_SIZE)
+				recip_dy = fix_recip[dy];
+			else
+				recip_dy = 1.0f / dy;
 
 			dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dy);
 
@@ -482,8 +485,12 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 
 			next_break_right = (int)v3d[vrb].y2d;
 
-			dy = t->verts[vrb].y2d - t->verts[vrt].y2d;
-			float recip_dy = 1.0f / dy;
+			dy = (int)t->verts[vrb].y2d - (int)t->verts[vrt].y2d;
+			float recip_dy;
+			if (dy < FIX_RECIP_TABLE_SIZE)
+				recip_dy = fix_recip[dy];
+			else
+				recip_dy = 1.0f / dy;
 
 			dx_dy_right = compute_dx_dy(t, vrt, vrb, recip_dy);
 			xright = v3d[vrt].x2d;
@@ -605,13 +612,13 @@ void Texmap::ScanlineLinear(grs_bitmap* srcb, int y, float xleft, float xright, 
 }
 
 // -------------------------------------------------------------------------------------
-//	Render a texture map with lighting using perspective interpolation in inner and outer loops.
+//	Render a texture map with lighting using linear interpolation in inner and outer loops.
 // -------------------------------------------------------------------------------------
 void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 {
 	int	vlt, vrt, vlb, vrb;	// vertex left top, vertex right top, vertex left bottom, vertex right bottom
 	int	topy, boty, y;
-	float	dy;
+	int	dy;
 	float	dx_dy_left, dx_dy_right;
 	float	du_dy_left, du_dy_right;
 	float	dv_dy_left, dv_dy_right;
@@ -640,11 +647,17 @@ void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 	if (boty > Window_clip_bot)
 		boty = Window_clip_bot;
 
-	dy = t->verts[vlb].y2d - t->verts[vlt].y2d;
-	recip_dyl = 1.0f / dy;
+	dy = (int)t->verts[vlb].y2d - (int)t->verts[vlt].y2d;
+	if (dy < FIX_RECIP_TABLE_SIZE)
+		recip_dyl = fix_recip[dy];
+	else
+		recip_dyl = 1.0f / dy;
 
-	dy = t->verts[vrb].y2d - t->verts[vrt].y2d;
-	recip_dyr = 1.0f / dy;
+	dy = (int)t->verts[vrb].y2d - (int)t->verts[vrt].y2d;
+	if (dy < FIX_RECIP_TABLE_SIZE)
+		recip_dyr = fix_recip[dy];
+	else
+		recip_dyr = 1.0f / dy;
 
 	// Set amount to change x coordinate for each advance to next scanline.
 	dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dyl);
@@ -696,8 +709,11 @@ void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 			}
 			next_break_left = v3d[vlb].y2d;
 
-			dy = t->verts[vlb].y2d - t->verts[vlt].y2d;
-			recip_dy = 1.0f / dy;
+			dy = (int)t->verts[vlb].y2d - (int)t->verts[vlt].y2d;
+			if (dy < FIX_RECIP_TABLE_SIZE)
+				recip_dy = fix_recip[dy];
+			else
+				recip_dy = 1.0f / dy;
 
 			dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dy);
 
@@ -728,10 +744,10 @@ void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 				vrb = succmod(vrb, t->nv);
 			}
 
-			dy = t->verts[vrb].y2d - t->verts[vrt].y2d;
-			/*if (dy < FIX_RECIP_TABLE_SIZE)
+			dy = (int)t->verts[vrb].y2d - (int)t->verts[vrt].y2d;
+			if (dy < FIX_RECIP_TABLE_SIZE)
 				recip_dy = fix_recip[dy];
-			else*/
+			else
 				recip_dy = 1.0f / dy;
 
 			next_break_right = v3d[vrb].y2d;
