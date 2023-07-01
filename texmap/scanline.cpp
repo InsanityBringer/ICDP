@@ -69,7 +69,7 @@ void Texmap::DrawScanlineLinearNoLight()
 	uint8_t* dest;
 	uint32_t c;
 	int x;
-	fix u, v, dudx, dvdx;
+	float u, v, dudx, dvdx;
 
 	//godawful hack
 	if (fx_xleft < 0) fx_xleft = 0;
@@ -85,7 +85,7 @@ void Texmap::DrawScanlineLinearNoLight()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			*dest = (uint32_t)pixptr[(f2i(v) & (64 * 63)) + (f2i(u) & 63)];
+			*dest = (uint32_t)pixptr[((int)v & (64 * 63)) + ((int)u & 63)];
 			dest++;
 			u += dudx;
 			v += dvdx;
@@ -95,7 +95,7 @@ void Texmap::DrawScanlineLinearNoLight()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			c = (uint32_t)pixptr[(f2i(v) & (64 * 63)) + (f2i(u) & 63)];
+			c = (uint32_t)pixptr[((int)v & (64 * 63)) + ((int)u & 63)];
 			if (c != 255)
 				* dest = c;
 			dest++;
@@ -111,7 +111,7 @@ void Texmap::DrawScanlineLinear()
 	uint8_t* dest;
 	uint32_t c;
 	int x;
-	fix u, v, l, dudx, dvdx, dldx;
+	float u, v, l, dudx, dvdx, dldx;
 
 	//godawful hack
 	if (fx_xleft < 0) fx_xleft = 0;
@@ -121,10 +121,10 @@ void Texmap::DrawScanlineLinear()
 	dudx = fx_du_dx;
 	dvdx = fx_dv_dx;
 
-	l = fx_l >> 8;
-	dldx = fx_dl_dx >> 8;
+	l = fx_l;
+	dldx = fx_dl_dx;
 	if (dldx < 0)
-		dldx++; //round towards 0 for negative deltas
+		dldx += f2fl(1); //round towards 0 for negative deltas
 
 	dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
 
@@ -132,7 +132,7 @@ void Texmap::DrawScanlineLinear()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((f2i(v) & 63) * 64) + (f2i(u) & 63)]];
+			*dest = gr_fade_table[((int)(l * 256) & (0xff00)) + (uint32_t)pixptr[(((int)v & 63) * 64) + ((int)u & 63)]];
 			dest++;
 			l += dldx;
 			u += dudx;
@@ -143,9 +143,9 @@ void Texmap::DrawScanlineLinear()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			c = (uint32_t)pixptr[((f2i(v) & 63) * 64) + (f2i(u) & 63)];
+			c = (uint32_t)pixptr[(((int)v & 63) * 64) + ((int)u & 63)];
 			if (c != 255)
-				* dest = gr_fade_table[(l & (0xff00)) + c];
+				* dest = gr_fade_table[((int)l & (0xff00)) + c];
 			dest++;
 			l += dldx;
 			u += dudx;
@@ -159,7 +159,7 @@ void Texmap::DrawScanlinePerspectiveNoLight()
 	uint8_t* dest;
 	uint32_t c;
 	int x;
-	fix u, v, z, dudx, dvdx, dzdx;
+	float u, v, z, dudx, dvdx, dzdx;
 
 	//godawful hack
 	if (fx_xleft < 0) fx_xleft = 0;
@@ -171,13 +171,13 @@ void Texmap::DrawScanlinePerspectiveNoLight()
 	dvdx = fx_dv_dx;
 	dzdx = fx_dz_dx;
 
-	dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
+	dest = write_buffer + y_pointers[fx_y] + fx_xleft;
 
 	if (!Transparency_on) 
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			*dest = (uint32_t)pixptr[(((v / z) & 63) << 6) + ((u / z) & 63)];
+			*dest = (uint32_t)pixptr[(((int)(v / z) & 63) << 6) + ((int)(u / z) & 63)];
 			dest++;
 			u += dudx;
 			v += dvdx;
@@ -188,7 +188,7 @@ void Texmap::DrawScanlinePerspectiveNoLight()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			c = (uint32_t)pixptr[(((v / z) & 63) << 6) + ((u / z) & 63)];
+			c = (uint32_t)pixptr[(((int)(v / z) & 63) << 6) + ((int)(u / z) & 63)];
 
 			if (c != 255)
 				*dest = c;
@@ -205,7 +205,7 @@ void Texmap::DrawScanlinePerspective()
 	uint8_t* dest;
 	uint32_t c;
 	int x;
-	fix u, v, z, l, dudx, dvdx, dzdx, dldx;
+	float u, v, z, l, dudx, dvdx, dzdx, dldx;
 
 	//godawful hack
 	if (fx_xleft < 0) fx_xleft = 0;
@@ -217,17 +217,17 @@ void Texmap::DrawScanlinePerspective()
 	dvdx = fx_dv_dx;
 	dzdx = fx_dz_dx;
 
-	l = fx_l >> 8;
-	dldx = fx_dl_dx >> 8;
-	dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
+	l = fx_l;
+	dldx = fx_dl_dx;
+	dest = write_buffer + y_pointers[fx_y] + fx_xleft;
 	if (dldx < 0)
-		dldx++; //round towards 0 for negative deltas
+		dldx += f2fl(1); //round towards 0 for negative deltas
 
 	if (!Transparency_on) 
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[(((v / z) & 63) * 64) + ((u / z) & 63)]];
+			*dest = gr_fade_table[((int)(l * 256) & 0xff00) + (uint32_t)pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)]];
 			dest++;
 			l += dldx;
 			u += dudx;
@@ -240,9 +240,9 @@ void Texmap::DrawScanlinePerspective()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			c = (uint32_t)pixptr[(((v / z) & 63) * 64) + ((u / z) & 63)];
+			c = (uint32_t)pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)];
 			if (c != 255)
-				*dest = gr_fade_table[(l & (0xff00)) + c];
+				*dest = gr_fade_table[((int)(l * 256) & 0xff00) + c];
 			dest++;
 			l += dldx;
 			u += dudx;
@@ -261,107 +261,78 @@ fix pdiv(int a, int b)
 	return (fix)((((int64_t)a << (16 - ZSHIFT)) / b) << (ZSHIFT));
 }
 
-//even and odd
-#define C_TMAP_SCANLINE_PLN_LOOP        *dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))]];\
+constexpr float pdivfl(float a, float b)
+{
+	return (a / b);
+}
+
+//These aren't inlined in debug mode so it runs slow..
+/*
+constexpr void c_tmap_scanline_pln_loop(uint8_t*& dest, uint8_t* pixptr, float& u, float& v, float& z, float& l, float du, float dv, float dl)
+{
+	*dest = gr_fade_table[(((int)l * 256) & 0xff00) + (uint32_t)pixptr[(((int)v & 63) * 64) + ((int)u & 63)]];
+	dest++;
+	u += du; v += dv; l += dl;
+}
+
+constexpr void c_tmap_scanline_plt_loop(uint8_t*& dest, uint8_t* pixptr, float& u, float& v, float& z, float& l, float du, float dv, float dl)
+{
+	uint8_t c = pixptr[(((int)v & 63) * 64) + ((int)u & 63)];
+	if (c != 255)
+		*dest = gr_fade_table[(((int)l * 256) & (0xff00)) + c];
+	dest++;
+	u += du; v += dv; l += dl;	
+	c = pixptr[(((int)v & 63) * 64) + ((int)u & 63)]; \
+	if (c != 255) \
+		*dest = gr_fade_table[(((int)l * 256) & (0xff00)) + c]; \
+	dest++; \
+	u += du; v += dv; l += dl; \
+}*/
+
+#define C_TMAP_SCANLINE_PLN_LOOP        *dest = gr_fade_table[(((int)l * 256) & 0xff00) + (uint32_t)pixptr[(((int)vt & 63) * 64) + ((int)ut & 63)]]; \
 										dest++; \
-										ut += ui; vt += vi;\
-										l += dldx;\
-										*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))]];\
+										ut += ui; vt += vi; l += dldx;
+
+#define C_TMAP_SCANLINE_PLT_LOOP 		c = pixptr[(((int)vt & 63) * 64) + ((int)ut & 63)]; \
+										if (c != 255) \
+											*dest = gr_fade_table[(((int)l * 256) & (0xff00)) + c]; \
 										dest++; \
-										ut += ui; vt += vi;\
-										l += dldx;
-
-#define C_TMAP_SCANLINE_PLT_LOOP 		c = (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))];\
-										ut += ui; vt += vi;\
-										if (c != 255)\
-										*dest = gr_fade_table[(l & (0xff00)) + c];\
-										dest++;\
-										l += dldx;\
-										c = (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))];\
-										ut += ui; vt += vi;\
-										if (c != 255)\
-										*dest = gr_fade_table[(l & (0xff00)) + c];\
-										dest++;\
-										l += dldx;
-
-#define C_TMAP_SCANLINE_PLN_LOOP_F 				*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))]];\
-												dest++; \
-												ut += ui; vt += vi;\
-												l += dldx;\
-												if (--num_left_over == 0) return;\
-												*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))]];\
-												dest++; \
-												ut += ui; vt += vi;\
-												l += dldx;\
-												if (--num_left_over == 0) return;
-
-#define C_TMAP_SCANLINE_PLT_LOOP_F 		c = (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))];\
-										ut += ui; vt += vi;\
-										if (c != 255)\
-										*dest = gr_fade_table[(l & (0xff00)) + c];\
-										dest++;\
-										l += dldx;\
-										if (--num_left_over == 0) return;\
-										c = (uint32_t)pixptr[((ut >> 26) | ((vt >> 20) & 4032))];\
-										ut += ui; vt += vi;\
-										if (c != 255)\
-										*dest = gr_fade_table[(l & (0xff00)) + c];\
-										dest++;\
-										l += dldx;\
-										if (--num_left_over == 0) return;
-
+										ut += ui; vt += vi; l += dldx; \
 
 void Texmap::DrawScanlinePerspectivePer16()
 {
 	uint8_t* dest;
 	uint32_t c;
 	int x;
-	fix u, v, z, l, dudx, dvdx, dzdx, dldx;
 	short cl;
 
 	//godawful hack
 	if (fx_xleft < 0) fx_xleft = 0;
 
-	u = fx_u;
-	v = fx_v;
-	z = fx_z;
-	dudx = fx_du_dx;
-	dvdx = fx_dv_dx;
-	dzdx = fx_dz_dx;
+	float u = fx_u;
+	float v = fx_v;
+	float z = fx_z;
+	float dudx = fx_du_dx;
+	float dvdx = fx_dv_dx;
+	float dzdx = fx_dz_dx;
 
-	l = fx_l >> 8;
-	dldx = fx_dl_dx >> 8;
-	dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
+	float l = fx_l;
+	float dldx = fx_dl_dx;
+	dest = write_buffer + y_pointers[fx_y] + fx_xleft;
 	if (dldx < 0)
-		dldx++; //round towards 0 for negative deltas
+		dldx += f2fl(1); //round towards 0 for negative deltas
 
 	loop_count = fx_xright - fx_xleft + 1;
-
-	//This isn't acutally important for this code, since I don't write words at a time, but it has visual artificating in Descent.
-	//TODO: Should I look into doing words/dword writes? Register caching might make it faster (build register of pixels, write that once), but on 32-bit x86 platforms this seems sketchy.
-	while ((uintptr_t)(dest) & 3)
-	{
-		c = (uint32_t)pixptr[(((v / z) & 63) << 6) + ((u / z) & 63)];
-		if (c != 255)
-			*dest = gr_fade_table[(l & (0xff00)) + c]; //oh yeah first ~3 pixels don't check transparency, not that it's relevant
-		dest++;
-		l += dldx;
-		u += dudx;
-		v += dvdx;
-		z += dzdx;
-		if (z == 0) return;
-		if (--loop_count == 0) return; //none to do anymore
-	}
 
 	num_left_over = (loop_count & ((1 << NBITS) - 1));
 	loop_count >>= NBITS;
 
-	V0 = pdiv(v, z);
-	U0 = pdiv(u, z);
+	V0 = v / z;
+	U0 = u / z;
 
-	dudx = fx_du_dx << NBITS;
-	dvdx = fx_dv_dx << NBITS;
-	dzdx = fx_dz_dx << NBITS;
+	dudx = fx_du_dx * 16;
+	dvdx = fx_dv_dx * 16;
+	dzdx = fx_dz_dx * 16;
 
 	for (x = loop_count; x > 0; x--)
 	{
@@ -370,20 +341,25 @@ void Texmap::DrawScanlinePerspectivePer16()
 		z += dzdx;
 		if (z == 0) return;
 
-		V1 = pdiv(v, z);
-		U1 = pdiv(u, z);
+		V1 = v / z;
+		U1 = u / z;
 
-		//uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
-		ut = U0 << 10; vt = V0 << 10;
-		//uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
-		//These calculations must be overflowing, because if it's shift left by 10 and then shift right by NBITS in that order, large deltas don't work
-		ui = ((U1 - U0) >> NBITS) << 10; vi = ((V1 - V0) >> NBITS) << 10;
+		ut = U0; vt = V0;
+		ui = (U1 - U0) / 16; vi = (V1 - V0) / 16;
 
 		U0 = U1;
 		V0 = V1;
 
 		if (!Transparency_on)
 		{
+			C_TMAP_SCANLINE_PLN_LOOP
+			C_TMAP_SCANLINE_PLN_LOOP
+			C_TMAP_SCANLINE_PLN_LOOP
+			C_TMAP_SCANLINE_PLN_LOOP
+			C_TMAP_SCANLINE_PLN_LOOP
+			C_TMAP_SCANLINE_PLN_LOOP
+			C_TMAP_SCANLINE_PLN_LOOP
+			C_TMAP_SCANLINE_PLN_LOOP
 			C_TMAP_SCANLINE_PLN_LOOP
 			C_TMAP_SCANLINE_PLN_LOOP
 			C_TMAP_SCANLINE_PLN_LOOP
@@ -403,86 +379,25 @@ void Texmap::DrawScanlinePerspectivePer16()
 			C_TMAP_SCANLINE_PLT_LOOP
 			C_TMAP_SCANLINE_PLT_LOOP
 			C_TMAP_SCANLINE_PLT_LOOP
+			C_TMAP_SCANLINE_PLT_LOOP
+			C_TMAP_SCANLINE_PLT_LOOP
+			C_TMAP_SCANLINE_PLT_LOOP
+			C_TMAP_SCANLINE_PLT_LOOP
+			C_TMAP_SCANLINE_PLT_LOOP
+			C_TMAP_SCANLINE_PLT_LOOP
+			C_TMAP_SCANLINE_PLT_LOOP
+			C_TMAP_SCANLINE_PLT_LOOP
 		}
 	}
 
 	if (num_left_over == 0) return;
 
-	int zcmp = z * 2 + z;
-	int localz = z + dzdx;
-
-	if (localz >= 0)
-	{
-		localz <<= 2;
-		if (zcmp < localz) //Under certain circumstances, the weirder finishing code can be used. Replicate this.
-		{
-			u += dudx;
-			v += dvdx;
-			z += dzdx;
-			if (z == 0) return;
-
-			cl = 1;
-			//z went negative.
-			//this can happen because we added DZ1 to the current z, but dz1 represents dz for perhaps 16 pixels
-			//though we might only plot one more pixel.
-			while (z < 0 && cl != NBITS)
-			{
-				u -= (dudx >> cl);
-				v -= (dvdx >> cl);
-				z -= (dzdx >> cl);
-
-				cl++;
-			}
-			if (z <= (1 << (ZSHIFT + 1)))
-			{
-				z = (1 << (ZSHIFT + 1));
-			}
-
-			V1 = pdiv(v, z);
-			U1 = pdiv(u, z);
-
-			//uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
-			ut = U0 << 10; vt = V0 << 10;
-			//uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
-			ui = ((U1 - U0) >> NBITS) << 10; vi = ((V1 - V0) >> NBITS) << 10;
-
-			U0 = U1;
-			V0 = V1;
-
-			if (!Transparency_on)
-			{
-				C_TMAP_SCANLINE_PLN_LOOP_F
-					C_TMAP_SCANLINE_PLN_LOOP_F
-					C_TMAP_SCANLINE_PLN_LOOP_F
-					C_TMAP_SCANLINE_PLN_LOOP_F
-					C_TMAP_SCANLINE_PLN_LOOP_F
-					C_TMAP_SCANLINE_PLN_LOOP_F
-					C_TMAP_SCANLINE_PLN_LOOP_F
-					C_TMAP_SCANLINE_PLN_LOOP_F
-			}
-			else
-			{
-				C_TMAP_SCANLINE_PLT_LOOP_F
-					C_TMAP_SCANLINE_PLT_LOOP_F
-					C_TMAP_SCANLINE_PLT_LOOP_F
-					C_TMAP_SCANLINE_PLT_LOOP_F
-					C_TMAP_SCANLINE_PLT_LOOP_F
-					C_TMAP_SCANLINE_PLT_LOOP_F
-					C_TMAP_SCANLINE_PLT_LOOP_F
-					C_TMAP_SCANLINE_PLT_LOOP_F
-			}
-
-			//Int3();
-			return;
-		}
-	}
-	
 	
 	if (!Transparency_on)
 	{
 		for (x = num_left_over; x > 0; --x)
 		{
-			*dest = gr_fade_table[(l & (0xff00)) + (uint32_t)pixptr[(((v / z) & 63) << 6) + ((u / z) & 63)]];
+			*dest = gr_fade_table[((int)(l * 256) & (0xff00)) + (uint32_t)pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)]];
 			dest++;
 			//*dest++ = 15;
 			l += dldx;
@@ -496,10 +411,10 @@ void Texmap::DrawScanlinePerspectivePer16()
 	{
 		for (x = num_left_over; x > 0; --x)
 		{
-			c = (uint32_t)pixptr[(((v / z) & 63) << 6) + ((u / z) & 63)];
+			c = (uint32_t)pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)];
 			//c = 15;
 			if (c != 255)
-				*dest = gr_fade_table[(l & (0xff00)) + c];
+				*dest = gr_fade_table[((int)(l * 256) & (0xff00)) + c];
 			dest++;
 			l += dldx;
 			u += fx_du_dx;
@@ -508,109 +423,56 @@ void Texmap::DrawScanlinePerspectivePer16()
 			if (z == 0) return;
 		}
 	}
-	
 }
 
 //even and odd
-#define C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP 		*dest = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
+#define C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP 		*dest = (uint32_t)pixptr[(((int)vt & 63) * 64) + ((int)ut & 63)];\
 										dest++;\
-										uvt += uvi;\
+										ut += ui;\
+										vt += vi;\
 										l += dldx;\
-										*dest = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										dest++; \
-										uvt += uvi;\
-										l += dldx;
 
-#define C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP 	c = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										uvt += uvi;\
+#define C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP 	c = (uint32_t)pixptr[(((int)vt & 63) * 64) + ((int)ut & 63)];\
 										if (c != 255)\
 										*dest = c;\
 										dest++;\
+										ut += ui;\
+										vt += vi;\
 										l += dldx;\
-										c = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										uvt += uvi;\
-										if (c != 255)\
-										*dest = c;\
-										dest++;\
-										l += dldx;
-
-#define C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F		*dest = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-												dest++; \
-												uvt += uvi;\
-												l += dldx;\
-												if (--num_left_over == 0) return;\
-												*dest = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-												dest++; \
-												uvt += uvi;\
-												l += dldx;\
-												if (--num_left_over == 0) return;
-
-#define C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F 		c = pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										uvt += uvi;\
-										if (c != 255)\
-										*dest = c;\
-										dest++;\
-										l += dldx;\
-										if (--num_left_over == 0) return;\
-										c = (uint32_t)pixptr[(((uvt >> 10) & 63) | ((uvt >> 20) & 4032))];\
-										uvt += uvi;\
-										if (c != 255)\
-										*dest = c;\
-										dest++;\
-										l += dldx;\
-										if (--num_left_over == 0) return;
 
 void Texmap::DrawScanlinePerspectivePer16NoLight()
 {
-	uint8_t* dest;
 	uint32_t c;
 	int x;
-	fix u, v, z, l, dudx, dvdx, dzdx, dldx;
 	short cl;
 
 	//godawful hack
 	if (fx_xleft < 0) fx_xleft = 0;
 
-	u = fx_u;
-	v = fx_v;
-	z = fx_z;
-	dudx = fx_du_dx;
-	dvdx = fx_dv_dx;
-	dzdx = fx_dz_dx;
+	float u = fx_u;
+	float v = fx_v;
+	float z = fx_z;
+	float dudx = fx_du_dx;
+	float dvdx = fx_dv_dx;
+	float dzdx = fx_dz_dx;
 
-	l = fx_l >> 8;
-	dldx = fx_dl_dx >> 8;
-	dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
+	float l = fx_l;
+	float dldx = fx_dl_dx;
+	uint8_t* dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
 	if (dldx < 0)
 		dldx++; //round towards 0 for negative deltas
 
 	loop_count = fx_xright - fx_xleft + 1;
 
-	//Painful code to try to replicate the ASM drawer. aaa
-	//Wants to be dword aligned.
-	while ((uintptr_t)(dest) & 3)
-	{
-		c = (uint32_t)pixptr[(((v / z) & 63) << 6) + ((u / z) & 63)];
-		if (c != 255)
-			*dest = c; //oh yeah first ~3 pixels don't check transparency, not that it's relevant
-		dest++;
-		l += dldx;
-		u += dudx;
-		v += dvdx;
-		z += dzdx;
-		if (z == 0) return;
-		if (--loop_count == 0) return; //none to do anymore
-	}
-
 	num_left_over = (loop_count & ((1 << NBITS) - 1));
 	loop_count >>= NBITS;
 
-	V0 = pdiv(v, z);
-	U0 = pdiv(u, z);
+	V0 = v / z;
+	U0 = u / z;
 
-	dudx = fx_du_dx << NBITS;
-	dvdx = fx_dv_dx << NBITS;
-	dzdx = fx_dz_dx << NBITS;
+	dudx = fx_du_dx * 16;
+	dvdx = fx_dv_dx * 16;
+	dzdx = fx_dz_dx * 16;
 
 	for (x = loop_count; x > 0; x--)
 	{
@@ -619,17 +481,25 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 		z += dzdx;
 		if (z == 0) return;
 
-		V1 = pdiv(v, z);
-		U1 = pdiv(u, z);
+		V1 = v / z;
+		U1 = u / z;
 
-		uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
-		uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
+		ut = U0; vt = V0;
+		ui = (U1 - U0) / 16; vi = (V1 - V0) / 16;
 
 		U0 = U1;
 		V0 = V1;
 
 		if (!Transparency_on)
 		{
+			C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
 			C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
 				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
 				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP
@@ -649,84 +519,24 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
 				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
 				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
+			C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
+				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP
 		}
 	}
 
 	if (num_left_over == 0) return;
 
-	int zcmp = z * 2 + z;
-	int localz = z + dzdx;
-
-	if (localz >= 0)
-	{
-		localz <<= 2;
-		if (zcmp < localz) //Under certain circumstances, the weirder finishing code can be used. Replicate this.
-		{
-			u += dudx;
-			v += dvdx;
-			z += dzdx;
-			if (z == 0) return;
-
-			cl = 1;
-			//z went negative.
-			//this can happen because we added DZ1 to the current z, but dz1 represents dz for perhaps 16 pixels
-			//though we might only plot one more pixel.
-			while (z < 0 && cl != NBITS)
-			{
-				u -= (dudx >> cl);
-				v -= (dvdx >> cl);
-				z -= (dzdx >> cl);
-
-				cl++;
-			}
-			if (z <= (1 << (ZSHIFT + 1)))
-			{
-				z = (1 << (ZSHIFT + 1));
-			}
-
-			V1 = pdiv(v, z);
-			U1 = pdiv(u, z);
-
-			uvt = ((U0 >> 6) & 0xFFFF) | ((V0 >> 6) << 16);
-			uvi = (((U1 - U0) >> (NBITS + 6)) & 0xFFFF) | (((V1 - V0) >> (NBITS + 6)) << 16);
-
-			U0 = U1;
-			V0 = V1;
-
-			if (!Transparency_on)
-			{
-				C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP_F
-			}
-			else
-			{
-				C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F
-					C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP_F
-			}
-
-			Int3();
-			return;
-		}
-	}
-
-
 	if (!Transparency_on)
 	{
 		for (x = num_left_over; x > 0; --x)
 		{
-			*dest = pixptr[(((v / z) & 63) << 6) + ((u / z) & 63)];
+			*dest = pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)];
 			dest++;
 			//*dest++ = 15;
 			l += dldx;
@@ -740,7 +550,8 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 	{
 		for (x = num_left_over; x > 0; --x)
 		{
-			c = (uint32_t)pixptr[(((v / z) & 63) << 6) + ((u / z) & 63)];
+			c = (uint32_t)pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)];
+			//c = 15;
 			if (c != 255)
 				*dest = c;
 			dest++;
@@ -751,7 +562,6 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 			if (z == 0) return;
 		}
 	}
-
 }
 
 #define zonk 1
@@ -774,8 +584,8 @@ void Texmap::DrawScanlineEditor()
 	dvdx = fx_dv_dx;
 	dzdx = fx_dz_dx;
 
-	l = fx_l >> 8;
-	dldx = fx_dl_dx >> 8;
+	l = fx_l;
+	dldx = fx_dl_dx;
 	dest = (uint8_t*)(write_buffer + y_pointers[fx_y] + fx_xleft);
 	if (dldx < 0)
 		dldx++; //round towards 0 for negative deltas

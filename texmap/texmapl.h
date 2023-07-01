@@ -17,15 +17,15 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 extern	int prevmod(int val, int modulus);
 extern	int succmod(int val, int modulus);
 
-extern fix compute_dx_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy);
+extern float compute_dx_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip_dy);
 extern void compute_y_bounds(g3ds_tmap* t, int* vlt, int* vlb, int* vrt, int* vrb, int* bottom_y_ind);
 
-extern fix compute_du_dy_lin(g3ds_tmap* t, int vlt, int vlb, fix recip_dy);
-extern fix compute_du_dy_lin(g3ds_tmap* t, int vrt, int vrb, fix recip_dy);
-extern fix compute_dv_dy_lin(g3ds_tmap* t, int vlt, int vlb, fix recip_dy);
-extern fix compute_dv_dy_lin(g3ds_tmap* t, int vrt, int vrb, fix recip_dy);
+extern float compute_du_dy_lin(g3ds_tmap* t, int vlt, int vlb, float recip_dy);
+extern float compute_du_dy_lin(g3ds_tmap* t, int vrt, int vrb, float recip_dy);
+extern float compute_dv_dy_lin(g3ds_tmap* t, int vlt, int vlb, float recip_dy);
+extern float compute_dv_dy_lin(g3ds_tmap* t, int vrt, int vrb, float recip_dy);
 
-extern fix fix_recip[];
+extern float fix_recip[];
 
 extern void init_interface_vars_to_assembler(void);
 

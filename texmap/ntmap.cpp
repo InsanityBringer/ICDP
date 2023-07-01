@@ -30,11 +30,9 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #define	EDITOR_TMAP	1		//if in, include extra stuff
 
-#define F15_5 (F1_0*15 + F0_5)
-
 int	y_pointers[MAX_Y_POINTERS];
 
-fix fix_recip[FIX_RECIP_TABLE_SIZE];
+float fix_recip[FIX_RECIP_TABLE_SIZE];
 int	Fix_recip_table_computed = 0;
 
 //[ISB] global for now
@@ -57,10 +55,10 @@ void init_fix_recip_table(void)
 {
 	int	i;
 
-	fix_recip[0] = F1_0;
+	fix_recip[0] = 1.0f;
 
 	for (i = 1; i < FIX_RECIP_TABLE_SIZE; i++)
-		fix_recip[i] = F1_0 / i;
+		fix_recip[i] = 1.0f / i;
 
 	Fix_recip_table_computed = 1;
 }
@@ -158,38 +156,32 @@ int succmod(int val, int modulus)
 // -------------------------------------------------------------------------------------
 void compute_y_bounds(g3ds_tmap* t, int* vlt, int* vlb, int* vrt, int* vrb, int* bottom_y_ind)
 {
-	int	i;
-	int	min_y, max_y;
-	int	min_y_ind;
-	int	original_vrt;
-	fix	min_x;
-
 	// Scan all vertices, set min_y_ind to vertex with smallest y coordinate.
-	min_y = f2i(t->verts[0].y2d);
-	max_y = min_y;
-	min_y_ind = 0;
-	min_x = f2i(t->verts[0].x2d);
+	int min_y = t->verts[0].y2d;
+	int max_y = min_y;
+	int min_y_ind = 0;
+	int min_x = t->verts[0].x2d;
 	*bottom_y_ind = 0;
 
-	for (i = 1; i < t->nv; i++) 
+	for (int i = 1; i < t->nv; i++) 
 	{
-		if (f2i(t->verts[i].y2d) < min_y)
+		if (t->verts[i].y2d < min_y)
 		{
-			min_y = f2i(t->verts[i].y2d);
+			min_y = t->verts[i].y2d;
 			min_y_ind = i;
-			min_x = f2i(t->verts[i].x2d);
+			min_x = t->verts[i].x2d;
 		}
-		else if (f2i(t->verts[i].y2d) == min_y) 
+		else if (t->verts[i].y2d == min_y) 
 		{
-			if (f2i(t->verts[i].x2d) < min_x) 
+			if (t->verts[i].x2d < min_x) 
 			{
 				min_y_ind = i;
-				min_x = f2i(t->verts[i].x2d);
+				min_x = t->verts[i].x2d;
 			}
 		}
-		if (f2i(t->verts[i].y2d) > max_y) 
+		if (t->verts[i].y2d > max_y) 
 		{
-			max_y = f2i(t->verts[i].y2d);
+			max_y = t->verts[i].y2d;
 			*bottom_y_ind = i;
 		}
 	}
@@ -203,9 +195,9 @@ void compute_y_bounds(g3ds_tmap* t, int* vlt, int* vlb, int* vrt, int* vrb, int*
 	// If right edge is horizontal, then advance along polygon bound until it no longer is or until all
 	// vertices have been examined.
 	// (Left edge cannot be horizontal, because *vlt is set to leftmost point with highest y coordinate.)
-	original_vrt = *vrt;
+	int original_vrt = *vrt;
 
-	while (f2i(t->verts[*vrt].y2d) == f2i(t->verts[*vrb].y2d)) 
+	while ((int)t->verts[*vrt].y2d == (int)t->verts[*vrb].y2d) 
 	{
 		if (succmod(*vrt, t->nv) == original_vrt) 
 		{
@@ -216,86 +208,60 @@ void compute_y_bounds(g3ds_tmap* t, int* vlt, int* vlb, int* vrt, int* vrb, int*
 	}
 }
 
-fix compute_du_dy_lin(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
+float compute_du_dy_lin(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip_dy)
 {
-	return fixmul(t->verts[bottom_vertex].u - t->verts[top_vertex].u, recip_dy);
+	//return fixmul(t->verts[bottom_vertex].u - t->verts[top_vertex].u, recip_dy);
+	return (t->verts[bottom_vertex].u - t->verts[top_vertex].u) * recip_dy;
 }
 
-fix compute_dv_dy_lin(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
+float compute_dv_dy_lin(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip_dy)
 {
-	return fixmul(t->verts[bottom_vertex].v - t->verts[top_vertex].v, recip_dy);
+	//return fixmul(t->verts[bottom_vertex].v - t->verts[top_vertex].v, recip_dy);
+	return (t->verts[bottom_vertex].v - t->verts[top_vertex].v) * recip_dy;
 }
 
-fix compute_dl_dy_lin(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
+float compute_dl_dy_lin(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip_dy)
 {
-	return fixmul(t->verts[bottom_vertex].l - t->verts[top_vertex].l, recip_dy);
+	//return fixmul(t->verts[bottom_vertex].l - t->verts[top_vertex].l, recip_dy);
+	return (t->verts[bottom_vertex].l - t->verts[top_vertex].l) * recip_dy;
 }
 
-fix compute_dl_dy_lin_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, int dy)
+float compute_dx_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip_dy)
 {
-	return (t->verts[bottom_vertex].l - t->verts[top_vertex].l) / dy;
+	return (t->verts[bottom_vertex].x2d - t->verts[top_vertex].x2d) * recip_dy;
 }
 
-fix compute_dx_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
+float compute_du_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip_dy)
 {
-	return fixmul(t->verts[bottom_vertex].x2d - t->verts[top_vertex].x2d, recip_dy);
+	return (t->verts[bottom_vertex].u * t->verts[bottom_vertex].z - t->verts[top_vertex].u * t->verts[top_vertex].z) * recip_dy;
 }
 
-fix compute_dx_dy_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, int dy)
+float compute_dv_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip_dy)
 {
-	//return fixmul(t->verts[bottom_vertex].x2d - t->verts[top_vertex].x2d, recip_dy);
-	return (t->verts[bottom_vertex].x2d - t->verts[top_vertex].x2d) / dy;
+	return (t->verts[bottom_vertex].v * t->verts[bottom_vertex].z - t->verts[top_vertex].v * t->verts[top_vertex].z) * recip_dy;
 }
 
-fix compute_du_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
+float compute_dz_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip_dy)
 {
-	return fixmul(fixmul(t->verts[bottom_vertex].u, t->verts[bottom_vertex].z) - fixmul(t->verts[top_vertex].u, t->verts[top_vertex].z), recip_dy);
+	return (t->verts[bottom_vertex].z - t->verts[top_vertex].z) * recip_dy;
 }
-
-fix compute_du_dy_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, int dy)
-{
-	return (fixmul(t->verts[bottom_vertex].u, t->verts[bottom_vertex].z) - fixmul(t->verts[top_vertex].u, t->verts[top_vertex].z)) / dy;
-}
-
-fix compute_dv_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
-{
-	return fixmul(fixmul(t->verts[bottom_vertex].v, t->verts[bottom_vertex].z) - fixmul(t->verts[top_vertex].v, t->verts[top_vertex].z), recip_dy);
-}
-
-fix compute_dv_dy_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, int dy)
-{
-	return (fixmul(t->verts[bottom_vertex].v, t->verts[bottom_vertex].z) - fixmul(t->verts[top_vertex].v, t->verts[top_vertex].z)) / dy;
-}
-
-fix compute_dz_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix recip_dy)
-{
-	return fixmul(t->verts[bottom_vertex].z - t->verts[top_vertex].z, recip_dy);
-}
-
-fix compute_dz_dy_slow(g3ds_tmap* t, int top_vertex, int bottom_vertex, fix dy)
-{
-	return (t->verts[bottom_vertex].z - t->verts[top_vertex].z) / dy;
-}
-
-//Tests for more precise but slower tmap. Better, but still not enough bits. Need floating point..
-//#define SLOW_BUT_PRECISE_TMAP
 
 // -------------------------------------------------------------------------------------
 //	Texture map current scanline in perspective.
 // -------------------------------------------------------------------------------------
-void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix zleft, fix zright, fix lleft, fix lright)
+void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, float xleft, float xright, float uleft, float uright, float vleft, float vright, float zleft, float zright, float lleft, float lright)
 {
-	fix	u, v, l;
-	fix	dx, recip_dx;
+	float	u, v, l;
+	float	dx, recip_dx;
 
-	fix	du_dx, dv_dx, dz_dx, z;
+	float	du_dx, dv_dx, dz_dx, z;
 
 	u = uleft;
 	v = vleft;
 	l = lleft;
 
-	fx_xright = f2i(xright);
-	fx_xleft = f2i(xleft);
+	fx_xright = xright;
+	fx_xleft = xleft;
 
 	dx = fx_xright - fx_xleft;
 	if ((dx < 0) || (xright < 0) || (xleft > xright))		// the (xleft > xright) term is not redundant with (dx < 0) because dx is computed using integers
@@ -304,25 +270,15 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright,
 	if (fx_xright > Window_clip_right)
 		fx_xright = Window_clip_right;
 
-#ifndef SLOW_BUT_PRECISE_TMAP
 	// setup to call assembler scanline renderer
-	if (dx < FIX_RECIP_TABLE_SIZE)
+	/*if (dx < FIX_RECIP_TABLE_SIZE)
 		recip_dx = fix_recip[dx];
-	else
-		recip_dx = F1_0 / dx;
+	else*/ //TODO: wait, dx is a float.. can't index..
+		recip_dx = 1.f / dx;
 
-	du_dx = fixmul(uright - uleft, recip_dx);
-	dv_dx = fixmul(vright - vleft, recip_dx);
-	dz_dx = fixmul(zright - zleft, recip_dx);
-#else
-	int divhack = dx;
-	if (divhack == 0)
-		divhack = 1;
-
-	du_dx = (uright - uleft) / divhack;
-	dv_dx = (vright - vleft) / divhack;
-	dz_dx = (zright - zleft) / divhack;
-#endif
+	du_dx = (uright - uleft) * recip_dx;
+	dv_dx = (vright - vleft) * recip_dx;
+	dz_dx = (zright - zleft) * recip_dx;
 
 	z = zleft;
 
@@ -349,26 +305,21 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright,
 		break;
 	case 1: 
 	{
-		fix	mul_thing;
-
 		if (lleft < 0) lleft = 0;
 		if (lright < 0) lright = 0;
-		if (lleft > (NUM_LIGHTING_LEVELS * F1_0 - F1_0 / 2)) lleft = (NUM_LIGHTING_LEVELS * F1_0 - F1_0 / 2);
-		if (lright > (NUM_LIGHTING_LEVELS * F1_0 - F1_0 / 2)) lright = (NUM_LIGHTING_LEVELS * F1_0 - F1_0 / 2);
+		//(NUM_LIGHTING_LEVELS * F1_0 - F1_0 / 2)
+		if (lleft > (NUM_LIGHTING_LEVELS - .5)) lleft = (NUM_LIGHTING_LEVELS - .5);
+		if (lright > (NUM_LIGHTING_LEVELS - .5)) lright = (NUM_LIGHTING_LEVELS - .5);
 
 		fx_l = lleft;
-#ifndef SLOW_BUT_PRECISE_TMAP
-		fx_dl_dx = fixmul(lright - lleft, recip_dx);
-#else
-		fx_dl_dx = (lright - lleft) / divhack;
-#endif
+		fx_dl_dx = (lright - lleft) * recip_dx;
 
 		//	This is a pretty ugly hack to prevent lighting overflows.
-		mul_thing = dx * fx_dl_dx;
+		float mul_thing = dx * fx_dl_dx;
 		if (lleft + mul_thing < 0)
-			fx_dl_dx += 12;
-		else if (lleft + mul_thing > (NUM_LIGHTING_LEVELS * F1_0 - F1_0 / 2))
-			fx_dl_dx -= 12;
+			fx_dl_dx += f2fl(12);
+		else if (lleft + mul_thing > (NUM_LIGHTING_LEVELS - .5))
+			fx_dl_dx -= f2fl(12);
 
 		if (fx_xleft > Window_clip_right)
 			return;
@@ -382,8 +333,8 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright,
 	}
 	case 2:
 #ifdef EDITOR_TMAP
-		fx_xright = f2i(xright);
-		fx_xleft = f2i(xleft);
+		fx_xright = xright;
+		fx_xleft = xleft;
 
 		DrawScanlineEditor();
 #else
@@ -404,15 +355,16 @@ int	Break_on_flat = 0;
 void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 {
 	int	vlt, vrt, vlb, vrb;	// vertex left top, vertex right top, vertex left bottom, vertex right bottom
-	int	topy, boty, y, dy;
-	fix	dx_dy_left, dx_dy_right;
-	fix	du_dy_left, du_dy_right;
-	fix	dv_dy_left, dv_dy_right;
-	fix	dz_dy_left, dz_dy_right;
-	fix	dl_dy_left, dl_dy_right;
-	fix	recip_dyl, recip_dyr;
+	int	topy, boty, y;
+	float	dy;
+	float	dx_dy_left, dx_dy_right;
+	float	du_dy_left, du_dy_right;
+	float	dv_dy_left, dv_dy_right;
+	float	dz_dy_left, dz_dy_right;
+	float	dl_dy_left, dl_dy_right;
+	float	recip_dyl, recip_dyr;
 	int	max_y_vertex;
-	fix	xleft, xright, uleft, vleft, uright, vright, zleft, zright, lleft, lright;
+	float	xleft, xright, uleft, vleft, uright, vright, zleft, zright, lleft, lright;
 	int	next_break_left, next_break_right;
 
 	g3ds_vertex* v3d;
@@ -426,70 +378,40 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 	compute_y_bounds(t, &vlt, &vlb, &vrt, &vrb, &max_y_vertex);
 
 	// Set top and bottom (of entire texture map) y coordinates.
-	topy = f2i(v3d[vlt].y2d);
-	boty = f2i(v3d[max_y_vertex].y2d);
+	topy = v3d[vlt].y2d;
+	boty = v3d[max_y_vertex].y2d;
 	if (topy > Window_clip_bot)
 		return;
 	if (boty > Window_clip_bot)
 		boty = Window_clip_bot;
 
 	// Set amount to change x coordinate for each advance to next scanline.
-	dy = f2i(t->verts[vlb].y2d) - f2i(t->verts[vlt].y2d);
-#ifndef SLOW_BUT_PRECISE_TMAP
-	if (dy < FIX_RECIP_TABLE_SIZE)
-		recip_dyl = fix_recip[dy];
-	else
-		recip_dyl = F1_0 / dy;
+	dy = t->verts[vlb].y2d - t->verts[vlt].y2d;
+	/*if (dy < FIX_RECIP_TABLE_SIZE)
+	recip_dyl = fix_recip[dy];
+	else*/
+	recip_dyl = 1.0f / dy;
+
 	dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dyl);
 	du_dy_left = compute_du_dy(t, vlt, vlb, recip_dyl);
 	dv_dy_left = compute_dv_dy(t, vlt, vlb, recip_dyl);
 	dz_dy_left = compute_dz_dy(t, vlt, vlb, recip_dyl);
-#else
-	int divhack = dy;
-	if (divhack == 0)
-		divhack = 1;
 
-	int dyl = divhack;
-
-	dx_dy_left = compute_dx_dy_slow(t, vlt, vlb, dyl);
-	du_dy_left = compute_du_dy_slow(t, vlt, vlb, dyl);
-	dv_dy_left = compute_dv_dy_slow(t, vlt, vlb, dyl);
-	dz_dy_left = compute_dz_dy_slow(t, vlt, vlb, dyl);
-#endif
-
-	dy = f2i(t->verts[vrb].y2d) - f2i(t->verts[vrt].y2d);
-#ifndef SLOW_BUT_PRECISE_TMAP
-	if (dy < FIX_RECIP_TABLE_SIZE)
+	dy = t->verts[vrb].y2d - t->verts[vrt].y2d;
+	/*if (dy < FIX_RECIP_TABLE_SIZE)
 		recip_dyr = fix_recip[dy];
-	else
-		recip_dyr = F1_0 / dy;
+	else*/
+	recip_dyr = 1.0f / dy;
 
 	du_dy_right = compute_du_dy(t, vrt, vrb, recip_dyr);
 	dx_dy_right = compute_dx_dy(t, vrt, vrb, recip_dyr);
 	dv_dy_right = compute_dv_dy(t, vrt, vrb, recip_dyr);
 	dz_dy_right = compute_dz_dy(t, vrt, vrb, recip_dyr);
-#else
-	divhack = dy;
-	if (divhack == 0)
-		divhack = 1;
-
-	int dyr = divhack;
-
-	du_dy_right = compute_du_dy_slow(t, vrt, vrb, dyr);
-	dx_dy_right = compute_dx_dy_slow(t, vrt, vrb, dyr);
-	dv_dy_right = compute_dv_dy_slow(t, vrt, vrb, dyr);
-	dz_dy_right = compute_dz_dy_slow(t, vrt, vrb, dyr);
-#endif
 
 	if (Lighting_enabled) 
 	{
-#ifndef SLOW_BUT_PRECISE_TMAP
 		dl_dy_left = compute_dl_dy_lin(t, vlt, vlb, recip_dyl);
 		dl_dy_right = compute_dl_dy_lin(t, vrt, vrb, recip_dyr);
-#else
-		dl_dy_left = compute_dl_dy_lin(t, vlt, vlb, dyl);
-		dl_dy_right = compute_dl_dy_lin(t, vrt, vrb, dyr);
-#endif
 
 		lleft = v3d[vlt].l;
 		lright = v3d[vrt].l;
@@ -502,14 +424,14 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 	zleft = v3d[vlt].z;
 	zright = v3d[vrt].z;
 
-	uleft = fixmul(v3d[vlt].u, zleft);
-	uright = fixmul(v3d[vrt].u, zright);
-	vleft = fixmul(v3d[vlt].v, zleft);
-	vright = fixmul(v3d[vrt].v, zright);
+	uleft = v3d[vlt].u * zleft;
+	uright = v3d[vrt].u * zright;
+	vleft = v3d[vlt].v * zleft;
+	vright = v3d[vrt].v * zright;
 
 	// scan all rows in texture map from top through first break.
-	next_break_left = f2i(v3d[vlb].y2d);
-	next_break_right = f2i(v3d[vrb].y2d);
+	next_break_left = v3d[vlb].y2d;
+	next_break_right = v3d[vrb].y2d;
 
 	for (y = topy; y < boty; y++) 
 	{
@@ -517,56 +439,33 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 		// new values for dx_dy and x,u,v
 		if (y == next_break_left)
 		{
-			fix	recip_dy;
-
 			// Handle problem of double points.  Search until y coord is different.  Cannot get
 			// hung in an infinite loop because we know there is a vertex with a lower y coordinate
 			// because in the for loop, we don't scan all spanlines.
-			while (y == f2i(v3d[vlb].y2d)) 
+			while (y == (int)v3d[vlb].y2d)
 			{
 				vlt = vlb;
 				vlb = prevmod(vlb, t->nv);
 			}
-			next_break_left = f2i(v3d[vlb].y2d);
+			next_break_left = (int)v3d[vlb].y2d;
 
-			dy = f2i(t->verts[vlb].y2d) - f2i(t->verts[vlt].y2d);
-#ifndef SLOW_BUT_PRECISE_TMAP
-			if (dy < FIX_RECIP_TABLE_SIZE)
-				recip_dy = fix_recip[dy];
-			else
-				recip_dy = F1_0 / dy;
+			dy = t->verts[vlb].y2d - t->verts[vlt].y2d;
+			float recip_dy = 1.0f / dy;
 
 			dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dy);
-#else
-			divhack = dy;
-			if (divhack == 0)
-				divhack = 1;
-
-			dx_dy_left = compute_dx_dy_slow(t, vlt, vlb, divhack);
-#endif
 
 			xleft = v3d[vlt].x2d;
 			zleft = v3d[vlt].z;
-			uleft = fixmul(v3d[vlt].u, zleft);
-			vleft = fixmul(v3d[vlt].v, zleft);
-			lleft = v3d[vlt].l;
-#ifndef SLOW_BUT_PRECISE_TMAP
+			uleft = v3d[vlt].u * zleft;
+			vleft = v3d[vlt].v * zleft;
+
 			du_dy_left = compute_du_dy(t, vlt, vlb, recip_dy);
 			dv_dy_left = compute_dv_dy(t, vlt, vlb, recip_dy);
 			dz_dy_left = compute_dz_dy(t, vlt, vlb, recip_dy);
-#else
-			du_dy_left = compute_du_dy_slow(t, vlt, vlb, divhack);
-			dv_dy_left = compute_dv_dy_slow(t, vlt, vlb, divhack);
-			dz_dy_left = compute_dz_dy_slow(t, vlt, vlb, divhack);
-#endif
 
-			if (Lighting_enabled) 
+			if (Lighting_enabled)
 			{
-#ifndef SLOW_BUT_PRECISE_TMAP
 				dl_dy_left = compute_dl_dy_lin(t, vlt, vlb, recip_dy);
-#else
-				dl_dy_left = compute_dl_dy_lin_slow(t, vlt, vlb, divhack);
-#endif
 				lleft = v3d[vlt].l;
 			}
 		}
@@ -575,52 +474,29 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 		// new values for dx_dy and x.  Not necessary to set new values for u,v.
 		if (y == next_break_right) 
 		{
-			fix	recip_dy;
-
-			while (y == f2i(v3d[vrb].y2d)) 
+			while (y == (int)v3d[vrb].y2d) 
 			{
 				vrt = vrb;
 				vrb = succmod(vrb, t->nv);
 			}
 
-			next_break_right = f2i(v3d[vrb].y2d);
+			next_break_right = (int)v3d[vrb].y2d;
 
-			dy = f2i(t->verts[vrb].y2d) - f2i(t->verts[vrt].y2d);
-#ifndef SLOW_BUT_PRECISE_TMAP
-			if (dy < FIX_RECIP_TABLE_SIZE)
-				recip_dy = fix_recip[dy];
-			else
-				recip_dy = F1_0 / dy;
+			dy = t->verts[vrb].y2d - t->verts[vrt].y2d;
+			float recip_dy = 1.0f / dy;
 
 			dx_dy_right = compute_dx_dy(t, vrt, vrb, recip_dy);
-#else
-			divhack = dy;
-			if (divhack == 0)
-				divhack = 1;
-			dx_dy_right = compute_dx_dy_slow(t, vrt, vrb, divhack);
-#endif
-
 			xright = v3d[vrt].x2d;
 			zright = v3d[vrt].z;
-			uright = fixmul(v3d[vrt].u, zright);
-			vright = fixmul(v3d[vrt].v, zright);
-#ifndef SLOW_BUT_PRECISE_TMAP
+			uright = v3d[vrt].u * zright;
+			vright = v3d[vrt].v * zright;
 			du_dy_right = compute_du_dy(t, vrt, vrb, recip_dy);
 			dv_dy_right = compute_dv_dy(t, vrt, vrb, recip_dy);
 			dz_dy_right = compute_dz_dy(t, vrt, vrb, recip_dy);
-#else
-			du_dy_right = compute_du_dy_slow(t, vrt, vrb, divhack);
-			dv_dy_right = compute_dv_dy_slow(t, vrt, vrb, divhack);
-			dz_dy_right = compute_dz_dy_slow(t, vrt, vrb, divhack);
-#endif
 
 			if (Lighting_enabled)
 			{
-#ifndef SLOW_BUT_PRECISE_TMAP
 				dl_dy_right = compute_dl_dy_lin(t, vrt, vrb, recip_dy);
-#else
-				dl_dy_right = compute_dl_dy_lin_slow(t, vrt, vrb, divhack);
-#endif
 				lright = v3d[vrt].l;
 			}
 		}
@@ -659,37 +535,34 @@ void Texmap::TMapPerspective(grs_bitmap* srcb, g3ds_tmap* t)
 // -------------------------------------------------------------------------------------
 //	Texture map current scanline using linear interpolation.
 // -------------------------------------------------------------------------------------
-void Texmap::ScanlineLinear(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix lleft, fix lright)
+void Texmap::ScanlineLinear(grs_bitmap* srcb, int y, float xleft, float xright, float uleft, float uright, float vleft, float vright, float lleft, float lright)
 {
-	fix	u, v, l;
-	fix	dx, recip_dx;
+	float	u, v, l;
+	float	dx, recip_dx;
 
-	fix	du_dx, dv_dx, dl_dx;
+	float	du_dx, dv_dx, dl_dx;
 
 	u = uleft;
 	v = vleft;
 	l = lleft;
 
-	dx = f2i(xright) - f2i(xleft);
+	dx = xright - xleft;
 	if ((dx < 0) || (xright < 0) || (xleft > xright))		// the (xleft > xright) term is not redundant with (dx < 0) because dx is computed using integers
 		return;
 
 	// setup to call assembler scanline renderer
-	if (dx < FIX_RECIP_TABLE_SIZE)
-		recip_dx = fix_recip[dx];
-	else
-		recip_dx = F1_0 / dx;
+	recip_dx = 1.0f / dx;
 
-	du_dx = fixmul(uright - uleft, recip_dx);
-	dv_dx = fixmul(vright - vleft, recip_dx);
+	du_dx = (uright - uleft) * recip_dx;
+	dv_dx = (vright - vleft) * recip_dx;
 
 	fx_u = uleft;
 	fx_v = vleft;
 	fx_du_dx = du_dx;
 	fx_dv_dx = dv_dx;
 	fx_y = y;
-	fx_xright = f2i(xright);
-	fx_xleft = f2i(xleft);
+	fx_xright = xright;
+	fx_xleft = xleft;
 
 	if (fx_xright > Window_clip_right)
 		fx_xright = Window_clip_right;
@@ -702,25 +575,27 @@ void Texmap::ScanlineLinear(grs_bitmap* srcb, int y, fix xleft, fix xright, fix 
 		DrawScanlineLinearNoLight();
 		break;
 	case 1:
-		if (lleft < F1_0 / 2)
-			lleft = F1_0 / 2;
-		if (lright < F1_0 / 2)
-			lright = F1_0 / 2;
+		if (lleft < 1.0f / 2)
+			lleft = 1.0f / 2;
+		if (lright < 1.0f / 2)
+			lright = 1.0f / 2;
 
-		if (lleft > MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS)
+		/*if (lleft > MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS)
 			lleft = MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS;
 		if (lright > MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS)
-			lright = MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS;
+			lright = MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS;*/
+		if (lleft > (NUM_LIGHTING_LEVELS - .5)) lleft = (NUM_LIGHTING_LEVELS - .5);
+		if (lright > (NUM_LIGHTING_LEVELS - .5)) lright = (NUM_LIGHTING_LEVELS - .5);
 
 		fx_l = lleft;
-		dl_dx = fixmul(lright - lleft, recip_dx);
+		dl_dx = (lright - lleft) * recip_dx;
 		fx_dl_dx = dl_dx;
 		DrawScanlineLinear();
 		break;
 	case 2:
 #ifdef EDITOR_TMAP
-		fx_xright = f2i(xright);
-		fx_xleft = f2i(xleft);
+		fx_xright = xright;
+		fx_xleft = xleft;
 		//asm_tmap_scanline_matt();
 #else
 		Int3();	//	Illegal, called an editor only routine!
@@ -735,15 +610,16 @@ void Texmap::ScanlineLinear(grs_bitmap* srcb, int y, fix xleft, fix xright, fix 
 void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 {
 	int	vlt, vrt, vlb, vrb;	// vertex left top, vertex right top, vertex left bottom, vertex right bottom
-	int	topy, boty, y, dy;
-	fix	dx_dy_left, dx_dy_right;
-	fix	du_dy_left, du_dy_right;
-	fix	dv_dy_left, dv_dy_right;
-	fix	dl_dy_left, dl_dy_right;
+	int	topy, boty, y;
+	float	dy;
+	float	dx_dy_left, dx_dy_right;
+	float	du_dy_left, du_dy_right;
+	float	dv_dy_left, dv_dy_right;
+	float	dl_dy_left, dl_dy_right;
 	int	max_y_vertex;
-	fix	xleft, xright, uleft, vleft, uright, vright, lleft, lright;
+	float	xleft, xright, uleft, vleft, uright, vright, lleft, lright;
 	int	next_break_left, next_break_right;
-	fix	recip_dyl, recip_dyr;
+	float	recip_dyl, recip_dyr;
 
 	//[ISB]possibly uninitalized memory?
 	lleft = lright = 0;
@@ -756,25 +632,19 @@ void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 	compute_y_bounds(t, &vlt, &vlb, &vrt, &vrb, &max_y_vertex);
 
 	// Set top and bottom (of entire texture map) y coordinates.
-	topy = f2i(v3d[vlt].y2d);
-	boty = f2i(v3d[max_y_vertex].y2d);
+	topy = v3d[vlt].y2d;
+	boty = v3d[max_y_vertex].y2d;
 
 	if (topy > Window_clip_bot)
 		return;
 	if (boty > Window_clip_bot)
 		boty = Window_clip_bot;
 
-	dy = f2i(t->verts[vlb].y2d) - f2i(t->verts[vlt].y2d);
-	if (dy < FIX_RECIP_TABLE_SIZE)
-		recip_dyl = fix_recip[dy];
-	else
-		recip_dyl = F1_0 / dy;
+	dy = t->verts[vlb].y2d - t->verts[vlt].y2d;
+	recip_dyl = 1.0f / dy;
 
-	dy = f2i(t->verts[vrb].y2d) - f2i(t->verts[vrt].y2d);
-	if (dy < FIX_RECIP_TABLE_SIZE)
-		recip_dyr = fix_recip[dy];
-	else
-		recip_dyr = F1_0 / dy;
+	dy = t->verts[vrb].y2d - t->verts[vrt].y2d;
+	recip_dyr = 1.0f / dy;
 
 	// Set amount to change x coordinate for each advance to next scanline.
 	dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dyl);
@@ -805,8 +675,8 @@ void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 	vright = v3d[vrt].v;
 
 	// scan all rows in texture map from top through first break.
-	next_break_left = f2i(v3d[vlb].y2d);
-	next_break_right = f2i(v3d[vrb].y2d);
+	next_break_left = v3d[vlb].y2d;
+	next_break_right = v3d[vrb].y2d;
 
 	for (y = topy; y < boty; y++) 
 	{
@@ -814,23 +684,20 @@ void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 		// new values for dx_dy and x,u,v
 		if (y == next_break_left) 
 		{
-			fix	recip_dy;
+			float	recip_dy;
 
 			// Handle problem of double points.  Search until y coord is different.  Cannot get
 			// hung in an infinite loop because we know there is a vertex with a lower y coordinate
 			// because in the for loop, we don't scan all spanlines.
-			while (y == f2i(v3d[vlb].y2d)) 
+			while (y == (int)v3d[vlb].y2d) 
 			{
 				vlt = vlb;
 				vlb = prevmod(vlb, t->nv);
 			}
-			next_break_left = f2i(v3d[vlb].y2d);
+			next_break_left = v3d[vlb].y2d;
 
-			dy = f2i(t->verts[vlb].y2d) - f2i(t->verts[vlt].y2d);
-			if (dy < FIX_RECIP_TABLE_SIZE)
-				recip_dy = fix_recip[dy];
-			else
-				recip_dy = F1_0 / dy;
+			dy = t->verts[vlb].y2d - t->verts[vlt].y2d;
+			recip_dy = 1.0f / dy;
 
 			dx_dy_left = compute_dx_dy(t, vlt, vlb, recip_dy);
 
@@ -853,21 +720,21 @@ void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 		// new values for dx_dy and x.  Not necessary to set new values for u,v.
 		if (y == next_break_right) 
 		{
-			fix	recip_dy;
+			float	recip_dy;
 
-			while (y == f2i(v3d[vrb].y2d)) 
+			while (y == (int)v3d[vrb].y2d) 
 			{
 				vrt = vrb;
 				vrb = succmod(vrb, t->nv);
 			}
 
-			dy = f2i(t->verts[vrb].y2d) - f2i(t->verts[vrt].y2d);
-			if (dy < FIX_RECIP_TABLE_SIZE)
+			dy = t->verts[vrb].y2d - t->verts[vrt].y2d;
+			/*if (dy < FIX_RECIP_TABLE_SIZE)
 				recip_dy = fix_recip[dy];
-			else
-				recip_dy = F1_0 / dy;
+			else*/
+				recip_dy = 1.0f / dy;
 
-			next_break_right = f2i(v3d[vrb].y2d);
+			next_break_right = v3d[vrb].y2d;
 			dx_dy_right = compute_dx_dy(t, vrt, vrb, recip_dy);
 
 			xright = v3d[vrt].x2d;
@@ -908,8 +775,6 @@ void Texmap::TMapLinear(grs_bitmap* srcb, g3ds_tmap* t)
 	ScanlineLinear(srcb, y, xleft, xright, uleft, uright, vleft, vright, lleft, lright);
 }
 
-// fix	DivNum = F1_0*12;
-
 // -------------------------------------------------------------------------------------
 // Interface from Matt's data structures to Mike's texture mapper.
 // -------------------------------------------------------------------------------------
@@ -917,13 +782,6 @@ void Texmap::DrawTMap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 {
 	int	i;
 
-	//	These variables are used in system which renders texture maps which lie on one scanline as a line.
-#if SC2000K
-	int	flat_flag;							// Set to 1 and remains 1 so long as all y coords are the same (in integer portion).
-	int	last_y;								// Y coordinate of previous vertex.
-	fix	min_x = 0xfff0000, max_x = 0;	// Minimum and maximum bounds of line to render in place of flat texture map.
-#endif
-	// fix	div_numerator;
 	int	lighting_on_save = Lighting_on;
 
 	Assert(nverts <= MAX_TMAP_VERTS);
@@ -955,23 +813,23 @@ void Texmap::DrawTMap(grs_bitmap* bp, int nverts, g3s_point** vertbuf)
 		g3ds_vertex* tvp = &Tmap1.verts[i];
 		g3s_point* vp = vertbuf[i];
 
-		tvp->x2d = vp->p3_sx;
-		tvp->y2d = vp->p3_sy;
+		tvp->x2d = f2fl(vp->p3_sx);
+		tvp->y2d = f2fl(vp->p3_sy);
 
 		//	Check for overflow on fixdiv.  Will overflow on vp->z <= something small.  Allow only as low as 256.
-		if (vp->p3_z < 256) //[ISB] change from Descent 2, guess ntmap wasn't used? heeh. This bodes well...
+		/*if (vp->p3_z < 256) //[ISB] TODO do I still need this?
 		{
 			vp->p3_z = 256;
-		}
+		}*/
 
-		tvp->z = fixdiv(F1_0 * 12, vp->p3_z);
-		tvp->u = vp->p3_u << 6; //* bp->bm_w;
-		tvp->v = vp->p3_v << 6; //* bp->bm_h;
+		tvp->z = 12.0f / f2fl(vp->p3_z);
+		tvp->u = f2fl(vp->p3_u << 6); //* bp->bm_w;
+		tvp->v = f2fl(vp->p3_v << 6); //* bp->bm_h;
 
 		Assert(Lighting_on < 3);
 
 		if (Lighting_on)
-			tvp->l = vp->p3_l * NUM_LIGHTING_LEVELS;
+			tvp->l = f2fl(vp->p3_l) * NUM_LIGHTING_LEVELS;
 	}
 
 	Lighting_enabled = Lighting_on;

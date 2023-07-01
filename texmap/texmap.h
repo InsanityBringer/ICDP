@@ -35,32 +35,27 @@ extern int Window_clip_left, Window_clip_bot, Window_clip_right, Window_clip_top
 #endif
 
 // -------------------------------------------------------------------------------------------------------
-// This is the main texture mapper call.
-//	tmap_num references a texture map defined in Texmap_ptrs.
-//	nverts = number of vertices
-//	vertbuf is a pointer to an array of vertex pointers
-extern void draw_tmap(grs_bitmap* bp, int nverts, g3s_point** vertbuf);
-
-// -------------------------------------------------------------------------------------------------------
 // Texture map vertex.
 //	The fields r,g,b and l are mutually exclusive.  r,g,b are used for rgb lighting.
 //	l is used for intensity based lighting.
-typedef struct g3ds_vertex {
-	fix	x, y, z;
-	fix	u, v;
-	fix	x2d, y2d;
-	fix	l;
-	fix	r, g, b;
-} g3ds_vertex;
+struct g3ds_vertex
+{
+	float	x, y, z;
+	float	u, v;
+	float	x2d, y2d;
+	float	l;
+	float	r, g, b;
+};
 
 // A texture map is defined as a polygon with u,v coordinates associated with
 // one point in the polygon, and a pair of vectors describing the orientation
 // of the texture map in the world, from which the deltas Du_dx, Dv_dy, etc.
 // are computed.
-typedef struct g3ds_tmap {
+struct g3ds_tmap
+{
 	int	nv;			// number of vertices
 	g3ds_vertex	verts[MAX_TMAP_VERTS];	// up to 8 vertices, this is inefficient, change
-} g3ds_tmap;
+};
 
 //A texture mapper. Each 3D library instance has one texture mapper.
 //Texmappers are entirely self contained, and can draw to different parts of one canvas on different threads,
@@ -78,7 +73,7 @@ class Texmap
 	int  	window_width;
 	int  	window_height;
 	int	Lighting_enabled;
-	fix fx_l, fx_u, fx_v, fx_z, fx_du_dx, fx_dv_dx, fx_dz_dx, fx_dl_dx;
+	float fx_l, fx_u, fx_v, fx_z, fx_du_dx, fx_dv_dx, fx_dz_dx, fx_dl_dx;
 	int fx_xleft, fx_xright, fx_y;
 	unsigned char* pixptr;
 	int Transparency_on = 0;
@@ -97,10 +92,10 @@ class Texmap
 	int loop_count, num_left_over;
 	dbool new_end;
 
-	unsigned int ut, vt;
-	unsigned int ui, vi;
+	float ut, vt;
+	float ui, vi;
 	int uvt, uvi;
-	fix U0, V0, Z0, U1, V1;
+	float U0, V0, Z0, U1, V1;
 
 	//Scanline drawing functions. These use the state of the current Texmap to draw a scanline. 
 
@@ -122,11 +117,11 @@ class Texmap
 
 	//Functions for starting scanlines. These call the scanline funcs above.
 
-	void ScanlinePerspective(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix zleft, fix zright, fix lleft, fix lright);
-	void ScanlinePerspectiveNoLight(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix zleft, fix zright, fix lleft, fix lright);
-	void ScanlineLinear(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix lleft, fix lright);
-	void ScanlineLinearNoLight(grs_bitmap* srcb, int y, fix xleft, fix xright, fix uleft, fix uright, fix vleft, fix vright, fix zleft, fix zright, fix lleft, fix lright);
-	void ScanlineFlat(int y, fix xleft, fix xright);
+	void ScanlinePerspective(grs_bitmap* srcb, int y, float xleft, float xright, float uleft, float uright, float vleft, float vright, float zleft, float zright, float lleft, float lright);
+	void ScanlinePerspectiveNoLight(grs_bitmap* srcb, int y, float xleft, float xright, float uleft, float uright, float vleft, float vright, float zleft, float zright, float lleft, float lright);
+	void ScanlineLinear(grs_bitmap* srcb, int y, float xleft, float xright, float uleft, float uright, float vleft, float vright, float lleft, float lright);
+	void ScanlineLinearNoLight(grs_bitmap* srcb, int y, float xleft, float xright, float uleft, float uright, float vleft, float vright, float zleft, float zright, float lleft, float lright);
+	void ScanlineFlat(int y, float xleft, float xright);
 
 	//Internal texture map drawing functions.
 

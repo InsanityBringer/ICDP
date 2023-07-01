@@ -267,7 +267,7 @@ void init_game()
 		Error("File %s - PCX error: %s", BACKGROUND_NAME, pcx_errormsg(pcx_error));
 	gr_remap_bitmap_good(&background_bitmap, pal, -1, -1);
 
-	Clear_window = 2;		//	do portal only window clear.
+	Clear_window = 1;		//	do portal only window clear.
 }
 
 
