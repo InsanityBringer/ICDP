@@ -132,7 +132,7 @@ void Texmap::DrawScanlineLinear()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			*dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[(((int)v & 63) * 64) + ((int)u & 63)]];
+			*dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[(((int)v & 63) << 6) + ((int)u & 63)]];
 			dest++;
 			l += dldx;
 			u += dudx;
@@ -143,7 +143,7 @@ void Texmap::DrawScanlineLinear()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			c = (uint32_t)pixptr[(((int)v & 63) * 64) + ((int)u & 63)];
+			c = (uint32_t)pixptr[(((int)v & 63) << 6) + ((int)u & 63)];
 			if (c != 255)
 				* dest = gr_fade_table[((int)l & 0xff00) + c];
 			dest++;
