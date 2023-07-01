@@ -1488,6 +1488,7 @@ void render_mine(int start_seg_num, fix eye_offset)
 {
 	//	Initialize number of objects (actually, robots!) rendered this frame.
 	Num_rendered_objects = 0;
+	object_update_cloak_pulse(); //Could be done anywhere, but before rendering is fine. 
 
 #ifdef LASER_HACK
 	Hack_nlasers = 0;

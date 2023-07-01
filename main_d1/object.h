@@ -396,6 +396,9 @@ extern void create_small_fireball_on_object(object* objp, fix size_scale, int so
 void obj_detach_one(object* sub);
 void obj_detach_all(object* parent);
 
+//Updates the pulsing of the cloak value such that it won't change based on how many objects are visible.
+void object_update_cloak_pulse();
+
 //Reads an object from disk. This code is my absolute nightmare. Thanks, unions.
 void read_obj_instance(object* obj, FILE* f);
 void write_obj_instance(object* obj, FILE* f);

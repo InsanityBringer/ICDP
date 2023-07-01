@@ -199,6 +199,14 @@ extern fix Max_thrust;
 fix	Cloak_fadein_duration;
 fix	Cloak_fadeout_duration;
 
+static int cloak_delta = 0, cloak_dir = 1;
+static fix cloak_timer = 0;
+
+void object_update_cloak_pulse()
+{
+	cloak_timer -= FrameTime;
+}
+
 //do special cloaked render
 void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time, fix cloak_end_time, bitmap_index* alt_textures)
 {
@@ -236,14 +244,7 @@ void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time
 	}
 	else if (GameTime < cloak_end_time - Cloak_fadeout_duration) 
 	{
-		static int cloak_delta = 0, cloak_dir = 1;
-		static fix cloak_timer = 0;
-
-		//note, if more than one cloaked object is visible at once, the
-		//pulse rate will change!
-
-		cloak_timer -= FrameTime;
-		while (cloak_timer < 0) 
+		while (cloak_timer < 0)
 		{
 			cloak_timer += Cloak_fadeout_duration / 12;
 
@@ -254,12 +255,10 @@ void draw_cloaked_object(object* obj, fix light, fix* glow, fix cloak_start_time
 		}
 
 		cloak_value = CLOAKED_FADE_LEVEL - cloak_delta;
-
 	}
 	else if (GameTime < cloak_end_time - Cloak_fadeout_duration / 2) 
 	{
 		cloak_value = f2i((total_cloaked_time - Cloak_fadeout_duration / 2 - cloak_delta_time) * CLOAKED_FADE_LEVEL);
-
 	}
 	else 
 	{
