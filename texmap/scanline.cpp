@@ -345,7 +345,7 @@ void Texmap::DrawScanlinePerspectivePer16()
 		U1 = u / z;
 
 		ut = U0; vt = V0;
-		ui = (U1 - U0) / 16; vi = (V1 - V0) / 16;
+		ui = (U1 - U0) * (1.0f/16); vi = (V1 - V0) * (1.0f/16);
 
 		U0 = U1;
 		V0 = V1;

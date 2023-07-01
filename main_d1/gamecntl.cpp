@@ -18,6 +18,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "inferno.h"
 #include "platform/key.h"
 #include "platform/mono.h"
+#include "3d/3d.h"
 #include "game.h"
 #include "gameseq.h"
 #include "misc/error.h"
@@ -85,11 +86,15 @@ cheat_code all_cheat_codes[] =
 	{"lunacy",			cheat_effect::Lunacy,			false,		true},
 	{"pletchxxx",		cheat_effect::RobotPainting,	false,		true},
 	{"frametime",		cheat_effect::Frametime,		true,		false},
+	{"bittersweet",		cheat_effect::Acid,				true,		false},
 };
 
 #define NUM_CHEAT_CODES sizeof(all_cheat_codes) / sizeof(all_cheat_codes[0])
 
 int cheat_buffer_size;
+
+int old_int_method;
+bool acid_cheat_on;
 
 char* cheat_input_buffer;
 
@@ -110,6 +115,12 @@ void init_cheats()
 
 		if (!cheat_input_buffer)
 			Error("init_cheats: why did a 13 byte allocation fail?");
+	}
+
+	if (acid_cheat_on)
+	{
+		g3_global_inst.set_interpolation_mode(old_int_method);
+		acid_cheat_on = false;
 	}
 }
 
@@ -258,6 +269,20 @@ void do_generic_cheat(cheat_code& code)
 		break;
 	case cheat_effect::Frametime:
 		framerate_on = !framerate_on;
+		break;
+	case cheat_effect::Acid:
+		if (acid_cheat_on)
+		{
+			HUD_init_message("Coming down...");
+			g3_global_inst.set_interpolation_mode(old_int_method);
+		}
+		else
+		{
+			HUD_init_message("Going up!");
+			old_int_method = g3_global_inst.get_interpolation_mode();
+			g3_global_inst.set_interpolation_mode(1); //Linear only
+		}
+		acid_cheat_on = !acid_cheat_on;
 		break;
 	}
 
