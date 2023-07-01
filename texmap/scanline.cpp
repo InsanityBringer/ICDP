@@ -564,7 +564,7 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 	}
 }
 
-#define zonk 255
+#define zonk 1
 
 #define C_TMAP_SCANLINE_PLN_EDITOR_LOOP 	*dest = zonk;\
 										dest++;\
