@@ -1168,7 +1168,7 @@ void multi_do_fire(uint8_t* buf)
 				Players[pnum].flags &= ~PLAYER_FLAGS_QUAD_LASERS;
 		}
 
-		do_laser_firing(Players[pnum].objnum, weapon, (int)buf[3], flags, (int)buf[5]);
+		do_laser_firing(Players[pnum].objnum, weapon, packet.laser_level, flags);
 
 		if (weapon == FUSION_INDEX)
 			Fusion_charge = save_charge;

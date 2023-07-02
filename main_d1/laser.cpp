@@ -1017,8 +1017,7 @@ int do_laser_firing_player(void)
 	fix		energy_used;
 	int		ammo_used;
 	int		weapon_index;
-	int		rval = 0;
-	int 		nfires = 1;
+	int		fired_count = 0;
 	fix		addval;
 
 	if (Player_is_dead)
@@ -1067,9 +1066,9 @@ int do_laser_firing_player(void)
 			if (Players[Player_num].flags & PLAYER_FLAGS_QUAD_LASERS)
 				flags |= LASER_QUAD;
 
-			rval += do_laser_firing(Players[Player_num].objnum, Primary_weapon, laser_level, flags, nfires);
+			fired_count += do_laser_firing(Players[Player_num].objnum, Primary_weapon, laser_level, flags);
 
-			plp->energy -= (energy_used * rval) / Weapon_info[weapon_index].fire_count;
+			plp->energy -= (energy_used * fired_count) / Weapon_info[weapon_index].fire_count;
 			if (plp->energy < 0)
 				plp->energy = 0;
 
@@ -1089,21 +1088,20 @@ int do_laser_firing_player(void)
 			break;	//	Couldn't fire weapon, so abort.
 		}
 	}
-	//mprintf(0, "  fires = %i\n", rval);
+	//mprintf(0, "  fires = %i\n", fired_count);
 
 	Global_laser_firing_count = 0;
 
-	return rval;
+	return fired_count;
 }
 
 //	--------------------------------------------------------------------------------------------------
 //	Object "objnum" fires weapon "weapon_num" of level "level".  (Right now (9/24/94) level is used only for type 0 laser.
 //	Flags are the player flags.  For network mode, set to 0.
 //	It is assumed that this is a player object (as in multiplayer), and therefore the gun positions are known.
-//	Returns number of times a weapon was fired.  This is typically 1, but might be more for low frame rates.
-//	More than one shot is fired with a pseudo-delay so that players on show machines can fire (for themselves
-//	or other players) often enough for things like the vulcan cannon.
-int do_laser_firing(int objnum, int weapon_num, int level, int flags, int nfires)
+//	Returns number of times a weapon was fired.  This is always 1.
+//  The original game would use a "nfires" count to fire more shots at once, but this was always 1, even on slow computers.
+int do_laser_firing(int objnum, int weapon_num, int level, int flags)
 {
 	object* objp = &Objects[objnum];
 
@@ -1130,18 +1128,7 @@ int do_laser_firing(int objnum, int weapon_num, int level, int flags, int nfires
 	case VULCAN_INDEX: 
 	{
 		//	Only make sound for 1/4 of vulcan bullets.
-		int	make_sound = 1;
-		//if (P_Rand() > 24576)
-		//	make_sound = 1;
-		Laser_player_fire_spread(objp, VULCAN_ID, 6, P_Rand() / 8 - 32767 / 16, P_Rand() / 8 - 32767 / 16, make_sound, 0);
-		if (nfires > 1) 
-		{
-			Laser_player_fire_spread(objp, VULCAN_ID, 6, P_Rand() / 8 - 32767 / 16, P_Rand() / 8 - 32767 / 16, 0, 0);
-			if (nfires > 2) 
-			{
-				Laser_player_fire_spread(objp, VULCAN_ID, 6, P_Rand() / 8 - 32767 / 16, P_Rand() / 8 - 32767 / 16, 0, 0);
-			}
-		}
+		Laser_player_fire_spread(objp, VULCAN_ID, 6, P_Rand() / 8 - 32767 / 16, P_Rand() / 8 - 32767 / 16, true, 0);
 		break;
 	}
 	case SPREADFIRE_INDEX:
@@ -1163,11 +1150,6 @@ int do_laser_firing(int objnum, int weapon_num, int level, int flags, int nfires
 	case PLASMA_INDEX:
 		Laser_player_fire(objp, PLASMA_ID, 0, 1, 0);
 		Laser_player_fire(objp, PLASMA_ID, 1, 0, 0);
-		if (nfires > 1)
-		{
-			Laser_player_fire_spread_delay(objp, PLASMA_ID, 0, 0, 0, FrameTime / 2, 1, 0);
-			Laser_player_fire_spread_delay(objp, PLASMA_ID, 1, 0, 0, FrameTime / 2, 0, 0);
-		}
 		break;
 
 	case FUSION_INDEX: 
@@ -1205,14 +1187,14 @@ int do_laser_firing(int objnum, int weapon_num, int level, int flags, int nfires
 	if ((Game_mode & GM_MULTI) && (objnum == Players[Player_num].objnum))
 	{
 		//		mprintf((0, "Flags on fire: %d.\n", flags));
-		Network_laser_fired = nfires;
+		Network_laser_fired = 1;
 		Network_laser_gun = weapon_num;
 		Network_laser_flags = flags;
 		Network_laser_level = level;
 	}
 #endif
 
-	return nfires;
+	return 1;
 }
 
 #define	MAX_SMART_DISTANCE	(F1_0*150)

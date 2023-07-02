@@ -75,9 +75,8 @@ int Laser_create_new(vms_vector* direction, vms_vector* position, int segnum, in
 //	Fires a laser-type weapon (a Primary weapon)
 //	Fires from object objnum, weapon type weapon_id.
 //	Assumes that it is firing from a player object, so it knows which gun to fire from.
-//	Returns the number of shots actually fired, which will typically be 1, but could be
-//	higher for low frame rates when rapidfire weapons, such as vulcan or plasma are fired.
-extern int do_laser_firing(int objnum, int weapon_id, int level, int flags, int nfires);
+//	Returns the number of shots actually fired, which will always be 1.
+extern int do_laser_firing(int objnum, int weapon_id, int level, int flags);
 
 //	Easier to call than Laser_create_new because it determines the segment containing the firing point
 //	and deals with it being stuck in an object or through a wall.
