@@ -48,6 +48,7 @@ int Laser_num_prox_dropped = 0;
 void Laser_init_for_level()
 {
 	Spreadfire_toggle = false;
+	Fusion_charge = 0;
 	Laser_num_prox_dropped = 0;
 }
 
@@ -1081,7 +1082,12 @@ int do_laser_firing_player(void)
 
 		}
 		else
+		{
+			//If this isn't set to GameTime, you'll be able to fire a large amount of shots instantly
+			//if you happen to get some energy while holding down the fire button while out. 
+			Next_laser_fire_time = GameTime;
 			break;	//	Couldn't fire weapon, so abort.
+		}
 	}
 	//mprintf(0, "  fires = %i\n", rval);
 

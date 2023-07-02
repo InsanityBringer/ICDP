@@ -174,6 +174,8 @@ int Game_mode = GM_GAME_OVER;
 int	Global_laser_firing_count = 0;
 int	Global_missile_firing_count = 0;
 
+int Queued_weapon_switch = -1; //ugfihefgiuheg please spare me from more globals
+
 grs_bitmap background_bitmap;
 
 int Game_aborted;
@@ -2477,7 +2479,13 @@ void ReadControls()
 		case KEY_3:
 		case KEY_4:
 		case KEY_5:
-			do_weapon_select(key - KEY_1, 0);
+			//If you change weapons while charging the fusion cannon, 
+			//queue the weapon switch for the next frame and force the player to fire immediately
+			//so they don't lose charge. 
+			if (Primary_weapon == FUSION_INDEX && Fusion_charge)
+				Queued_weapon_switch = key - KEY_1;
+			else
+				do_weapon_select(key - KEY_1, 0);
 			break;
 
 		case KEY_6:
@@ -2550,7 +2558,15 @@ void ReadControls()
 			break;
 
 		case KEY_DEBUGGED + KEY_K:	Players[Player_num].shields = 1;	break;						//	a virtual kill
-		case KEY_DEBUGGED + KEY_SHIFTED + KEY_K:	Players[Player_num].shields = -1;	break;	//	an actual kill
+		//case KEY_DEBUGGED + KEY_SHIFTED + KEY_K:	Players[Player_num].shields = -1;	break;	//	an actual kill
+		case KEY_DEBUGGED + KEY_SHIFTED + KEY_K: //massacre cheat
+			for (int i = 0; i < Highest_object_index; i++)
+			{
+				object* objp = &Objects[i];
+				if (objp->type == OBJ_ROBOT)
+					obj_delete(objp - Objects);
+			}
+			break;
 		case KEY_DEBUGGED + KEY_X: Players[Player_num].lives++; break; // Extra life cheat key.
 		case KEY_DEBUGGED + KEY_H:
 			//					if (!(Game_mode & GM_MULTI) )	{
@@ -2838,7 +2854,8 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 					Fusion_charge += FrameTime;
 					Players[Player_num].energy -= FrameTime;
 
-					if (Players[Player_num].energy <= 0) {
+					if (Players[Player_num].energy <= 0) 
+					{
 						Players[Player_num].energy = 0;
 						Auto_fire_fusion_cannon_time = GameTime - 1;				//	Fire now!
 					}
@@ -2872,7 +2889,11 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 			}
 		}
 
-		if (Auto_fire_fusion_cannon_time) {
+		if (Queued_weapon_switch != -1)
+			Auto_fire_fusion_cannon_time = GameTime; //Wanting to switch, get the fusion blobs out now. 
+
+		if (Auto_fire_fusion_cannon_time) 
+		{
 			if (Primary_weapon != FUSION_INDEX)
 				Auto_fire_fusion_cannon_time = 0;
 			else if (GameTime + FrameTime / 2 >= Auto_fire_fusion_cannon_time)
@@ -2910,6 +2931,12 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 
 		if (Global_laser_firing_count < 0)
 			Global_laser_firing_count = 0;
+
+		if (Queued_weapon_switch != -1)
+		{
+			do_weapon_select(Queued_weapon_switch, false);
+			Queued_weapon_switch = -1;
+		}
 	}
 
 	if (Do_appearance_effect)
