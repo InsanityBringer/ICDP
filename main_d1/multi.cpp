@@ -1152,12 +1152,12 @@ void multi_do_fire(uint8_t* buf)
 		multi_make_ghost_player(pnum);
 
 	if (weapon >= MISSILE_ADJUST)
-		net_missile_firing(pnum, weapon, (int)buf[4]);
+		net_missile_firing(pnum, weapon, packet.flags);
 	else 
 	{
 		if (weapon == FUSION_INDEX) 
 		{
-			Fusion_charge = buf[4] << 12;
+			Fusion_charge = packet.flags << 12;
 			mprintf((0, "Fusion charge X%f.\n", f2fl(Fusion_charge)));
 		}
 		if (weapon == LASER_INDEX) 
@@ -1310,7 +1310,7 @@ void multi_do_player_explode(uint8_t* buf)
 		Objects[Net_create_objnums[i]].flags |= OF_SHOULD_BE_DEAD;
 	}
 
-	if (buf[0] == MULTI_PLAYER_EXPLODE)
+	if (packet.packet_type == MULTI_PLAYER_EXPLODE)
 	{
 		explode_badass_player(objp);
 
@@ -1563,7 +1563,6 @@ void multi_do_controlcen_fire(uint8_t* buf)
 void multi_do_create_powerup(uint8_t* buf)
 {
 	int my_objnum;
-	int count = 1;
 	vms_vector new_pos;
 
 	if (Endlevel_sequence || Fuelcen_control_center_destroyed)
@@ -1579,7 +1578,7 @@ void multi_do_create_powerup(uint8_t* buf)
 	}
 
 #ifndef SHAREWARE
-	new_pos = *(vms_vector*)(buf + count); count += sizeof(vms_vector);
+	new_pos = packet.pos;
 #else
 	compute_segment_center(&new_pos, &Segments[segnum]);
 #endif
