@@ -14,6 +14,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <random>
 
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
@@ -88,6 +89,25 @@ int Default_leveling_on = 1;
 int Primary_autoselect_mode, Secondary_autoselect_mode;
 
 int Player_message_level = MSG_ALL;
+uint32_t Player_random_identifier;
+
+static bool Seeded_random_gen = false;
+static std::mt19937 Player_random;
+
+static uint32_t get_random_identifier()
+{
+	if (!Seeded_random_gen)
+	{
+		//From cppreference, is this enough entropy to ensure a good distribution?
+		std::random_device r;
+		std::seed_seq seed2{r(), r(), r(), r(), r(), r(), r(), r()};
+		Player_random.seed(seed2);
+
+		Seeded_random_gen = true;
+	}
+
+	return Player_random();
+}
 
 pilot_gameinfo generate_gameinfo_for_current_game()
 {
@@ -221,6 +241,8 @@ int new_player_config()
 	all_gameinfo.push_back(generate_gameinfo_for_current_game());
 	current_gameinfo = &all_gameinfo[0];
 
+	Player_random_identifier = get_random_identifier();
+
 	return 1;
 }
 
@@ -288,6 +310,12 @@ int read_player_file()
 		Primary_autoselect_mode = nbt_get_integral(roottag_p->find_tag("Primary_autoselect_mode"), AS_ALWAYS);
 		Secondary_autoselect_mode = nbt_get_integral(roottag_p->find_tag("Secondary_autoselect_mode"), AS_ALWAYS);
 		Player_message_level = nbt_get_integral(roottag_p->find_tag("Player_message_level"), MSG_NUM_MODES);
+
+		tag_p = roottag_p->find_tag("Player_random_identifier");
+		if (tag_p)
+			Player_random_identifier = nbt_get_integral(tag_p, 0);
+		else
+			Player_random_identifier = get_random_identifier();
 
 		//validation
 		Primary_autoselect_mode = std::min(std::max(0, Primary_autoselect_mode), AS_NUM_MODES - 1);
@@ -377,6 +405,8 @@ int write_player_file()
 	rootTag.list.push_back(std::make_unique<ByteTag>("Primary_autoselect_mode", Primary_autoselect_mode));
 	rootTag.list.push_back(std::make_unique<ByteTag>("Secondary_autoselect_mode", Secondary_autoselect_mode));
 	rootTag.list.push_back(std::make_unique<ByteTag>("Player_message_level", Player_message_level));
+
+	rootTag.list.push_back(std::make_unique<IntTag>("Player_random_identifier", Player_random_identifier));
 
 	//Structure is generated, so now serialize it.
 	int errno_ret = WriteConfigFile();

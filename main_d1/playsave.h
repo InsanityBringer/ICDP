@@ -32,6 +32,8 @@ constexpr int MSG_NUM_MODES = 3;
 constexpr int MSG_DEFAULT_LEVEL = MSG_NOREDUNDANT;
 extern int Player_message_level;
 
+extern uint32_t Player_random_identifier;
+
 //fills in a list of pointers to strings describing saved games
 //returns the number of non-empty slots
 //returns -1 if this is a new player

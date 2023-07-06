@@ -53,6 +53,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "physics.h"
 #include "platform/platform.h"
 #include "misc/rand.h"
+#include "playsave.h"
 
 #ifdef SHAREWARE
 #define PID_REQUEST 					11
@@ -160,7 +161,7 @@ void network_init(void)
 	My_Seq.type = PID_REQUEST;
 	memcpy(My_Seq.player.callsign, Players[Player_num].callsign, CALLSIGN_LEN + 1);
 	memcpy(My_Seq.player.node, NetGetLocalAddress(), 4); //NOTE: Anyone reading a sequence packet needs to replace this with a proper address for the current network.
-	memcpy(&My_Seq.player.identifier, My_Seq.player.node, sizeof(My_Seq.player.identifier));
+	My_Seq.player.identifier = Player_random_identifier;
 
 	for (Player_num = 0; Player_num < MAX_NUM_NET_PLAYERS; Player_num++)
 		init_player_stats_game();
@@ -479,7 +480,7 @@ void network_new_player(sequence_packet* their)
 	memcpy(Players[pnum].net_address, their->player.node, 4);
 
 	memcpy(Netgame.players[pnum].node, their->player.node, 4);
-	memcpy(&Netgame.players[pnum].identifier, &their->player.identifier, sizeof(their->player.identifier));
+	Netgame.players[pnum].identifier = their->player.identifier;
 
 	NetGetLastPacketOrigin(Netgame.players[pnum].node);
 
@@ -1026,7 +1027,7 @@ void network_add_player(sequence_packet* p)
 
 	memcpy(Netgame.players[N_players].callsign, p->player.callsign, CALLSIGN_LEN + 1);
 	memcpy(Netgame.players[N_players].node, p->player.node, 4);
-	memcpy(&Netgame.players[N_players].identifier, &p->player.identifier, sizeof(p->player.identifier));
+	Netgame.players[N_players].identifier = p->player.identifier;
 
 	Netgame.players[N_players].connected = 1;
 	Players[N_players].connected = 1;
@@ -1063,7 +1064,7 @@ void network_remove_player(sequence_packet* p)
 	{
 		memcpy(Netgame.players[i].callsign, Netgame.players[i + 1].callsign, CALLSIGN_LEN + 1);
 		memcpy(Netgame.players[i].node, Netgame.players[i + 1].node, 4);
-		memcpy(&Netgame.players[i].identifier, &Netgame.players[i + 1].identifier, sizeof(Netgame.players[i].identifier));
+		Netgame.players[i].identifier = Netgame.players[i + 1].identifier;
 	}
 
 	N_players--;
@@ -1075,8 +1076,7 @@ void network_remove_player(sequence_packet* p)
 
 }
 
-void
-network_dump_player(uint8_t* node, int why)
+void network_dump_player(uint8_t* node, int why)
 {
 	// Inform player that he was not chosen for the netgame
 	uint8_t buf[128];
@@ -1090,8 +1090,7 @@ network_dump_player(uint8_t* node, int why)
 	NetSendInternetworkPacket(buf, len, node);
 }
 
-void
-network_send_game_list_request(void)
+void network_send_game_list_request(void)
 {
 	// Send a broadcast request for game info
 	uint8_t buf[128];
@@ -1101,7 +1100,7 @@ network_send_game_list_request(void)
 	mprintf((0, "Sending game_list request.\n"));
 	memcpy(me.player.callsign, Players[Player_num].callsign, CALLSIGN_LEN + 1);
 	memcpy(me.player.node, NetGetLocalAddress(), 4);
-	memcpy(&me.player.identifier, &My_Seq.player.identifier, sizeof(My_Seq.player.identifier));
+	me.player.identifier = My_Seq.player.identifier;
 	me.type = PID_GAME_LIST;
 
 	netmisc_encode_sequence_packet(buf, &len, &me);
@@ -1118,15 +1117,14 @@ void network_send_game_info_request_to(uint8_t* address)
 	mprintf((0, "Sending game_list request.\n"));
 	memcpy(me.player.callsign, Players[Player_num].callsign, CALLSIGN_LEN + 1);
 	memcpy(me.player.node, NetGetLocalAddress(), 4);
-	memcpy(&me.player.identifier, &My_Seq.player.identifier, sizeof(My_Seq.player.identifier));
+	me.player.identifier = My_Seq.player.identifier;
 	me.type = PID_GAME_LIST;
 
 	netmisc_encode_sequence_packet(buf, &len, &me);
 	NetSendInternetworkPacket((uint8_t*)&me, len, address);
 }
 
-void
-network_update_netgame(void)
+void network_update_netgame(void)
 {
 	// Update the netgame struct with current game variables
 
@@ -2391,7 +2389,7 @@ GetPlayersAgain:
 			{
 				memcpy(Netgame.players[N_players].callsign, Netgame.players[i].callsign, CALLSIGN_LEN + 1);
 				memcpy(Netgame.players[N_players].node, Netgame.players[i].node, 4);
-				memcpy(&Netgame.players[N_players].identifier, &Netgame.players[i].identifier, sizeof(Netgame.players[i].identifier));
+				Netgame.players[N_players].identifier = Netgame.players[i].identifier;
 			}
 			Players[N_players].connected = 1;
 			N_players++;
@@ -2406,7 +2404,7 @@ GetPlayersAgain:
 	{
 		memset(Netgame.players[i].callsign, 0, CALLSIGN_LEN + 1);
 		memset(Netgame.players[i].node, 0, 4);
-		memset(&Netgame.players[i].identifier, 0, sizeof(Netgame.players[i].identifier));
+		Netgame.players[i].identifier = 0;
 	}
 
 	if (Netgame.gamemode == NETGAME_TEAM_ANARCHY)
@@ -2628,7 +2626,7 @@ menu:
 		me.type = PID_QUIT_JOINING;
 		memcpy(me.player.callsign, Players[Player_num].callsign, CALLSIGN_LEN + 1);
 		memcpy(me.player.node, NetGetLocalAddress(), 4);
-		memcpy(&me.player.identifier, &My_Seq.player.identifier, sizeof(My_Seq.player.identifier));
+		me.player.identifier = My_Seq.player.identifier;
 
 		netmisc_encode_sequence_packet(buf, &len, &me);
 		NetSendInternetworkPacket(buf, len, Netgame.players[0].node);
@@ -2640,8 +2638,7 @@ menu:
 	return(0);
 }
 
-void
-network_request_poll(int nitems, newmenu_item* menus, int* key, int citem)
+void network_request_poll(int nitems, newmenu_item* menus, int* key, int citem)
 {
 	// Polling loop for waiting-for-requests menu
 
@@ -2652,14 +2649,6 @@ network_request_poll(int nitems, newmenu_item* menus, int* key, int citem)
 	citem = citem;
 	nitems = nitems;
 	key = key;
-
-	// Send our endlevel packet at regular intervals
-
-//	if (timer_get_approx_seconds() > t1+ENDLEVEL_SEND_INTERVAL)
-//	{
-//		network_send_endlevel_packet();
-//		t1 = timer_get_approx_seconds();
-//	}
 
 	network_listen();
 
@@ -2675,8 +2664,7 @@ network_request_poll(int nitems, newmenu_item* menus, int* key, int citem)
 	}
 }
 
-void
-network_wait_for_requests(void)
+void network_wait_for_requests(void)
 {
 	// Wait for other players to load the level before we send the sync
 	int choice, i;
@@ -2720,8 +2708,7 @@ menu:
 		goto menu;
 }
 
-int
-network_level_sync(void)
+int network_level_sync(void)
 {
 	// Do required syncing between (before) levels
 
@@ -3017,7 +3004,8 @@ void network_listen()
 		mprintf((0, "Calling network_listen() when not in net game.\n"));
 
 	size = NetGetPacketData(packet);
-	while (size > 0) {
+	while (size > 0) 
+	{
 		network_process_packet(packet, size);
 		size = NetGetPacketData(packet);
 	}
@@ -3030,7 +3018,8 @@ void network_send_data(uint8_t* ptr, int len, int urgent)
 	if (Endlevel_sequence)
 		return;
 
-	if (!MySyncPackInitialized) {
+	if (!MySyncPackInitialized) 
+	{
 		MySyncPackInitialized = 1;
 		memset(&MySyncPack, 0, sizeof(frame_info));
 	}
@@ -3038,15 +3027,15 @@ void network_send_data(uint8_t* ptr, int len, int urgent)
 	if (urgent)
 		PacketUrgent = 1;
 
-	if ((MySyncPack.data_size + len) > NET_XDATA_SIZE) {
+	if ((MySyncPack.data_size + len) > NET_XDATA_SIZE) 
+	{
 		check = ptr[0];
 		network_do_frame(1, 0);
-		if (MySyncPack.data_size != 0) {
+		if (MySyncPack.data_size != 0) 
+		{
 			mprintf((0, "%d bytes were added to data by network_do_frame!\n", MySyncPack.data_size));
 			Int3();
 		}
-		//		Int3();		// Trying to send too much!
-		//		return;
 		mprintf((0, "Packet overflow, sending additional packet, type %d len %d.\n", ptr[0], len));
 		Assert(check == ptr[0]);
 	}
@@ -3100,12 +3089,15 @@ void network_do_frame(int force, int listen)
 	last_timeout_check += FrameTime;
 
 	// Send out packet 10 times per second maximum... unless they fire, then send more often...
-	if ((last_send_time > F1_0 / 10) || (Network_laser_fired) || force || PacketUrgent) {
-		if (Players[Player_num].connected) {
+	if ((last_send_time > F1_0 / 10) || (Network_laser_fired) || force || PacketUrgent) 
+	{
+		if (Players[Player_num].connected) 
+		{
 			int objnum = Players[Player_num].objnum;
 			PacketUrgent = 0;
 
-			if (listen) {
+			if (listen) 
+			{
 				multi_send_robot_frame(0);
 				multi_send_fire();		// Do firing if needed..
 			}
