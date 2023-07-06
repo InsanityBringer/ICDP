@@ -144,7 +144,8 @@ struct netplayer_stats
 	uint8_t		unused[16];
 };
 
-int message_length[MULTI_MAX_TYPE + 1] = 
+int message_length[MULTI_MAX_TYPE + 1];
+/*int message_length[MULTI_MAX_TYPE + 1] = 
 {
 	24, // POSITION
 	3,  // REAPPEAR
@@ -217,7 +218,7 @@ int message_length[MULTI_MAX_TYPE + 1] =
 	2 + 4,   //RESTORE_GAME	(uint8_t slot, uint32_t id)
 	1 + 1, 	// MULTI_REQ_PLAYER
 	sizeof(netplayer_stats),			// MULTI_SEND_PLAYER
-};
+};*/
 
 //this file's prototype festival
 void multi_reset_player_object(object* objp);
@@ -450,7 +451,6 @@ void multi_new_game(void)
 	int i;
 
 	// Reset variables for a new net game
-
 	memset(kill_matrix, 0, MAX_NUM_NET_PLAYERS * MAX_NUM_NET_PLAYERS * 2); // Clear kill matrix
 
 	for (i = 0; i < MAX_NUM_NET_PLAYERS; i++)
@@ -1451,7 +1451,7 @@ void multi_do_quit(uint8_t* buf)
 {
 	if (Game_mode & GM_NETWORK)
 	{
-		multi_playernum packet;
+		multi_quit packet;
 		packet.from_buf(buf, 0, sizeof(multibuf));
 		digi_play_sample(SOUND_HUD_MESSAGE, F1_0);
 
@@ -1477,7 +1477,7 @@ void multi_do_quit(uint8_t* buf)
 
 void multi_do_cloak(uint8_t* buf)
 {
-	multi_playernum packet;
+	multi_cloak packet;
 	packet.from_buf(buf, 0, sizeof(multibuf));
 
 	Assert(packet.player_num < N_players);
@@ -1499,7 +1499,7 @@ void multi_do_cloak(uint8_t* buf)
 
 void multi_do_decloak(uint8_t* buf)
 {
-	multi_playernum packet;
+	multi_decloak packet;
 	packet.from_buf(buf, 0, sizeof(multibuf));
 
 	if (Newdemo_state == ND_STATE_RECORDING)
@@ -1546,7 +1546,7 @@ void multi_do_door_open(uint8_t* buf)
 
 void multi_do_create_explosion(uint8_t* buf)
 {
-	multi_playernum packet;
+	multi_create_explosion packet;
 	packet.from_buf(buf, 0, sizeof(multibuf));
 	//	mprintf((0, "Creating small fireball.\n"));
 	create_small_fireball_on_object(&Objects[Players[packet.player_num].objnum], F1_0, 1);
@@ -2159,7 +2159,7 @@ void multi_send_quit(int why)
 	// I am quitting the game, tell the other guy the bad news.
 	Assert(why == MULTI_QUIT);
 
-	multi_playernum packet;
+	multi_quit packet;
 	packet.packet_type = why;
 	packet.player_num = Player_num;
 
@@ -2170,7 +2170,7 @@ void multi_send_quit(int why)
 void multi_send_cloak(void)
 {
 	// Broadcast a change in our pflags (made to support cloaking)
-	multi_playernum packet;
+	multi_cloak packet;
 	packet.packet_type = MULTI_CLOAK;
 	packet.player_num = Player_num;
 
@@ -2186,7 +2186,7 @@ void multi_send_cloak(void)
 void multi_send_decloak(void)
 {
 	// Broadcast a change in our pflags (made to support cloaking)
-	multi_playernum packet;
+	multi_decloak packet;
 	packet.packet_type = MULTI_DECLOAK;
 	packet.player_num = Player_num;
 
@@ -2215,7 +2215,7 @@ void multi_send_door_open(int segnum, int side)
 void multi_send_create_explosion(int pnum)
 {
 	// Send all data needed to create a remote explosion
-	multi_playernum packet;
+	multi_create_explosion packet;
 	packet.packet_type = MULTI_CREATE_EXPLOSION;
 	packet.player_num = pnum;
 

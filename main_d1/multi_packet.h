@@ -12,6 +12,7 @@ as described in copying.txt.
 struct test_packet
 {
 	NETMISC_DECLARE_DATA
+	NETMISC_DECLARE_MULTI_MESSAGE
 
 	uint8_t f1;
 	int f2;
@@ -21,7 +22,8 @@ struct test_packet
 
 struct multi_fire_packet
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -34,7 +36,8 @@ struct multi_fire_packet
 
 struct multi_destroy_reactor
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	short objnum;
@@ -43,7 +46,8 @@ struct multi_destroy_reactor
 
 struct multi_start_endlevel
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -52,7 +56,8 @@ struct multi_start_endlevel
 
 struct multi_player_death
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -72,7 +77,8 @@ struct multi_player_death
 
 struct multi_message_packet
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -81,7 +87,8 @@ struct multi_message_packet
 
 struct multi_reappear
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	short objnum;
@@ -89,7 +96,8 @@ struct multi_reappear
 
 struct multi_position
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	shortpos pos;
@@ -97,7 +105,8 @@ struct multi_position
 
 struct multi_kill
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -107,16 +116,18 @@ struct multi_kill
 
 struct multi_remove_object
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	short objnum;
 	int8_t owner;
 };
 
-struct multi_playernum
+struct multi_quit
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -124,7 +135,8 @@ struct multi_playernum
 
 struct multi_segnum_sidenum
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	short segnum;
@@ -133,7 +145,8 @@ struct multi_segnum_sidenum
 
 struct multi_reactor_fire
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	vms_vector to_dest;
@@ -143,7 +156,8 @@ struct multi_reactor_fire
 
 struct multi_create_powerup
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -155,7 +169,8 @@ struct multi_create_powerup
 
 struct multi_play_sound
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -165,7 +180,8 @@ struct multi_play_sound
 
 struct multi_score_value
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -174,7 +190,8 @@ struct multi_score_value
 
 struct multi_triggernum
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	uint8_t player_num;
@@ -183,9 +200,58 @@ struct multi_triggernum
 
 struct multi_wall_damage
 {
-	NETMISC_DECLARE_DATA;
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
 
 	uint8_t packet_type;
 	short wallnum;
 	fix damage;
+};
+
+struct multi_cloak
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+};
+
+struct multi_decloak
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+};
+
+struct multi_create_explosion
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+};
+
+struct multi_player_drop
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	uint8_t primary_weapon_flags;
+	uint8_t secondary_weapon_flags;
+	uint8_t laser_level;
+	uint8_t num_homing;
+	uint8_t num_concussion;
+	uint8_t num_smart;
+	uint8_t num_mega;
+	uint8_t num_prox;
+	short num_vulcan_bullets;
+	int player_flags;
+	uint8_t num_created;
+	short create_objnum[MAX_NET_CREATE_OBJECTS];
 };

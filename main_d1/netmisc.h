@@ -260,7 +260,7 @@ public:
 	netmisc_field_list& get_field_map() { return netmisc_fields; } \
 	void to_buf(uint8_t* buf, size_t offset, size_t total); \
 	void from_buf(uint8_t* buf, size_t offset, size_t total); \
-	size_t buf_size() const { size_t size = netmisc_fields.buf_size(); Assert(size != 0); return size; }
+	static size_t buf_size() { size_t size = netmisc_fields.buf_size(); Assert(size != 0); return size; }
 
 #define NETMISC_DEFINE_DATA(classname) \
 	static netmisc_field_list classname##_generate_field_list();\
@@ -281,3 +281,16 @@ public:
 		} ); \
 		return field_list;\
 	} \
+
+//Call this after NETMISC_DEFINE_DATA/NETMISC_END_DATA
+//This will associate the packet with a multi message
+#define NETMISC_DECLARE_MULTI_MESSAGE static int multi_message_num;
+
+#define NETMISC_DEFINE_MULTI_MESSAGE(classname, messagenum) \
+	static int classname##_get_message_num(int num); \
+	int classname::multi_message_num = classname##_get_message_num( messagenum ); \
+	static int classname##_get_message_num(int num) \
+	{ \
+		message_length[num] = classname::buf_size(); \
+		return num; \
+	}
