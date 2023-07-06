@@ -2230,6 +2230,14 @@ void ReadControls()
 		//cleaned up cheat handling done here. 
 		do_cheat_key(key);
 
+#ifdef NETWORK
+		if ((Game_mode & GM_MULTI) && (multi_sending_message || multi_defining_message)) 
+		{
+			multi_message_input_sub(key);
+			key = 0;		// Wipe out key!
+		}
+#endif
+
 #ifndef RELEASE
 #ifdef NETWORK
 		if ((key & KEY_DEBUGGED) && (Game_mode & GM_MULTI)) 
