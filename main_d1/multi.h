@@ -80,6 +80,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #define MAX_MULTI_MESSAGE_LEN 90
 
+#define MAX_ROBOT_POWERUPS 4
+
 // Exported functions
 
 int objnum_remote_to_local(int remote_obj, int owner);

@@ -255,3 +255,104 @@ struct multi_player_drop
 	uint8_t num_created;
 	short create_objnum[MAX_NET_CREATE_OBJECTS];
 };
+
+struct multi_claim_robot
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	short remote_objnum;
+	int8_t owner;
+};
+
+struct multi_release_robot
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	short remote_objnum;
+	int8_t owner;
+};
+
+struct multi_robot_position
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	short remote_objnum;
+	int8_t owner;
+	shortpos pos;
+};
+
+struct multi_robot_fire
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	short remote_objnum;
+	int8_t owner;
+	int8_t gun_num;
+	vms_vector fire;
+};
+
+struct multi_explode_robot
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	short killer_objnum;
+	int8_t killer_owner;
+	short remote_objnum;
+	int8_t owner;
+};
+
+struct multi_create_robot
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	int8_t station;
+	short objnum;
+	uint8_t type;
+};
+
+struct multi_boss_did_thing
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	short objnum;
+	uint8_t action;
+	uint8_t secondary;
+	short gateobjnum;
+	short gateseg;
+};
+
+struct multi_drop_robot_loot
+{
+	NETMISC_DECLARE_DATA
+		NETMISC_DECLARE_MULTI_MESSAGE;
+
+	uint8_t packet_type;
+	uint8_t player_num;
+	int8_t contains_count;
+	int8_t contains_type;
+	int8_t contains_id;
+	short segnum;
+	vms_vector pos;
+	short objnums[MAX_ROBOT_POWERUPS];
+};

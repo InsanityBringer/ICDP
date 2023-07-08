@@ -262,3 +262,95 @@ NETMISC_DEFINE_ARRAY(create_objnum, netmisc_field_type::INT16, MAX_NET_CREATE_OB
 NETMISC_END_DATA;
 NETMISC_DEFINE_MULTI_MESSAGE(multi_player_drop, MULTI_PLAYER_DROP)
 
+NETMISC_DEFINE_DATA(multi_claim_robot)
+
+NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(remote_objnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(owner, netmisc_field_type::BYTE)
+
+NETMISC_END_DATA;
+NETMISC_DEFINE_MULTI_MESSAGE(multi_claim_robot, MULTI_ROBOT_CLAIM)
+
+NETMISC_DEFINE_DATA(multi_release_robot)
+
+NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(remote_objnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(owner, netmisc_field_type::BYTE)
+
+NETMISC_END_DATA;
+NETMISC_DEFINE_MULTI_MESSAGE(multi_release_robot, MULTI_ROBOT_RELEASE)
+
+NETMISC_DEFINE_DATA(multi_robot_position)
+
+NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(remote_objnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(owner, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(pos, netmisc_field_type::SHORTPOS)
+
+NETMISC_END_DATA;
+NETMISC_DEFINE_MULTI_MESSAGE(multi_robot_position, MULTI_ROBOT_POSITION)
+
+NETMISC_DEFINE_DATA(multi_robot_fire)
+
+NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(remote_objnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(owner, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(gun_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(fire, netmisc_field_type::VECTOR)
+
+NETMISC_END_DATA;
+NETMISC_DEFINE_MULTI_MESSAGE(multi_robot_fire, MULTI_ROBOT_FIRE)
+
+NETMISC_DEFINE_DATA(multi_explode_robot)
+
+NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(remote_objnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(owner, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(killer_objnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(killer_owner, netmisc_field_type::BYTE)
+
+NETMISC_END_DATA;
+NETMISC_DEFINE_MULTI_MESSAGE(multi_explode_robot, MULTI_ROBOT_EXPLODE)
+
+NETMISC_DEFINE_DATA(multi_create_robot)
+
+NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(station, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(objnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(type, netmisc_field_type::BYTE)
+
+NETMISC_END_DATA;
+NETMISC_DEFINE_MULTI_MESSAGE(multi_create_robot, MULTI_CREATE_ROBOT)
+
+NETMISC_DEFINE_DATA(multi_boss_did_thing)
+
+NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(objnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(action, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(secondary, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(gateobjnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(gateseg, netmisc_field_type::INT16)
+
+NETMISC_END_DATA;
+NETMISC_DEFINE_MULTI_MESSAGE(multi_boss_did_thing, MULTI_BOSS_ACTIONS)
+
+NETMISC_DEFINE_DATA(multi_drop_robot_loot)
+
+NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(contains_count, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(contains_type, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(contains_id, netmisc_field_type::BYTE)
+NETMISC_DEFINE_FIELD(segnum, netmisc_field_type::INT16)
+NETMISC_DEFINE_FIELD(pos, netmisc_field_type::VECTOR)
+NETMISC_DEFINE_ARRAY(objnums, netmisc_field_type::INT16, MAX_ROBOT_POWERUPS)
+
+NETMISC_END_DATA;
+NETMISC_DEFINE_MULTI_MESSAGE(multi_drop_robot_loot, MULTI_CREATE_ROBOT_POWERUPS)

@@ -252,7 +252,7 @@ float compute_dz_dy(g3ds_tmap* t, int top_vertex, int bottom_vertex, float recip
 void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, float xleft, float xright, float uleft, float uright, float vleft, float vright, float zleft, float zright, float lleft, float lright)
 {
 	float	u, v, l;
-	float	dx, recip_dx;
+	float	recip_dx;
 
 	float	du_dx, dv_dx, dz_dx, z;
 
@@ -263,7 +263,7 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, float xleft, float xri
 	fx_xright = xright;
 	fx_xleft = xleft;
 
-	dx = fx_xright - fx_xleft;
+	int dx = fx_xright - fx_xleft;
 	if ((dx < 0) || (xright < 0) || (xleft > xright))		// the (xleft > xright) term is not redundant with (dx < 0) because dx is computed using integers
 		return;
 
@@ -271,9 +271,9 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, float xleft, float xri
 		fx_xright = Window_clip_right;
 
 	// setup to call assembler scanline renderer
-	/*if (dx < FIX_RECIP_TABLE_SIZE)
+	if (dx < FIX_RECIP_TABLE_SIZE)
 		recip_dx = fix_recip[dx];
-	else*/ //TODO: wait, dx is a float.. can't index..
+	else
 		recip_dx = 1.f / dx;
 
 	du_dx = (uright - uleft) * recip_dx;
@@ -579,6 +579,13 @@ void Texmap::ScanlineLinear(grs_bitmap* srcb, int y, float xleft, float xright, 
 	switch (Lighting_enabled) 
 	{
 	case 0:
+		if (fx_xleft > Window_clip_right)
+			return;
+		if (fx_xright < Window_clip_left)
+			return;
+		if (fx_xright > Window_clip_right)
+			fx_xright = Window_clip_right;
+
 		DrawScanlineLinearNoLight();
 		break;
 	case 1:
@@ -590,13 +597,21 @@ void Texmap::ScanlineLinear(grs_bitmap* srcb, int y, float xleft, float xright, 
 		/*if (lleft > MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS)
 			lleft = MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS;
 		if (lright > MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS)
-			lright = MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS;*/
+			lright = MAX_LIGHTING_VALUE * NUM_LIGHTING_LEVELS;*/                   
 		if (lleft > (NUM_LIGHTING_LEVELS - .5)) lleft = (NUM_LIGHTING_LEVELS - .5);
 		if (lright > (NUM_LIGHTING_LEVELS - .5)) lright = (NUM_LIGHTING_LEVELS - .5);
 
 		fx_l = lleft;
 		dl_dx = (lright - lleft) * recip_dx;
 		fx_dl_dx = dl_dx;
+
+		if (fx_xleft > Window_clip_right)
+			return;
+		if (fx_xright < Window_clip_left)
+			return;
+		if (fx_xright > Window_clip_right)
+			fx_xright = Window_clip_right;
+
 		DrawScanlineLinear();
 		break;
 	case 2:
