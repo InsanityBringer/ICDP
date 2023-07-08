@@ -103,7 +103,7 @@ NETMISC_DEFINE_DATA(multi_message_packet)
 
 NETMISC_DEFINE_FIELD(packet_type, netmisc_field_type::BYTE)
 NETMISC_DEFINE_FIELD(player_num, netmisc_field_type::BYTE)
-NETMISC_DEFINE_ARRAY(message, netmisc_field_type::BYTE, MAX_NET_CREATE_OBJECTS)
+NETMISC_DEFINE_ARRAY(message, netmisc_field_type::BYTE, MAX_MESSAGE_LEN)
 
 NETMISC_END_DATA;
 NETMISC_DEFINE_MULTI_MESSAGE(multi_message_packet, MULTI_MESSAGE)
