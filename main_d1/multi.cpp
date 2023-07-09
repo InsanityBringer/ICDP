@@ -2028,6 +2028,7 @@ void multi_send_player_explode(char type)
 	packet.num_mega = Players[Player_num].secondary_ammo[MEGA_INDEX];
 	packet.num_prox = Players[Player_num].secondary_ammo[PROXIMITY_INDEX];
 	packet.num_vulcan_bullets = Players[Player_num].primary_ammo[VULCAN_INDEX];
+	packet.player_flags = Players[Player_num].flags;
 	packet.num_created = Net_create_loc;
 
 	Assert(Net_create_loc <= MAX_NET_CREATE_OBJECTS);
