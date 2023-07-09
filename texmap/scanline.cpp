@@ -24,6 +24,11 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "texmapl.h"
 #include "scanline.h"
 
+//TODO: Platform detection
+#ifdef _M_X64
+#include <smmintrin.h>
+#endif
+
 extern int	y_pointers[];
 
 void Texmap::DrawScanlineFlat()
@@ -200,6 +205,24 @@ void Texmap::DrawScanlinePerspectiveNoLight()
 	}
 }
 
+#ifdef _M_X64
+#ifdef _MSC_VER
+__inline int InlineFloor(float f)
+#else
+int InlineFloor(float f) //TODO: inline traits for other compilers
+#endif
+{
+	__m128 reg = _mm_set_ss(f);
+	reg = _mm_round_ss(reg, reg, (_MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC));
+	return _mm_cvt_ss2si(reg);
+}
+#else //TODO: Add ARM version, for macos and others. 
+int InlineFloor(float f)
+{
+	return (int)floor(f);
+}
+#endif
+
 void Texmap::DrawScanlinePerspective()
 {
 	uint8_t* dest;
@@ -227,7 +250,7 @@ void Texmap::DrawScanlinePerspective()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			*dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)]];
+			*dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[((InlineFloor(v / z) & 63) * 64) + (InlineFloor(u / z) & 63)]];
 			dest++;
 			l += dldx;
 			u += dudx;
@@ -240,7 +263,7 @@ void Texmap::DrawScanlinePerspective()
 	{
 		for (x = fx_xright - fx_xleft + 1; x > 0; --x) 
 		{
-			c = (uint32_t)pixptr[(((int)(v / z) & 63) * 64) + ((int)(u / z) & 63)];
+			c = (uint32_t)pixptr[((InlineFloor(v / z) & 63) * 64) + (InlineFloor(u / z) & 63)];
 			if (c != 255)
 				*dest = gr_fade_table[((int)l & 0xff00) + c];
 			dest++;
@@ -289,11 +312,11 @@ constexpr void c_tmap_scanline_plt_loop(uint8_t*& dest, uint8_t* pixptr, float& 
 	u += du; v += dv; l += dl; \
 }*/
 
-#define C_TMAP_SCANLINE_PLN_LOOP        *dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[(((int)vt & 63) * 64) + ((int)ut & 63)]]; \
+#define C_TMAP_SCANLINE_PLN_LOOP        *dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[(((int)InlineFloor(vt) & 63) * 64) + ((int)InlineFloor(ut) & 63)]]; \
 										dest++; \
 										ut += ui; vt += vi; l += dldx;
 
-#define C_TMAP_SCANLINE_PLT_LOOP 		c = pixptr[(((int)vt & 63) << 6) + ((int)ut & 63)]; \
+#define C_TMAP_SCANLINE_PLT_LOOP 		c = pixptr[(((int)InlineFloor(vt) & 63) << 6) + ((int)InlineFloor(ut) & 63)]; \
 										if (c != 255) \
 											*dest = gr_fade_table[((int)l & (0xff00)) + c]; \
 										dest++; \
@@ -397,7 +420,7 @@ void Texmap::DrawScanlinePerspectivePer16()
 	{
 		for (x = num_left_over; x > 0; --x)
 		{
-			*dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[(((int)(v / z) & 63) << 6) + ((int)(u / z) & 63)]];
+			*dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[(((int)floor(v / z) & 63) << 6) + ((int)floor(u / z) & 63)]];
 			dest++;
 			//*dest++ = 15;
 			l += dldx;
@@ -411,7 +434,7 @@ void Texmap::DrawScanlinePerspectivePer16()
 	{
 		for (x = num_left_over; x > 0; --x)
 		{
-			c = (uint32_t)pixptr[(((int)(v / z) & 63) << 6) + ((int)(u / z) & 63)];
+			c = (uint32_t)pixptr[(((int)InlineFloor(v / z) & 63) << 6) + ((int)InlineFloor(u / z) & 63)];
 			//c = 15;
 			if (c != 255)
 				*dest = gr_fade_table[((int)l & 0xff00) + c];
@@ -426,13 +449,13 @@ void Texmap::DrawScanlinePerspectivePer16()
 }
 
 //even and odd
-#define C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP 		*dest = (uint32_t)pixptr[(((int)vt & 63) * 64) + ((int)ut & 63)];\
+#define C_TMAP_SCANLINE_PLN_NOLIGHT_LOOP 		*dest = (uint32_t)pixptr[(((int)InlineFloor(vt) & 63) * 64) + ((int)InlineFloor(ut) & 63)];\
 										dest++;\
 										ut += ui;\
 										vt += vi;\
 										l += dldx;\
 
-#define C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP 	c = (uint32_t)pixptr[(((int)vt & 63) * 64) + ((int)ut & 63)];\
+#define C_TMAP_SCANLINE_PLT_NOLIGHT_LOOP 	c = (uint32_t)pixptr[(((int)InlineFloor(vt) & 63) * 64) + ((int)InlineFloor(ut) & 63)];\
 										if (c != 255)\
 										*dest = c;\
 										dest++;\
@@ -536,7 +559,7 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 	{
 		for (x = num_left_over; x > 0; --x)
 		{
-			*dest = pixptr[(((int)(v / z) & 63) << 6) + ((int)(u / z) & 63)];
+			*dest = pixptr[(((int)InlineFloor(v / z) & 63) << 6) + ((int)InlineFloor(u / z) & 63)];
 			dest++;
 			//*dest++ = 15;
 			l += dldx;
@@ -550,7 +573,7 @@ void Texmap::DrawScanlinePerspectivePer16NoLight()
 	{
 		for (x = num_left_over; x > 0; --x)
 		{
-			c = (uint32_t)pixptr[(((int)(v / z) & 63) << 6) + ((int)(u / z) & 63)];
+			c = (uint32_t)pixptr[(((int)InlineFloor(v / z) & 63) << 6) + ((int)InlineFloor(u / z) & 63)];
 			//c = 15;
 			if (c != 255)
 				*dest = c;
