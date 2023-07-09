@@ -2760,6 +2760,8 @@ std::string multi_generate_config_string()
 	std::string config_string;
 	char separator = '\0';
 
+	network_validate_pps();
+
 	if (Current_mission_num != 0) //If mission isn't the built in one, encode the filename
 		multi_append_config_string(config_string, separator, "mission", Current_mission_filename, true);
 
@@ -2768,6 +2770,9 @@ std::string multi_generate_config_string()
 
 	if (Multi_num_extra_secondaries != 0)
 		multi_append_config_string(config_string, separator, "extra_sec", std::to_string(Multi_num_extra_secondaries));
+
+	//Always append PPS I guess, no reason to assume any particular node has a particular default. 
+	multi_append_config_string(config_string, separator, "pps", std::to_string(Network_PPS));
 
 	return config_string;
 }
@@ -2844,9 +2849,13 @@ void multi_parse_config_string(std::string_view& config_string)
 			Multi_num_extra_primaries = multi_parse_int_key(sc, token.get_chars());
 		else if (!token.get_chars().compare("extra_sec"))
 			Multi_num_extra_secondaries = multi_parse_int_key(sc, token.get_chars());
+		else if (!token.get_chars().compare("pps"))
+			Network_PPS = multi_parse_int_key(sc, token.get_chars());
 		else
 			Error("multi_parse_config_string: Unexpected value %s", token.get_chars().c_str());
 	}
+
+	network_validate_pps();
 }
 
 #endif

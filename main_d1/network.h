@@ -36,34 +36,16 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define CONNECT_ESCAPE_TUNNEL		5
 #define CONNECT_END_MENU			6
 
-typedef struct sequence_packet {
+struct sequence_packet
+{
 	uint8_t					type;
 	netplayer_info		player;
-} sequence_packet;
+};
 
-#ifdef SHAREWARE
-#define NET_XDATA_SIZE 256
-#else
 #define NET_XDATA_SIZE 454
-#endif
 
-#ifdef SHAREWARE
-typedef struct frame_info {
-	uint8_t				type;						// What type of p
-	int				numpackets;
-	short				objnum;
-	uint8_t				playernum;
-	short				obj_segnum;
-	vms_vector		obj_pos;
-	vms_matrix		obj_orient;
-	physics_info	obj_phys_info;
-	uint8_t				obj_render_type;
-	uint8_t				level_num;
-	uint16_t			data_size;		// Size of data appended to the net packet
-	uint8_t				data[NET_XDATA_SIZE];		// extra data to be tacked on the end
-} frame_info;
-#else
-typedef struct frame_info {
+struct frame_info
+{
 	uint8_t				type;						// What type of packet
 	uint8_t				pad[3];					// Pad out length of frame_info packet
 	int				numpackets;
@@ -77,10 +59,10 @@ typedef struct frame_info {
 	uint8_t				obj_render_type;
 	uint8_t				level_num;
 	uint8_t				data[NET_XDATA_SIZE];		// extra data to be tacked on the end
-} frame_info;
-#endif
+};
 
-typedef struct endlevel_info {
+struct endlevel_info 
+{
 	uint8_t					type;
 	uint8_t					player_num;
 	int8_t					connected;
@@ -88,7 +70,7 @@ typedef struct endlevel_info {
 	short					kills;
 	short					killed;
 	uint8_t					seconds_left;
-} endlevel_info;
+};
 
 void network_start_game();
 void network_join_game();
@@ -118,6 +100,8 @@ extern int Network_rejoined;
 extern int Network_new_game;
 extern int Network_status;
 
+extern int Network_PPS;
+
 extern bool Network_recieved_objects;
 
 extern uint16_t Current_Port;
@@ -139,5 +123,7 @@ void network_send_data(uint8_t* ptr, int len, int urgent);
 
 //Connects to a game at a specific address with the current port.  
 void network_join_game_at(uint8_t* address);
+
+void network_validate_pps();
 
 #endif

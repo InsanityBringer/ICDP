@@ -99,6 +99,8 @@ int	Network_allow_socket_changes = 0;
 
 bool Network_recieved_objects;
 
+int Network_PPS = 20;
+
 uint16_t Current_Port = IPX_DEFAULT_SOCKET;
 
 // For rejoin object syncing
@@ -171,6 +173,14 @@ void network_init(void)
 	Network_new_game = 1;
 	Fuelcen_control_center_destroyed = 0;
 	network_flush();
+}
+
+void network_validate_pps()
+{
+	if (Network_PPS < 10)
+		Network_PPS = 10;
+	if (Network_PPS > 30)
+		Network_PPS = 30;
 }
 
 #define ENDLEVEL_SEND_INTERVAL F1_0*2
@@ -1745,15 +1755,19 @@ void network_start_poll(int nitems, newmenu_item* menus, int* key, int citem)
 	}
 }
 
+constexpr int PPS_MUL = 5;
+
 int opt_cinvul;
 int last_cinvul = 0;
 int opt_mode;
 int opt_extra_primaries;
 int opt_extra_secondaries;
+int opt_pps;
 
 //placeholder
 int last_num_extra_primaries;
 int last_num_extra_secondaries;
+int last_pps;
 
 void network_extra_game_param_poll(int nitems, newmenu_item* menus, int* key, int citem)
 {
@@ -1777,6 +1791,13 @@ void network_extra_game_param_poll(int nitems, newmenu_item* menus, int* key, in
 		last_num_extra_secondaries = menus[opt_extra_secondaries].value;
 		menus[opt_extra_secondaries].redraw = 1;
 	}
+
+	if (last_pps != menus[opt_pps].value)
+	{
+		sprintf(menus[opt_pps].text, "%s: %d", "PPS", menus[opt_pps].value * PPS_MUL + 10);
+		last_pps = menus[opt_pps].value;
+		menus[opt_pps].redraw = 1;
+	}
 }
 
 void network_more_game_options()
@@ -1785,7 +1806,7 @@ void network_more_game_options()
 	int i = 0;
 	int opt = 0;
 	char srinvul[32];
-	char primary_buf[32], secondary_buf[32];
+	char primary_buf[32], secondary_buf[32], pps_buf[32];
 
 	opt_cinvul = opt;
 	sprintf(srinvul, "%s: %d %s", TXT_REACTOR_LIFE, 5 * control_invul_time, TXT_MINUTES_ABBREV);
@@ -1802,6 +1823,12 @@ void network_more_game_options()
 	last_num_extra_secondaries = Multi_num_extra_secondaries;
 	m[opt].type = NM_TYPE_SLIDER; m[opt].value = Multi_num_extra_secondaries; m[opt].text = secondary_buf; m[opt].min_value = 0; m[opt].max_value = 4; opt++;
 
+	opt_pps = opt;
+	int pps_opt = (Network_PPS - 10) / PPS_MUL;
+	sprintf(pps_buf, "%s: %d", "PPS", Network_PPS);
+	last_pps = Network_PPS;
+	m[opt].type = NM_TYPE_SLIDER; m[opt].value = pps_opt; m[opt].text = pps_buf; m[opt].min_value = 0; m[opt].max_value = (30 - 10) / PPS_MUL; opt++;
+
 	while (i != -1)
 	{
 		i = newmenu_do1(nullptr, "Game options", opt, m, network_extra_game_param_poll, i);
@@ -1809,6 +1836,7 @@ void network_more_game_options()
 		control_invul_time = m[opt_cinvul].value;
 		Multi_num_extra_primaries = m[opt_extra_primaries].value;
 		Multi_num_extra_secondaries = m[opt_extra_secondaries].value;
+		Network_PPS = m[opt_pps].value * PPS_MUL + 10;
 	}
 }
 
@@ -1966,8 +1994,7 @@ menu:
 	return i;
 }
 
-void
-network_set_game_mode(int gamemode)
+void network_set_game_mode(int gamemode)
 {
 	Show_kill_list = 1;
 
@@ -1990,8 +2017,7 @@ network_set_game_mode(int gamemode)
 		MaxNumNetPlayers = 8;
 }
 
-int
-network_find_game(void)
+int network_find_game(void)
 {
 	// Find out whether or not there is space left on this socket
 
@@ -3089,7 +3115,7 @@ void network_do_frame(int force, int listen)
 	last_timeout_check += FrameTime;
 
 	// Send out packet 10 times per second maximum... unless they fire, then send more often...
-	if ((last_send_time > F1_0 / 10) || (Network_laser_fired) || force || PacketUrgent) 
+	if ((last_send_time > (F1_0 / Network_PPS)) || (Network_laser_fired) || force || PacketUrgent)
 	{
 		if (Players[Player_num].connected) 
 		{
