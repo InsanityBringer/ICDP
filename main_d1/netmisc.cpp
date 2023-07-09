@@ -300,6 +300,8 @@ std::string netmisc_decode_string(uint8_t* ptr, int* offset, int packet_length)
 	}
 
 	mprintf((0, "Decoded string %s\n", str.c_str()));
+
+	return str;
 }
 
 void netmisc_encode_netplayer_info(uint8_t* ptr, int* offset, netplayer_info* info)

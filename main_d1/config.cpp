@@ -184,7 +184,7 @@ int ReadConfigFile()
 			{
 				char* p;
 				strncpy(config_last_mission, value, MISSION_NAME_LEN);
-				config_last_mission[CALLSIGN_LEN] = '\0';
+				config_last_mission[MISSION_NAME_LEN] = '\0';
 				p = strchr(config_last_mission, '\n');
 				if (p)* p = 0;
 			}
