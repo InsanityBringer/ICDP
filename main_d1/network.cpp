@@ -158,7 +158,7 @@ void network_init(void)
 
 	int save_pnum = Player_num;
 
-	memset(&Netgame, 0, sizeof(netgame_info));
+	Netgame.clear();
 	memset(&My_Seq, 0, sizeof(sequence_packet));
 	My_Seq.type = PID_REQUEST;
 	memcpy(My_Seq.player.callsign, Players[Player_num].callsign, CALLSIGN_LEN + 1);
@@ -1280,6 +1280,11 @@ void network_process_gameinfo(uint8_t* data)
 	int connected_to = -1;
 
 	netmisc_decode_netgameinfo(data, &len, IPX_MAX_DATA_SIZE, &newgame);
+	if (newgame.id != NETGAME_ID)
+	{
+		mprintf((0, "Bad netgame id: Expected %d, got %d.\n", NETGAME_ID, newgame.id));
+		return; //Not an ICDP netgame
+	}
 
 	Network_games_changed = 1;
 
@@ -1319,7 +1324,6 @@ void network_process_gameinfo(uint8_t* data)
 		// Delete this game
 		for (j = i; j < num_active_games - 1; j++)
 			Active_games[j] = Active_games[j + 1];
-			//memcpy(&Active_games[j], &Active_games[j + 1], sizeof(netgame_info));
 		num_active_games--;
 	}
 }
@@ -2082,7 +2086,7 @@ void network_read_sync_packet(netgame_info* sp)
 	}
 
 	if (sp != &Netgame)
-		memcpy(&Netgame, sp, sizeof(netgame_info));
+		Netgame = *sp;
 
 	N_players = sp->numplayers;
 	Difficulty_level = sp->difficulty;

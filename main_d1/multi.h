@@ -210,9 +210,12 @@ struct netplayer_info
 	uint32_t	identifier; //TODO: This is a hack. Each node gets a random identifier, since on the internet using IP addresses to check uniqueness gets weird on the client. Can collide!
 };
 
+constexpr int NETGAME_ID = 0x54078;
+
 struct netgame_info
 {
 	uint8_t				type;
+	uint32_t			id;
 	uint8_t				protocol_version;
 	char				game_name[NETGAME_NAME_LEN + 1];
 	char				team_name[2][CALLSIGN_LEN + 1];
@@ -243,6 +246,7 @@ struct netgame_info
 
 	void clear()
 	{
+		id = NETGAME_ID;
 		type = 0;
 		protocol_version = 0;
 		memset(game_name, 0, sizeof(game_name));

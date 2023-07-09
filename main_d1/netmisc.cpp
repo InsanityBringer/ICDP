@@ -317,6 +317,7 @@ void netmisc_encode_netgameinfo(uint8_t* ptr, int* offset, netgame_info* info)
 {
 	int i, j;
 	netmisc_encode_int8(ptr, offset, info->type);
+	netmisc_encode_int32(ptr, offset, info->id);
 	netmisc_encode_int8(ptr, offset, info->protocol_version);
 	netmisc_encode_buffer(ptr, offset, info->game_name, NETGAME_NAME_LEN + 1);
 	netmisc_encode_buffer(ptr, offset, info->team_name[0], CALLSIGN_LEN + 1);
@@ -535,6 +536,7 @@ void netmisc_decode_netgameinfo(uint8_t* ptr, int* offset, int buffer_size, netg
 {
 	int i, j;
 	netmisc_decode_int8(ptr, offset, &info->type);
+	netmisc_decode_int32(ptr, offset, (int*)&info->id);
 	netmisc_decode_int8(ptr, offset, &info->protocol_version);
 	netmisc_decode_buffer(ptr, offset, info->game_name, NETGAME_NAME_LEN + 1);
 	netmisc_decode_buffer(ptr, offset, info->team_name[0], CALLSIGN_LEN + 1);

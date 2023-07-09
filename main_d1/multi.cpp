@@ -2826,6 +2826,8 @@ void multi_parse_config_string(std::string_view& config_string)
 	memset(Current_mission_filename, 0, sizeof(Current_mission_filename));
 	Multi_num_extra_primaries = Multi_num_extra_secondaries = 0;
 
+	mprintf((0, "parsing config string %s\n", config_string.data()));
+
 	if (config_string.size() == 0)
 		return; //nothing to parse
 
