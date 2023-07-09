@@ -432,8 +432,7 @@ int can_join_netgame(netgame_info* game)
 	return 0;
 }
 
-void
-network_disconnect_player(int playernum)
+void network_disconnect_player(int playernum)
 {
 	// A player has disconnected from the net game, take whatever steps are
 	// necessary 
@@ -444,6 +443,7 @@ network_disconnect_player(int playernum)
 		return;
 	}
 
+	mprintf((0, "ICDP: player %d has been disconnected\n", playernum));
 	Players[playernum].connected = 0;
 	Netgame.players[playernum].connected = 0;
 
@@ -1196,8 +1196,7 @@ network_send_endlevel_sub(int player_num)
 	}
 }
 
-void
-network_send_endlevel_packet(void)
+void network_send_endlevel_packet(void)
 {
 	// Send an updated endlevel status to other hosts
 
@@ -3177,7 +3176,9 @@ void network_do_frame(int force, int listen)
 		// Check for player timeouts
 		for (i = 0; i < N_players; i++)
 		{
-			if ((i != Player_num) && (Players[i].connected == 1))
+			//Extend this test to try to detect ghosts
+			//These can be caused by a player disconnecting, other nodes recieve the endlevel packet that updates the connected status, but not the "quit" packet due to network problems. 
+			if ((i != Player_num) && (Players[i].connected == 1 || (Players[i].connected == 0 && Objects[Players[i].objnum].type != OBJ_GHOST)))
 			{
 				if ((LastPacketTime[i] == 0) || (LastPacketTime[i] > approx_time))
 				{
@@ -3190,6 +3191,7 @@ void network_do_frame(int force, int listen)
 		}
 		last_timeout_check = 0;
 	}
+
 
 listen:
 	if (!listen)
