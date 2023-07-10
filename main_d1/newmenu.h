@@ -59,8 +59,14 @@ extern int newmenu_do1(const char* title, const char* subtitle, int nitems, newm
 extern int newmenu_do2(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, const char* filename);
 
 // Same as above, only you can pass through the width & height
-extern int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, const char* filename, int width, int height);
+extern int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, const char* filename, int width, int height, bool tiny_mode = false);
 
+inline int newmenu_dotiny(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, int width)
+{
+	return newmenu_do3(title, subtitle, nitems, item, subfunction, citem, nullptr, width, -1, true);
+}
+
+//ICDP TODO: These can be all consolidated into one menu func with default parameters
 
 // Sample Code:
 /*

@@ -49,22 +49,23 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "player.h"
 #include "platform/platform.h"
 
-#define TITLE_FONT  		(Gamefonts[GFONT_BIG_1])
+#define TITLE_FONT  	(Gamefonts[GFONT_BIG_1])
 
 #define SUBTITLE_FONT	(Gamefonts[GFONT_MEDIUM_3])
 #define CURRENT_FONT  	(Gamefonts[GFONT_MEDIUM_2])
 #define NORMAL_FONT  	(Gamefonts[GFONT_MEDIUM_1])
 #define TEXT_FONT  		(Gamefonts[GFONT_MEDIUM_3])
+#define SMALL_FONT		(Gamefonts[GFONT_SMALL])
 
-#define NORMAL_CHECK_BOX	""
-#define CHECKED_CHECK_BOX	"‚"
-#define NORMAL_RADIO_BOX	""
-#define CHECKED_RADIO_BOX	"€"
+#define NORMAL_CHECK_BOX	"\x81"
+#define CHECKED_CHECK_BOX	"\x82"
+#define NORMAL_RADIO_BOX	"\x7F"
+#define CHECKED_RADIO_BOX	"\x80"
 #define CURSOR_STRING		"_"
-#define SLIDER_LEFT			"ƒ"		// 131
-#define SLIDER_RIGHT			"„"		// 132
-#define SLIDER_MIDDLE		"…"		// 133
-#define SLIDER_MARKER		"†"		// 134
+#define SLIDER_LEFT			"\x83"		// 131
+#define SLIDER_RIGHT		"\x84"		// 132
+#define SLIDER_MIDDLE		"\x85"		// 133
+#define SLIDER_MARKER		"\x86"		// 134
 
 int Newmenu_first_time = 1;
 
@@ -337,18 +338,32 @@ void nm_string_inputbox(bkg* b, int w, int x, int y, char* text, int current)
 	}
 }
 
-void draw_item(bkg* b, newmenu_item* item, int is_current)
+void draw_item(bkg* b, newmenu_item* item, int is_current, bool tiny)
 {
-	if (is_current)
-		grd_curcanv->cv_font = CURRENT_FONT;
+	if (tiny)
+	{
+		if (is_current)
+			gr_set_fontcolor(gr_find_closest_color_current(57, 49, 20), -1);
+		else
+			gr_set_fontcolor(gr_find_closest_color_current(29, 29, 47), -1);
+
+		//Not quite sure why Descent 2 does this
+		if (item->text[0] == '\t')
+			gr_set_fontcolor(gr_find_closest_color_current(63, 63, 63), -1);
+	}
 	else
-		grd_curcanv->cv_font = NORMAL_FONT;
+	{
+		if (is_current)
+			grd_curcanv->cv_font = CURRENT_FONT;
+		else if (item->type == NM_TYPE_TEXT)
+			grd_curcanv->cv_font = TEXT_FONT; //Need to do this here for tiny rendering to work right
+		else
+			grd_curcanv->cv_font = NORMAL_FONT;
+	}
 
 	switch (item->type) 
 	{
 	case NM_TYPE_TEXT:
-		grd_curcanv->cv_font = TEXT_FONT;
-		// fall through on purpose
 	case NM_TYPE_MENU:
 		nm_string(b, item->w, item->x, item->y, item->text);
 		break;
@@ -459,7 +474,7 @@ int newmenu_do2(const char* title, const char* subtitle, int nitems, newmenu_ite
 	return newmenu_do3(title, subtitle, nitems, item, subfunction, citem, filename, -1, -1);
 }
 
-int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, const char* filename, int width, int height)
+int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
 	int old_keyd_repeat, done;
 	int  choice, old_choice, x, y, twidth, fm, right_offset;
@@ -508,7 +523,10 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 
 	th += 8;		//put some space between titles & body
 
-	grd_curcanv->cv_font = NORMAL_FONT;
+	if (tiny_mode)
+		grd_curcanv->cv_font = SMALL_FONT;
+	else
+		grd_curcanv->cv_font = NORMAL_FONT;
 
 	int w = 0; int aw = 0;
 	int h = th;
@@ -709,7 +727,10 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 		ty += th;
 	}
 
-	grd_curcanv->cv_font = NORMAL_FONT;
+	if (tiny_mode)
+		grd_curcanv->cv_font = SMALL_FONT;
+	else
+		grd_curcanv->cv_font = NORMAL_FONT;
 
 	// Update all item's x & y values.
 	for (int i = 0; i < nitems; i++) 
@@ -1051,7 +1072,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 		{
 			if (item[i].redraw) 
 			{
-				draw_item(&bg, &item[i], (i == choice && !all_text));
+				draw_item(&bg, &item[i], (i == choice && !all_text), tiny_mode);
 				item[i].redraw = 0;
 			}
 			else if (i == choice && (item[i].type == NM_TYPE_INPUT || (item[i].type == NM_TYPE_INPUT_MENU && item[i].group)))
@@ -1262,7 +1283,7 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	char localized_demo_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char localized_filespec[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	const char *wildcard_pos;
-	get_platform_localized_query_string(localized_demo_query, CHOCOLATE_PILOT_DIR, "*.plr");
+	get_platform_localized_query_string(localized_demo_query, CHOCOLATE_PILOT_DIR, "*.nplt");
 	get_platform_localized_query_string(localized_demo_query, CHOCOLATE_DEMOS_DIR, "*.dem");
 
 	wildcard_pos = strrchr(filespec, '*');

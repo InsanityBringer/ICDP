@@ -56,23 +56,23 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "playsave.h"
 
 #ifdef SHAREWARE
-#define PID_REQUEST 					11
-#define PID_SYNC						13
-#define PID_PDATA						14
+#define PID_REQUEST 				11
+#define PID_SYNC					13
+#define PID_PDATA					14
 #define PID_ADDPLAYER				15
-#define PID_DUMP						17
-#define PID_ENDLEVEL					18
+#define PID_DUMP					17
+#define PID_ENDLEVEL				18
 #define PID_QUIT_JOINING			20
 #define PID_OBJECT_DATA				21
 #define PID_GAME_LIST				22
 #define PID_GAME_INFO				24
 #else
-#define PID_REQUEST 					25
-#define PID_SYNC						27
-#define PID_PDATA						28
+#define PID_REQUEST 				25
+#define PID_SYNC					27
+#define PID_PDATA					28
 #define PID_ADDPLAYER				29
-#define PID_DUMP						31
-#define PID_ENDLEVEL					32
+#define PID_DUMP					31
+#define PID_ENDLEVEL				32
 #define PID_QUIT_JOINING			34
 #define PID_OBJECT_DATA				35
 #define PID_GAME_LIST				36
@@ -82,9 +82,9 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define NETGAME_ANARCHY				0
 #define NETGAME_TEAM_ANARCHY		1
 #define NETGAME_ROBOT_ANARCHY		2
-#define NETGAME_COOPERATIVE		3
+#define NETGAME_COOPERATIVE			3
 
-#define MAX_ACTIVE_NETGAMES 	4
+#define MAX_ACTIVE_NETGAMES 		12
 netgame_info Active_games[MAX_ACTIVE_NETGAMES];
 int num_active_games = 0;
 
@@ -2518,18 +2518,16 @@ void restart_net_searching(newmenu_item* m)
 	Network_games_changed = 1;
 }
 
+const char* ModeLetters[] = { "ANRCHY","TEAM","ROBO","COOP","CTF","HOARD","TMHOARD" };
+
 void network_join_poll(int nitems, newmenu_item* menus, int* key, int citem)
 {
 	// Polling loop for Join Game menu
 	static fix t1 = 0;
 	int i, osocket;
 
-	menus = menus;
-	citem = citem;
-	nitems = nitems;
-	key = key;
-
-	if (Network_allow_socket_changes) {
+	if (Network_allow_socket_changes) 
+	{
 		osocket = Network_socket;
 
 		if (*key == KEY_PAGEUP) { Network_socket--; *key = 0; }
@@ -2541,7 +2539,8 @@ void network_join_poll(int nitems, newmenu_item* menus, int* key, int citem)
 		if (Network_socket + IPX_DEFAULT_SOCKET < 0)
 			Network_socket = IPX_DEFAULT_SOCKET;
 
-		if (Network_socket != osocket) {
+		if (Network_socket != osocket) 
+		{
 			sprintf(menus[0].text, "%s %+d", TXT_CURRENT_IPX_SOCKET, Network_socket);
 			menus[0].redraw = 1;
 			mprintf((0, "Changing to socket %d\n", Network_socket));
@@ -2566,10 +2565,101 @@ void network_join_poll(int nitems, newmenu_item* menus, int* key, int citem)
 
 	Network_games_changed = 0;
 
+	mprintf((0, "JOIN POLL: I'm looking at %d games!\n", num_active_games));
+
 	// Copy the active games data into the menu options
 	for (i = 0; i < num_active_games; i++)
 	{
 		int game_status = Active_games[i].game_status;
+		int j, x, k, tx, ty, ta, nplayers = 0;
+		char levelname[8], MissName[25], GameName[25], thold[2];
+		thold[1] = 0;
+
+		// These next two loops protect against menu skewing
+		// if missiontitle or gamename contain a tab
+
+		for (x = 0, tx = 0, k = 0, j = 0; j < 15; j++)
+		{
+			if (Active_games[i].mission_title[j] == '\t')
+				continue;
+			thold[0] = Active_games[i].mission_title[j];
+			gr_get_string_size(thold, &tx, &ty, &ta);
+
+			if ((x += tx) >= 55)
+			{
+				MissName[k] = MissName[k + 1] = MissName[k + 2] = '.';
+				k += 3;
+				break;
+			}
+
+			MissName[k++] = Active_games[i].mission_title[j];
+		}
+		MissName[k] = 0;
+
+		for (x = 0, tx = 0, k = 0, j = 0; j < 15; j++)
+		{
+			if (Active_games[i].game_name[j] == '\t')
+				continue;
+			thold[0] = Active_games[i].game_name[j];
+			gr_get_string_size(thold, &tx, &ty, &ta);
+
+			if ((x += tx) >= 55)
+			{
+				GameName[k] = GameName[k + 1] = GameName[k + 2] = '.';
+				k += 3;
+				break;
+			}
+			GameName[k++] = Active_games[i].game_name[j];
+		}
+		GameName[k] = 0;
+
+
+		nplayers = 0; //TODO
+
+		if (Active_games[i].levelnum < 0)
+			sprintf(levelname, "S%d", -Active_games[i].levelnum);
+		else
+			sprintf(levelname, "%d", Active_games[i].levelnum);
+
+		if (game_status == NETSTAT_STARTING)
+		{
+			sprintf(menus[i + 2].text, "%d. %s %s  %d/%d %s  %s %s",
+				i + 1, GameName, ModeLetters[Active_games[i].gamemode], nplayers,
+				Active_games[i].max_numplayers, MissName, levelname, "Forming");
+		}
+		else if (game_status == NETSTAT_PLAYING)
+		{
+			int join_status = can_join_netgame(&Active_games[i]);
+			//		 mprintf ((0,"Joinstatus=%d\n",join_status));
+
+			//[ICDP TODO] I don't have the D2 server browser tab hacks in 
+			if (join_status == 1)
+				sprintf(menus[i + 2].text, "%d. %s %s   %d/%d %s  %s %s",
+					i + 1, GameName, ModeLetters[Active_games[i].gamemode], nplayers,
+					Active_games[i].max_numplayers, MissName, levelname, "Open");
+			else if (join_status == 2)
+				sprintf(menus[i + 2].text, "%d. %s %s   %d/%d %s  %s %s",
+					i + 1, GameName, ModeLetters[Active_games[i].gamemode], nplayers,
+					Active_games[i].max_numplayers, MissName, levelname, "Full");
+			else if (join_status == 3)
+				sprintf(menus[i + 2].text, "%d. %s %s   %d/%d %s  %s %s",
+					i + 1, GameName, ModeLetters[Active_games[i].gamemode], nplayers,
+					Active_games[i].max_numplayers, MissName, levelname, "Restrict");
+			else
+				sprintf(menus[i + 2].text, "%d. %s %s   %d/%d %s  %s %s",
+					i + 1, GameName, ModeLetters[Active_games[i].gamemode], nplayers,
+					Active_games[i].max_numplayers, MissName, levelname, "Closed");
+
+		}
+		else
+			sprintf(menus[i + 2].text, "%d. %s %s  %d/%d %s  %s %s",
+				i + 1, GameName, ModeLetters[Active_games[i].gamemode], nplayers,
+				Active_games[i].max_numplayers, MissName, levelname, "Between");
+
+
+		Assert(strlen(menus[i + 2].text) < 100);
+		menus[i + 2].redraw = 1;
+		/*int game_status = Active_games[i].game_status;
 		int j, nplayers = 0;
 		char levelname[4];
 
@@ -2603,15 +2693,13 @@ void network_join_poll(int nitems, newmenu_item* menus, int* key, int citem)
 
 		Assert(strlen(menus[(2 * i) + 2].text) < 70);
 		menus[(2 * i) + 1].redraw = 1;
-		menus[(2 * i) + 2].redraw = 1;
+		menus[(2 * i) + 2].redraw = 1;*/
 	}
 
 	for (i = num_active_games; i < MAX_ACTIVE_NETGAMES; i++)
 	{
-		sprintf(menus[(2 * i) + 1].text, "%d.                                       ", i + 1);
-		sprintf(menus[(2 * i) + 2].text, " \n");
-		menus[(2 * i) + 1].redraw = 1;
-		menus[(2 * i) + 2].redraw = 1;
+		sprintf(menus[i + 2].text, "%d.                                       ", i + 1);
+		menus[i + 2].redraw = 1;
 	}
 }
 
@@ -2774,9 +2862,9 @@ int network_level_sync(void)
 void network_join_game()
 {
 	int choice, i;
-	char menu_text[(MAX_ACTIVE_NETGAMES * 2) + 1][70];
+	char menu_text[MAX_ACTIVE_NETGAMES + 2][70];
 
-	newmenu_item m[((MAX_ACTIVE_NETGAMES) * 2) + 1];
+	newmenu_item m[MAX_ACTIVE_NETGAMES + 2];
 
 	if (!Network_active)
 	{
@@ -2785,7 +2873,7 @@ void network_join_game()
 	}
 
 	network_init();
-
+	
 	N_players = 0;
 
 	setjmp(LeaveGame);
@@ -2798,33 +2886,32 @@ void network_join_game()
 
 	num_active_games = 0;
 
-	memset(m, 0, sizeof(newmenu_item) * (MAX_ACTIVE_NETGAMES * 2));
+	memset(m, 0, sizeof(newmenu_item) * MAX_ACTIVE_NETGAMES);
 	for (i = 0; i < 4; i++)
 		Active_games[i].clear();
 
 	m[0].text = menu_text[0];
 	m[0].type = NM_TYPE_TEXT;
-	if (Network_allow_socket_changes)
-		sprintf(m[0].text, "Current IPX Socket is default%+d", Network_socket);
-	else
-		sprintf(m[0].text, "");
+	sprintf(m[0].text, "Current UDP port is %d", Current_Port);
 
-	for (i = 0; i < MAX_ACTIVE_NETGAMES; i++) {
-		m[2 * i + 1].text = menu_text[2 * i + 1];
-		m[2 * i + 2].text = menu_text[2 * i + 2];
-		m[2 * i + 1].type = NM_TYPE_MENU;
-		m[2 * i + 2].type = NM_TYPE_TEXT;
-		sprintf(m[(2 * i) + 1].text, "%d.                                       ", i + 1);
-		sprintf(m[(2 * i) + 2].text, " \n");
-		m[(2 * i) + 1].redraw = 1;
-		m[(2 * i) + 2].redraw = 1;
+	m[1].text = menu_text[1];
+	m[1].type = NM_TYPE_TEXT;
+	sprintf(m[1].text, "");
+
+	for (i = 0; i < MAX_ACTIVE_NETGAMES; i++) 
+	{
+		m[i + 2].text = menu_text[i + 2];
+		m[i + 2].type = NM_TYPE_MENU;
+		sprintf(m[i + 2].text, "%d.                                       ", i + 1);
+		m[i + 2].redraw = 1;
 	}
 
 	Network_games_changed = 1;
 remenu:
-	choice = newmenu_do1(NULL, TXT_NET_SEARCHING, (MAX_ACTIVE_NETGAMES) * 2 + 1, m, network_join_poll, 0);
+	choice = newmenu_dotiny(NULL, TXT_NET_SEARCHING, MAX_ACTIVE_NETGAMES + 2, m, network_join_poll, 0, 320);
 
-	if (choice == -1) {
+	if (choice == -1) 
+	{
 		Network_status = NETSTAT_MENU;
 		return;	// they cancelled		
 	}
