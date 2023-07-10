@@ -1144,6 +1144,9 @@ void do_end_game(void)
 //Gets a color for the briefing system, emulating overflows
 int choco_get_briefing_foreground_color(int index)
 {
+	if (index < 0)
+		Error("Unexpected negative value in choco_get_briefing_foreground_color.");
+	
 	if (index < 2)
 		return Briefing_foreground_colors[index];
 
@@ -1165,23 +1168,29 @@ int choco_get_briefing_foreground_color(int index)
 	else if (index == 7)
 		return Robot_angles.p | (Robot_angles.b << 16);
 
+	else if (index == 8)
+		return Robot_angles.h;
+
 	else
-		Error("choco_get_briefing_foreground_color: Overflow of %d beyond emulated range", index);
+		return 0; //There's a large field of 0s after this that don't seem to be written to. 
 }
 
 //Gets a color for the briefing system, emulating overflows
 int choco_get_briefing_background_color(int index)
 {
+	if (index < 0)
+		Error("Unexpected negative value in choco_get_briefing_background_color.");
+
 	if (index < 2)
 		return Briefing_background_colors[index];
 
 	//Elements from shareware 1.0
-	else if (index < 192)
+	else if (index < 194)
 	{
 		int offset = (index - 2) << 2;
 		return New_pal[offset] | (New_pal[offset + 1] << 8) | (New_pal[offset + 2] << 16) | (New_pal[offset + 3] << 24);
 	}
 
 	else
-		Error("choco_get_briefing_background_color: Overflow of %d beyond emulated range", index);
+		return choco_get_briefing_foreground_color(index - 194);
 }
