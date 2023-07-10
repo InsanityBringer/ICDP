@@ -177,13 +177,11 @@ void gameseq_init_network_players()
 	{
 		if ((Objects[i].type == OBJ_PLAYER) || (Objects[i].type == OBJ_GHOST) || (Objects[i].type == OBJ_COOP))
 		{
-#ifndef SHAREWARE
 			if ((!(Game_mode & GM_MULTI_COOP) && ((Objects[i].type == OBJ_PLAYER) || (Objects[i].type == OBJ_GHOST))) ||
 				((Game_mode & GM_MULTI_COOP) && ((j == 0) || (Objects[i].type == OBJ_COOP))))
 			{
 				mprintf((0, "Created Cooperative multiplayer object\n"));
 				Objects[i].type = OBJ_PLAYER;
-#endif
 				mprintf((0, "Player init %d is ship %d.\n", k, j));
 				Player_init[k].pos = Objects[i].pos;
 				Player_init[k].orient = Objects[i].orient;
@@ -191,12 +189,10 @@ void gameseq_init_network_players()
 				Players[k].objnum = i;
 				Objects[i].id = k;
 				k++;
-#ifndef SHAREWARE
 			}
 			else
 				obj_delete(i);
 			j++;
-#endif
 		}
 	}
 	NumNetPlayerPositions = k;
@@ -223,9 +219,7 @@ void gameseq_remove_unused_players()
 		{
 			if ((!Players[i].connected) || (i >= N_players))
 			{
-#ifndef NDEBUG
-				//				mprintf((0, "Ghosting player ship %d.\n", i+1));
-#endif
+				mprintf((0, "Ghosting player ship %d.\n", i+1));
 				multi_make_player_ghost(i);
 			}
 		}

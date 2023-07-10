@@ -979,7 +979,7 @@ void multi_do_create_robot_powerups(uint8_t* buf)
 {
 	// Code to drop remote-controlled robot powerups
 	multi_drop_robot_loot packet;
-	packet.from_buf(buf, 0, sizeof(buf));
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
 	object del_obj;
 	int8_t pnum = packet.player_num;

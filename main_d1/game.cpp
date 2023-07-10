@@ -789,7 +789,7 @@ int set_screen_mode(int sm)
 		//gr_init_sub_canvas(&VR_editor_canvas, &grd_curscreen->sc_canvas, 0, 0, grd_curscreen->sc_w, grd_curscreen->sc_h);
 		//Canv_editor = &VR_editor_canvas;
 		//gr_init_sub_canvas(VR_screen_buffer, Canv_editor, 0, 0, Canv_editor->cv_w, Canv_editor->cv_h);
-		//VR_screen_buffer = gr_create_canvas(800, 600);
+		VR_screen_buffer = gr_create_canvas(800, 600);
 		Canv_editor = ui_canvas;
 
 		gr_set_current_canvas(Canv_editor);

@@ -2476,14 +2476,14 @@ network_start_game(void)
 
 	N_players = 0;
 
-	//Bugfix from a 25 year old message from Arne, MaxNumNetPlayers is set by the call to network_set_game_mode,
-	//but it was used while making the netgame. 
-	network_set_game_mode(Netgame.gamemode);
-
 	Netgame.difficulty = Difficulty_level;
 	Netgame.gamemode = chosen_game_mode;
 	Netgame.game_status = NETSTAT_STARTING;
 	Netgame.numplayers = 0;
+
+	//Bugfix from a 25 year old message from Arne, MaxNumNetPlayers is set by the call to network_set_game_mode,
+	//but it was used while making the netgame. 
+	network_set_game_mode(Netgame.gamemode);
 	Netgame.max_numplayers = MaxNumNetPlayers;
 	Netgame.levelnum = level;
 	Netgame.game_flags = game_flags;
