@@ -64,6 +64,8 @@ extern int Game_mode;
 extern int Game_paused;
 extern int gauge_message_on;
 
+extern grs_bitmap background_bitmap; //Used by gauges to draw the background
+
 #ifndef NDEBUG		//if debugging, these are variables
 extern int Slew_on;							//in slew or sim mode?
 #else					//if not debugging, these are constants

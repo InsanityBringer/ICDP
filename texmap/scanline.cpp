@@ -375,6 +375,12 @@ void Texmap::DrawScanlinePerspectivePer16()
 
 		if (!Transparency_on)
 		{
+#ifdef NDEBUG
+			for (int i = 0; i < 16; i++)
+			{
+				C_TMAP_SCANLINE_PLN_LOOP
+			}
+#else
 			C_TMAP_SCANLINE_PLN_LOOP
 			C_TMAP_SCANLINE_PLN_LOOP
 			C_TMAP_SCANLINE_PLN_LOOP
@@ -391,6 +397,7 @@ void Texmap::DrawScanlinePerspectivePer16()
 			C_TMAP_SCANLINE_PLN_LOOP
 			C_TMAP_SCANLINE_PLN_LOOP
 			C_TMAP_SCANLINE_PLN_LOOP
+#endif
 		}
 		else
 		{

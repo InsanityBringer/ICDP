@@ -1157,6 +1157,22 @@ void gauge_set_hud_proportions(float top, float bottom, bool fullwidth)
 	hud_fullwidth = fullwidth;
 }
 
+void fill_status_bar(int start_height)
+{
+	grs_bitmap* bm = &background_bitmap;
+
+	int htiles = cockpit_canvas->cv_bitmap.bm_w / bm->bm_w + 1;
+	int vtiles = start_height / bm->bm_h + 1;
+
+	for (int y = 0; y < vtiles; y++)
+	{
+		for (int x = 0; x < htiles; x++)
+		{
+			gr_bitmap(x * bm->bm_w, y * bm->bm_h + start_height, bm);
+		}
+	}
+}
+
 void init_cockpit_canvas()
 {
 	if (cockpit_canvas)
@@ -1210,6 +1226,8 @@ void init_cockpit_canvas()
 	if (ref_bm)
 	{
 		int y_offset = Cockpit_mode == CM_STATUS_BAR ? 200 - ref_bm->bm_h : 0;
+		if (Cockpit_mode == CM_STATUS_BAR)
+			fill_status_bar(y_offset);
 		gr_bitmap(extension_center_offset, y_offset, ref_bm);
 
 		gr_init_sub_canvas(&cockpit_center_canvas, cockpit_canvas, extension_center_offset, 0, ref_bm->bm_w, 200);

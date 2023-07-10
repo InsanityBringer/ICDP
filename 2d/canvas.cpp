@@ -38,11 +38,6 @@ grs_canvas* gr_create_canvas(int w, int h)
 	grs_canvas* newvar;
 
 	newvar = (grs_canvas*)malloc(sizeof(grs_canvas));
-	data = (unsigned char*)malloc(w * h * sizeof(unsigned char));
-
-	//This is needed at the moment, since all drawing happens on malloced canvases. 
-	//Use the same color as the MSVC debug runtime's fill
-	memset(data, 0xCD, w * h * sizeof(unsigned char));
 
 	newvar->cv_bitmap.bm_x = 0;
 	newvar->cv_bitmap.bm_y = 0;
@@ -50,7 +45,13 @@ grs_canvas* gr_create_canvas(int w, int h)
 	newvar->cv_bitmap.bm_h = h;
 	newvar->cv_bitmap.bm_flags = 0;
 	newvar->cv_bitmap.bm_type = BM_LINEAR;
-	newvar->cv_bitmap.bm_rowsize = w;
+	newvar->cv_bitmap.bm_rowsize = (w + 3) & ~3;
+
+	data = (unsigned char*)malloc(newvar->cv_bitmap.bm_rowsize * h * sizeof(unsigned char));
+
+	//This is needed at the moment, since all drawing happens on malloced canvases. 
+	//Use the same color as the MSVC debug runtime's fill
+	memset(data, 0xCD, newvar->cv_bitmap.bm_rowsize * h * sizeof(unsigned char));
 	newvar->cv_bitmap.bm_data = data;
 
 	newvar->cv_color = 0;
@@ -97,10 +98,7 @@ void gr_init_canvas(grs_canvas* canv, unsigned char* pixdata, int pixtype, int w
 
 	canv->cv_bitmap.bm_x = 0;
 	canv->cv_bitmap.bm_y = 0;
-	if (pixtype == BM_MODEX)
-		canv->cv_bitmap.bm_rowsize = w / 4;
-	else
-		canv->cv_bitmap.bm_rowsize = w;
+	canv->cv_bitmap.bm_rowsize = w;
 	canv->cv_bitmap.bm_w = w;
 	canv->cv_bitmap.bm_h = h;
 	canv->cv_bitmap.bm_flags = 0;

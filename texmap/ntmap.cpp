@@ -328,7 +328,7 @@ void Texmap::ScanlinePerspective(grs_bitmap* srcb, int y, float xleft, float xri
 		if (fx_xright > Window_clip_right)
 			fx_xright = Window_clip_right;
 
-		DrawScanlinePerspective();
+		DrawScanlinePerspectivePer16();
 		break;
 	}
 	case 2:

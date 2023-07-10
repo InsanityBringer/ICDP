@@ -334,7 +334,7 @@ void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds, bool blend)
 	GL_ErrorCheck("Setting source framebuffer filter mode");
 
 	sglViewport(bounds.x, bounds.y, bounds.w, bounds.h);
-	sglDrawArrays(GL_TRIANGLE_FAN, 0, 3);
+	sglDrawArrays(GL_TRIANGLES, 0, 3);
 
 	if (blend)
 		sglDisable(GL_BLEND);
