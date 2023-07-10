@@ -1509,7 +1509,7 @@ void multi_do_decloak(uint8_t* buf)
 void multi_do_door_open(uint8_t* buf)
 {
 	multi_segnum_sidenum packet;
-	packet.from_buf(buf, 0, sizeof(buf));
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
 	//	mprintf((0, "Opening door on side %d of segment # %d.\n", side, segnum));
 
@@ -1629,7 +1629,7 @@ void multi_do_play_sound(uint8_t* buf)
 void multi_do_score(uint8_t* buf)
 {
 	multi_score_value packet;
-	packet.from_buf(buf, 0, sizeof(buf));
+	packet.from_buf(buf, 0, sizeof(multibuf));
 
 	if ((packet.player_num < 0) || (packet.player_num >= N_players))
 	{
