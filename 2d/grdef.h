@@ -15,11 +15,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 void gr_linear_movsd(void* source, void* dest, unsigned short nbytes);
 
-extern unsigned int gr_var_color;
-extern unsigned int gr_var_bwidth;
-extern unsigned char* gr_var_bitmap;
-extern unsigned int Table8to32[256];
-
 #define WIDTH   grd_curcanv->cv_bitmap.bm_w
 #define HEIGHT  grd_curcanv->cv_bitmap.bm_h
 #define MINX    0
