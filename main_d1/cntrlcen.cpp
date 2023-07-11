@@ -289,14 +289,11 @@ void init_controlcen_for_level(void)
 		}
 	}
 
-#ifndef NDEBUG //[ISB] buy why
+#ifndef NDEBUG
 	if (cntrlcen_objnum == -1) 
-	{
 		mprintf((1, "Warning: No control center.\n"));
-		return;
-	}
-
 #endif
+
 	if ((boss_objnum != -1) && !((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_ROBOTS))) 
 	{
 		if (cntrlcen_objnum != -1) 
