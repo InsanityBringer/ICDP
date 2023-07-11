@@ -14,17 +14,22 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #pragma once
 
 #include <stdio.h>
+#include <string>
+#include <vector>
+#include <stdexcept>
 #include "misc/types.h"
+#include "misc/error.h"
 #include "fix/fix.h"
 #include "vecmat/vecmat.h"
 
-typedef struct CFILE
+struct CFILE
 {
-	FILE* file;
-	int				size;
-	int				lib_offset;
-	int				raw_position;
-} CFILE;
+	FILE*	file;
+	int		size;
+	int		lib_offset;
+	int		raw_position;
+};
+
 
 bool cfile_add_hogfile(const char* hogname);
 
@@ -64,3 +69,99 @@ bool cfile_use_alternate_hogfile(const char* name);
 
 void cfile_read_vector(vms_vector *vec, CFILE* fp);
 void cfile_read_angvec(vms_angvec *vec, CFILE* fp);
+
+struct hogfile
+{
+	char	name[13];
+	int		offset;
+	int 	length;
+};
+
+class hogarchive
+{
+	std::string archivename;
+	std::vector<hogfile> hogfiles;
+public:
+	hogarchive(const char* filename) : archivename(filename)
+	{
+		FILE* fp = fopen(filename, "rb");
+
+		if (fp)
+		{
+			char id[4];
+			fread(id, 3, 1, fp);
+			id[3] = '\0';
+
+			if (strncmp(id, "DHF", 3))
+			{
+				fclose(fp);
+				throw std::runtime_error("HOG archive has bad signature");
+			}
+
+			while (1)
+			{
+				hogfile file = {};
+
+				int i = fread(file.name, 13, 1, fp);
+				if (i != 1) //got all of them..
+				{
+					fclose(fp);
+					return;
+				}
+
+				file.length = file_read_int(fp);
+				if (file.length < 0)
+					Warning("Hogfile length < 0");
+				file.offset = ftell(fp);
+				hogfiles.push_back(file);
+
+				// Skip over
+				i = fseek(fp, file.length, SEEK_CUR);
+			}
+		}
+	}
+
+	size_t num_files() const
+	{
+		return hogfiles.size();
+	}
+
+	CFILE* open(const char* filename)
+	{
+		//As the filesystem becomes more complex, this probably will have to stop being a linear search
+		for (auto it = hogfiles.begin(); it < hogfiles.end(); it++)
+		{
+			if (!_stricmp(it->name, filename))
+			{
+				FILE* fp = fopen(archivename.c_str(), "rb");
+
+				fseek(fp, it->offset, SEEK_SET);
+				CFILE* cfile = (CFILE*)malloc(sizeof(CFILE));
+				if (cfile == NULL)
+					return NULL;
+
+				cfile->file = fp;
+				cfile->size = it->length;
+				cfile->lib_offset = it->offset;
+				cfile->raw_position = 0;
+				return cfile;
+			}
+		}
+
+		return nullptr;
+	}
+
+	bool exists(const char* filename)
+	{
+		//As the filesystem becomes more complex, this probably will have to stop being a linear search
+		for (auto it = hogfiles.begin(); it < hogfiles.end(); it++)
+		{
+			if (!_stricmp(it->name, filename))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+};

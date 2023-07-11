@@ -249,24 +249,19 @@ int new_player_config()
 //read in the player's saved games.  returns errno (0 == no error)
 int read_player_file()
 {
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#endif
 	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	int errno_ret = EZERO;
 
 	Assert(Player_num >= 0 && Player_num < MAX_PLAYERS);
 
 	//sprintf(filename, "%8s.plr", Players[Player_num].callsign);
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
 	get_full_file_path(filename_full_path, filename, CHOCOLATE_PILOT_DIR);
 	FILE* file = fopen(filename_full_path, "rb");
-#else
-	snprintf(filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.nplt", Players[Player_num].callsign);
-	filename[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
-	FILE* file = fopen(filename, "rb");
-#endif
+	//snprintf(filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.nplt", Players[Player_num].callsign);
+	//filename[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
+	//FILE* file = fopen(filename, "rb");
 
 	//check filename
 	/*if (file && isatty(fileno(file)))  //[ISB] TODO: fixme
@@ -411,19 +406,14 @@ int write_player_file()
 	//Structure is generated, so now serialize it.
 	int errno_ret = WriteConfigFile();
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#endif
 	char filename[_MAX_PATH];
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
 	get_full_file_path(filename_full_path, filename, CHOCOLATE_PILOT_DIR);
 	FILE* file = fopen(filename_full_path, "wb");
-#else
-	sprintf(filename, "%s.nplt", Players[Player_num].callsign);
-	FILE* file = fopen(filename, "wb");
-#endif
+	//sprintf(filename, "%s.nplt", Players[Player_num].callsign);
+	//FILE* file = fopen(filename, "wb");
 
 	if (!file)
 		return errno;

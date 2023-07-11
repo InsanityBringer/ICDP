@@ -30,110 +30,16 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "fix/fix.h"
 #include "vecmat/vecmat.h"
 
-struct hogfile
-{
-	char	name[13];
-	int	offset;
-	int 	length;
-};
-
-class hogarchive
-{
-	std::string archivename;
-	std::vector<hogfile> hogfiles;
-public:
-	hogarchive(const char* filename) : archivename(filename)
-	{
-		FILE* fp = fopen(filename, "rb");
-
-		if (fp)
-		{
-			char id[4];
-			fread(id, 3, 1, fp);
-			id[3] = '\0'; 
-
-			if (strncmp(id, "DHF", 3))
-			{
-				fclose(fp);
-				throw std::runtime_error("HOG archive has bad signature");
-			}
-
-			while (1)
-			{
-				hogfile file = {};
-
-				int i = fread(file.name, 13, 1, fp);
-				if (i != 1) //got all of them..
-				{
-					fclose(fp);
-					return;
-				}
-
-				file.length = file_read_int(fp);
-				if (file.length < 0)
-					Warning("Hogfile length < 0");
-				file.offset = ftell(fp);
-				hogfiles.push_back(file);
-
-				// Skip over
-				i = fseek(fp, file.length, SEEK_CUR);
-			}
-		}
-	}
-
-	size_t num_files() const
-	{
-		return hogfiles.size();
-	}
-
-	CFILE* open(const char* filename)
-	{
-		//As the filesystem becomes more complex, this probably will have to stop being a linear search
-		for (auto it = hogfiles.begin(); it < hogfiles.end(); it++)
-		{
-			if (!_stricmp(it->name, filename))
-			{
-				FILE* fp = fopen(archivename.c_str(), "rb");
-
-				fseek(fp, it->offset, SEEK_SET);
-				CFILE* cfile = (CFILE*)malloc(sizeof(CFILE));
-				if (cfile == NULL)
-					return NULL;
-
-				cfile->file = fp;
-				cfile->size = it->length;
-				cfile->lib_offset = it->offset;
-				cfile->raw_position = 0;
-				return cfile;
-			}
-		}
-
-		return nullptr;
-	}
-
-	bool exists(const char* filename)
-	{
-		//As the filesystem becomes more complex, this probably will have to stop being a linear search
-		for (auto it = hogfiles.begin(); it < hogfiles.end(); it++)
-		{
-			if (!_stricmp(it->name, filename))
-			{
-				return true;
-			}
-		}
-
-		return false;
-	}
-};
 
 std::vector<hogarchive> hogarchives;
 std::vector<hogarchive> alternate_hogarchives;
 
 FILE* cfile_get_filehandle(const char* filename, const char* mode)
 {
-	//char temp[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	char temp[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	get_full_file_path(temp, filename, nullptr);
 
-	FILE* fp = fopen(filename, mode);
+	FILE* fp = fopen(temp, mode);
 
 #ifndef _WINDOWS
 	if (!fp)

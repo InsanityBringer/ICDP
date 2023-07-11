@@ -1243,21 +1243,16 @@ void newmenu_file_sort(std::span<newmenu_fileentry> entries)
 void delete_player_saved_games(const char* name)
 {
 	int i;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#endif
 	char filename[16];
 
 	for (i = 0; i < 10; i++) 
 	{
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 		snprintf(filename, 16, "%s.sg%d", name, i);
 		get_full_file_path(filename_full_path, filename, CHOCOLATE_SAVE_DIR);
 		_unlink(filename_full_path);
-#else
-		sprintf(filename, "%s.sg%d", name, i);
-		_unlink(filename);
-#endif
+		//sprintf(filename, "%s.sg%d", name, i);
+		//_unlink(filename);
 	}
 }
 
@@ -1278,29 +1273,20 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	int exit_value = 0;
 	int w_x, w_y, w_w, w_h;
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	char localized_pilot_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	char localized_demo_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	//ISB: The string was localized before the call to newmenu_get_filename, so all that needs to be done is to extract the wildcard
 	char localized_filespec[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	const char *wildcard_pos;
-	get_platform_localized_query_string(localized_demo_query, CHOCOLATE_PILOT_DIR, "*.nplt");
-	get_platform_localized_query_string(localized_demo_query, CHOCOLATE_DEMOS_DIR, "*.dem");
 
 	wildcard_pos = strrchr(filespec, '*');
 	if (wildcard_pos != NULL)
 	{
 		if (!_strfcmp(wildcard_pos, "*.nplt"))
-		{
-			player_mode = 1;
-			get_platform_localized_query_string(localized_filespec, CHOCOLATE_PILOT_DIR, wildcard_pos);
-		}
+			player_mode = true;
 		else if(!_strfcmp(wildcard_pos, "*.dem"))
-		{
-			demo_mode = 1;
-			get_platform_localized_query_string(localized_filespec, CHOCOLATE_DEMOS_DIR, wildcard_pos);
-		}
+			demo_mode = true;
 	}
-#endif
+	strncpy(localized_filespec, filespec, CHOCOLATE_MAX_FILE_PATH_SIZE);
+	localized_filespec[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
 
 	int citem = 0;
 	keyd_repeat = 1;
@@ -1308,12 +1294,13 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
 	menu_canvas_stack.push(menu_canvas);
 
+	/*
 #if !defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	if (!_strfcmp(filespec, "*.nplt"))
 		player_mode = true;
 	else if (!_strfcmp(filespec, "*.dem"))
 		demo_mode = true;
-#endif
+#endif*/
 
 ReadFileNames:
 	bool done = false;
@@ -1326,11 +1313,8 @@ ReadFileNames:
 	}
 
 	FILEFINDSTRUCT find;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	if (!FileFindFirst(localized_filespec, &find))
-#else
-	if (!FileFindFirstLFNTemp(filespec, &find)) 
-#endif
+	if (!FileFindFirstLFNTemp(localized_filespec, &find))
+	//if (!FileFindFirstLFNTemp(filespec, &find)) 
 	{
 		do 
 		{
@@ -1437,21 +1421,14 @@ ReadFileNames:
 				{
 					int ret;
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 					char file_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 
 					if (player_mode)
-					{
-						get_full_file_path(file_full_path, &filenames[citem * 14], CHOCOLATE_PILOT_DIR);
-					}
+						get_full_file_path(file_full_path, files[citem].filename.c_str(), CHOCOLATE_PILOT_DIR);
 					else if (demo_mode)
-					{
-						get_full_file_path(file_full_path, &filenames[citem * 14], CHOCOLATE_DEMOS_DIR);
-					}
+						get_full_file_path(file_full_path, files[citem].filename.c_str(), CHOCOLATE_DEMOS_DIR);
 					ret = _unlink(file_full_path);
-#else
-					ret = _unlink(files[citem].filename.c_str());
-#endif
+					//ret = _unlink(files[citem].filename.c_str());
 
 					if ((!ret) && player_mode) 
 					{

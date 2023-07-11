@@ -228,9 +228,7 @@ int piggy_init()
 	const char* filename;
 	int read_sounds = 1;
 	int Pigdata_start;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#endif
 
 	hashtable_init(&AllBitmapsNames, MAX_BITMAP_FILES);
 	hashtable_init(&AllDigiSndNames, MAX_SOUND_FILES);
@@ -277,11 +275,8 @@ int piggy_init()
 		GameBitmapOffset[0] = 0;
 	}
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	get_full_file_path(filename_full_path, "descent.pig", CHOCOLATE_SYSTEM_FILE_DIR);
-#else
-	filename = "DESCENT.PIG";
-#endif
+	//filename = "DESCENT.PIG";
 
 	if (FindArg("-bigpig"))
 		BigPig = 1;
@@ -299,12 +294,11 @@ int piggy_init()
 	{
 		filename = Args[i + 1];
 		mprintf((0, "Using alternate pigfile, '%s'\n", filename));
+		get_full_file_path(filename_full_path, filename, CHOCOLATE_SYSTEM_FILE_DIR);
 	}
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	Piggy_fp = cfopen(filename_full_path, "rb");
-#else
-	Piggy_fp = cfopen(filename, "rb");
-#endif
+	//Piggy_fp = cfopen(filename, "rb");
+
 	if (Piggy_fp == NULL) return 0;
 
 	Pigdata_start = cfile_read_int(Piggy_fp);
@@ -333,7 +327,7 @@ int piggy_init()
 	uint8_t temp[768];
 	grs_canvas* descentcanv = gr_create_canvas(320, 200);
 	gr_set_current_canvas(descentcanv);
-	pcx_read_bitmap(filename, &descentcanv->cv_bitmap, descentcanv->cv_bitmap.bm_type, temp);
+	pcx_read_bitmap("descent.pcx", &descentcanv->cv_bitmap, descentcanv->cv_bitmap.bm_type, temp);
 
 	gr_set_curfont(Gamefonts[GFONT_SMALL]);
 	gr_set_fontcolor(gr_find_closest_color_current(20, 20, 20), -1);
@@ -587,9 +581,7 @@ void piggy_dump_all()
 	DiskSoundHeader sndh;
 	int header_offset;
 	char subst_name[32];
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#endif
 
 #ifdef NO_DUMP_SOUNDS
 	Num_sound_files = 0;
@@ -611,35 +603,28 @@ void piggy_dump_all()
 	piggy_close_file();
 
 	mprintf((0, "Creating DESCENT.PIG..."));
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	get_full_file_path(filename_full_path, "descent.pig", CHOCOLATE_SYSTEM_FILE_DIR);
-#else
-	filename = "DESCENT.PIG";
-#endif
+	//filename = "DESCENT.PIG";
+
 	if ((i = FindArg("-piggy"))) 
 	{
 		filename = Args[i + 1];
 		mprintf((0, "Dumping alternate pigfile, '%s'\n", filename));
+		get_full_file_path(filename_full_path, filename, CHOCOLATE_SYSTEM_FILE_DIR);
 	}
 	mprintf((0, "\nDumping bitmaps..."));
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	fp = fopen(filename_full_path, "wb");
-#else
-	fp = fopen(filename, "wb");
-#endif
+	//fp = fopen(filename, "wb");
 	Assert(fp != NULL);
 
 #ifndef RELEASE
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	get_full_file_path(filename_full_path, "piggy.lst", CHOCOLATE_SYSTEM_FILE_DIR);
 	fp1 = fopen(filename_full_path, "wt");
 	get_full_file_path(filename_full_path, "piggy.all", CHOCOLATE_SYSTEM_FILE_DIR);
 	fp2 = fopen(filename_full_path, "wt");
-#else
-	fp1 = fopen("piggy.lst", "wt");
-	fp2 = fopen("piggy.all", "wt");
-#endif
+	//fp1 = fopen("piggy.lst", "wt");
+	//fp2 = fopen("piggy.all", "wt");
 #endif
 
 	i = 0;

@@ -622,7 +622,10 @@ int RegisterPlayer()
 do_menu_again:
 	;
 
-	if (!newmenu_get_filename(TXT_SELECT_PILOT, "*.nplt", filename, allow_abort_flag)) 
+	char localized_pilot_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	//get_platform_localized_query_string(localized_pilot_query, CHOCOLATE_PILOT_DIR, "*.nplt");
+	get_full_file_path(localized_pilot_query, "*.nplt", CHOCOLATE_PILOT_DIR); //Possibly a bad idea, but I need the search string relative to the basedir. 
+	if (!newmenu_get_filename(TXT_SELECT_PILOT, localized_pilot_query, filename, allow_abort_flag)) 
 	{
 		return 0;		// They hit Esc in file selector
 	}

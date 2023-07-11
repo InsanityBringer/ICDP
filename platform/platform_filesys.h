@@ -87,3 +87,6 @@ void get_full_file_path(char* filename_full_path, const char* filename, const ch
 
 //Get full path to files in an OS-specific temp directory
 void get_temp_file_full_path(char* filename_full_path, const char* filename);
+
+//Explicitly sets the filesystem basedir. 
+void platform_set_filesystem_basedir(const char* basedir);

@@ -42,11 +42,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "scores.h"
 
 #define VERSION_NUMBER 		1
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 #define SCORES_FILENAME 	"descent.hi"
-#else
-#define SCORES_FILENAME 	"DESCENT.HI"
-#endif
+//#define SCORES_FILENAME 	"DESCENT.HI"
 constexpr int COOL_MESSAGE_LEN = 50;
 constexpr int MAX_HIGH_SCORES = 10;
 
@@ -131,7 +128,6 @@ char* get_scores_filename()
 	char* p = getenv("MINER");
 	if (p) 
 	{
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 		char miner_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 		if (strlen(CHOCOLATE_HISCORE_DIR) > 0)
 		{
@@ -142,18 +138,13 @@ char* get_scores_filename()
 			snprintf(miner_path, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s%cgame", p, PLATFORM_PATH_SEPARATOR);
 		}	
 		get_full_file_path(scores_filename, SCORES_FILENAME, miner_path);
-#else
-		sprintf(scores_filename, "%s\\game\\%s", p, SCORES_FILENAME);
-#endif
+		//sprintf(scores_filename, "%s\\game\\%s", p, SCORES_FILENAME);
 		Assert(strlen(scores_filename) < 256);
 		return scores_filename;
 	}
 #endif
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	get_full_file_path(scores_filename, SCORES_FILENAME, CHOCOLATE_HISCORE_DIR);
-#else
-	sprintf(scores_filename, "%s", SCORES_FILENAME);
-#endif
+	//sprintf(scores_filename, "%s", SCORES_FILENAME);
 	return scores_filename;
 }
 

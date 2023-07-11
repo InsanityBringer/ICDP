@@ -2901,13 +2901,11 @@ void newdemo_start_recording()
 	Newdemo_num_written = 0;
 	Newdemo_no_space = 0;
 	Newdemo_state = ND_STATE_RECORDING;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+
 	char demo_filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_temp_file_full_path(demo_filename_full_path, DEMO_FILENAME);
 	outfile = fopen(demo_filename_full_path, "wb");
-#else
-	outfile = fopen(DEMO_FILENAME, "wb");
-#endif
+	//outfile = fopen(DEMO_FILENAME, "wb");
 	newdemo_record_start_demo();
 }
 
@@ -2924,11 +2922,10 @@ void newdemo_stop_recording()
 	unsigned short byte_count = 0;
 #endif
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char demo_temp_filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE],
 	     demo_filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_temp_file_full_path(demo_temp_filename_full_path, DEMO_FILENAME);
-#endif
+
 	nd_write_byte(ND_EVENT_EOF);
 	nd_write_short(frame_bytes_written - 1);
 	if (Game_mode & GM_MULTI) 
@@ -3049,32 +3046,29 @@ try_again:
 	}
 	Newmenu_allowed_chars = NULL;
 
-	if (exit == -2) {					// got bumped out from network menu
+	if (exit == -2) // got bumped out from network menu
+	{
 		char save_file[15];
 
-		if (filename[0] != '\0') {
+		if (filename[0] != '\0') 
+		{
 			strcpy(save_file, filename);
 			strcat(save_file, ".dem");
 		}
 		else
 			sprintf(save_file, "tmp%d.dem", tmpcnt++);
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 		get_full_file_path(demo_filename_full_path, save_file, CHOCOLATE_DEMOS_DIR);
 		remove(demo_filename_full_path);
 		rename(demo_temp_filename_full_path, demo_filename_full_path);
-#else
-		remove(save_file);
-		rename(DEMO_FILENAME, save_file);
-#endif
+
+		//remove(save_file);
+		//rename(DEMO_FILENAME, save_file);
 		return;
 	}
 	if (exit == -1) // pressed ESC
 	{	
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 		remove(demo_temp_filename_full_path);
-#else
-		remove(DEMO_FILENAME);		// might as well remove the file
-#endif
+		//remove(DEMO_FILENAME);		// might as well remove the file
 		return;							// return without doing anything
 	}
 
@@ -3094,14 +3088,12 @@ try_again:
 	else
 		strcpy(fullname, m[0].text);
 	strcat(fullname, ".dem");
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+
 	get_full_file_path(demo_filename_full_path, fullname, CHOCOLATE_DEMOS_DIR);
 	remove(demo_filename_full_path);
 	rename(demo_temp_filename_full_path, demo_filename_full_path);
-#else
-	remove(fullname);
-	rename(DEMO_FILENAME, fullname);
-#endif
+	//remove(fullname);
+	//rename(DEMO_FILENAME, fullname);
 }
 
 //returns the number of demo files on the disk
@@ -3109,14 +3101,11 @@ int newdemo_count_demos()
 {
 	FILEFINDSTRUCT find;
 	int NumFiles = 0;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char localized_demo_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_platform_localized_query_string(localized_demo_query, CHOCOLATE_DEMOS_DIR, "*.dem");
-	if (!FileFindFirst(localized_demo_query, &find)) {
-#else
-	if (!FileFindFirst("demos\\*.DEM", &find)) 
+	if (!FileFindFirst(localized_demo_query, &find))
+	//if (!FileFindFirst("demos\\*.DEM", &find)) 
 	{
-#endif
 		do 
 		{
 			NumFiles++;
@@ -3146,13 +3135,11 @@ void newdemo_start_playback(const char* filename)
 		}
 		RandFileNum = P_Rand() % NumFiles;
 		NumFiles = 0;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	char localized_demo_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	get_platform_localized_query_string(localized_demo_query, CHOCOLATE_DEMOS_DIR, "*.dem");
+
+		char localized_demo_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
+		get_platform_localized_query_string(localized_demo_query, CHOCOLATE_DEMOS_DIR, "*.dem");
 		if (!FileFindFirst(localized_demo_query, &find))
-#else
-		if (!FileFindFirst("*.DEM", &find))
-#endif
+		//if (!FileFindFirst("*.DEM", &find))
 		{
 			do 
 			{
@@ -3170,13 +3157,11 @@ void newdemo_start_playback(const char* filename)
 
 	if (!filename)
 		return;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+
 	char demo_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_full_file_path(demo_full_path, filename, CHOCOLATE_DEMOS_DIR);
 	infile = fopen(demo_full_path, "rb");
-#else
-	infile = fopen(filename, "rb");
-#endif
+	//infile = fopen(filename, "rb");
 
 	if (infile == NULL) 
 	{
@@ -3241,14 +3226,12 @@ void newdemo_strip_frames(char* outname, int bytes_to_strip)
 	bytes_done = 0;
 	total_size = _filelength(_fileno(infile));
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char outname_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_full_file_path(outname_full_path, outname, CHOCOLATE_DEMOS_DIR);
 
 	outfile = fopen(outname_full_path, "wb");
-#else
-	outfile = fopen(outname, "wb");
-#endif
+	//outfile = fopen(outname, "wb");
+
 	if (outfile == NULL) 
 	{
 		newmenu_item m[1];

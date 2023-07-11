@@ -13,6 +13,7 @@ Instead, it is released under the terms of the MIT License.
 #include <sys/stat.h>
 
 #include "platform/posixstub.h"
+#include "misc/args.h"
 
 static char local_file_path_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE] = {0};
 
@@ -51,6 +52,14 @@ void mkdir_recursive(const char *dir)
 void init_all_platform_localized_paths()
 {
 	char temp_buf[CHOCOLATE_MAX_FILE_PATH_SIZE];
+
+	//Check for alternate basedir
+	int arg = FindArg("-fs_basedir");
+	if (arg && arg < Num_args - 1)
+	{
+		const char* basedir = Args[arg + 1];
+		platform_set_filesystem_basedir(basedir);
+	}
 
 	mkdir_recursive(get_platform_localized_file_path_prefix());
 
@@ -398,21 +407,32 @@ void validate_required_files()
 	}
 }
 
+void platform_set_filesystem_basedir(const char* basedir)
+{
+	strncpy(local_file_path_prefix, basedir, CHOCOLATE_MAX_FILE_PATH_SIZE);
+	local_file_path_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] == '\0';
+	//check for a terminating path separator
+	int len = strlen(local_file_path_prefix);
+	if (local_file_path_prefix[len - 1] == '\\' || local_file_path_prefix[len - 1] == '/')
+		local_file_path_prefix[len - 1] = '\0';
+}
+
 const char* get_platform_localized_file_path_prefix()
 {
-#if defined(__APPLE__) && defined(__MACH__)
+	//Ensure the file path prefix is actually initialized. 
 	if(local_file_path_prefix[0] == 0)
 	{
+#if defined(__APPLE__) && defined(__MACH__)
 		char chocolate_descent_directory[CHOCOLATE_MAX_FILE_PATH_SIZE];
 		memset(chocolate_descent_directory, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
 		snprintf(chocolate_descent_directory, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s/Library/Application Support/Chocolate Descent/%s", getenv("HOME"), CHOCOLATE_DESCENT_VERSION_STRING);
 		strcpy(local_file_path_prefix, chocolate_descent_directory);
-	}
-
-	return local_file_path_prefix;
 #else
-	return ".";
+		local_file_path_prefix[0] = '.';
+		local_file_path_prefix[1] = '\0';
 #endif
+	}
+	return local_file_path_prefix;
 }
 
 void get_platform_localized_interior_path(char* platform_localized_interior_path, const char* interior_path)

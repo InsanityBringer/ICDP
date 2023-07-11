@@ -74,9 +74,6 @@ void set_custom_detail_vars(void);
 
 int ReadConfigFile()
 {
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#endif
 	FILE* infile;
 	char line[512], * token, * value, * ptr;
 	uint8_t gamma;
@@ -107,12 +104,11 @@ int ReadConfigFile()
 	Config_control_type = 0;
 	Config_channels_reversed = 0;
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_full_file_path(filename, "descent.cfg", CHOCOLATE_CONFIG_DIR);
 	infile = fopen(filename, "rt");
-#else
-	infile = fopen("descent.cfg", "rt");
-#endif
+
+	//infile = fopen("descent.cfg", "rt");
 	if (infile == NULL) 
 	{
 		return 1;
@@ -267,9 +263,6 @@ int ReadConfigFile()
 
 int WriteConfigFile()
 {
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#endif
 	FILE* infile;
 	char str[256];
 	int joy_axis_min[4];
@@ -277,12 +270,11 @@ int WriteConfigFile()
 	int joy_axis_max[4];
 	uint8_t gamma = gr_palette_get_gamma();
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_full_file_path(filename, "descent.cfg", CHOCOLATE_CONFIG_DIR);
 	infile = fopen(filename, "wt");
-#else
-	infile = fopen("descent.cfg", "wt");
-#endif
+	//infile = fopen("descent.cfg", "wt");
+
 	if (infile == NULL) 
 	{
 		return 1;

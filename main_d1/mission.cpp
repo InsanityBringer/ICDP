@@ -20,7 +20,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
 #include "cfile/cfile.h"
-#include "platform/findfile.h" //[ISB] port descent 2 directory iteration code. 
+#include "platform/findfile.h" 
 #include "inferno.h"
 #include "mission.h"
 #include "gameseq.h"
@@ -153,15 +153,10 @@ void get_string_before_whitespace(const char* msn_line, char* trimmed_line)
 //returns true if file read ok, else false
 bool read_mission_file(char* filename, int location, bool anarchy_mode)
 {
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	char filename2[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#else
-	char filename2[512]; //[ISB] path can be up to 255+nul, filename can be up to 255+nul, so hopefully this will be large enough
-#endif
 	CFILE* mfile;
-
-	strcpy(filename2, ""); //[ISB] always assume current dir for Descent 1
-	strcat(filename2, filename);
+	//TODO: localization should be done in advance, but this isn't done yet since we're not LFN clean here. 
+	char filename2[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	get_full_file_path(filename2, filename, CHOCOLATE_MISSIONS_DIR); 
 
 	mfile = cfopen(filename2, "rb");
 
@@ -172,7 +167,7 @@ bool read_mission_file(char* filename, int location, bool anarchy_mode)
 		char mission_name[MISSION_NAME_LEN + 1];
 		bool anarchy_only_flag = false;
 
-		strcpy(temp, filename);
+		strcpy(temp, filename); //[ISB TODO] This is a 
 		if ((t = strchr(temp, '.')) == NULL)
 			return false;	//missing extension
 		*t = 0;			//kill extension
@@ -227,13 +222,11 @@ int build_mission_list(bool anarchy_mode)
 	static int num_missions = -1;
 	int special_count = 0;
 	FILEFINDSTRUCT find;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+
 	char search_name[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char file_path_name[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	get_platform_localized_query_string(search_name, CHOCOLATE_MISSIONS_DIR, "*.msn");
-#else
-	char search_name[100] = "*.MSN";
-#endif
+	//get_platform_localized_query_string(search_name, CHOCOLATE_MISSIONS_DIR, "*.msn");
+	get_full_file_path(search_name, "*.msn", CHOCOLATE_MISSIONS_DIR);
 
 	Mission_list.clear();
 
@@ -248,14 +241,8 @@ int build_mission_list(bool anarchy_mode)
 	{
 		do 
 		{
-
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-			get_full_file_path(file_path_name, find.name, CHOCOLATE_MISSIONS_DIR);
-			read_mission_file(file_path_name, 0, anarchy_mode);
-#else
+			//get_full_file_path(file_path_name, find.name, CHOCOLATE_MISSIONS_DIR); //TODO: Can't localize here yet. 
 			read_mission_file(find.name, 0, anarchy_mode);
-#endif
-
 		} while (!FileFindNext(&find));
 		FileFindClose();
 	}
@@ -309,27 +296,24 @@ int load_mission(int mission_num)
 		cfile_use_alternate_hogfile(NULL);		//disable alternate
 	}
 	else
-	{		 //NOTE LINK TO ABOVE IF!!!!!
-			//read mission from file 
+	{		 
+		//NOTE LINK TO ABOVE IF!!!!!
+		//read mission from file 
 		FILE* mfile;
 		char buf[80], tmp[80], msn_line[256], trimmed_line[256], * v;
 		int eof_check;
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 		char msn_filename[CHOCOLATE_MAX_FILE_PATH_SIZE], hog_filename[CHOCOLATE_MAX_FILE_PATH_SIZE],
-		     hogfile_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
+		     msnfile_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE], hogfile_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 		snprintf(msn_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.msn", Mission_list[mission_num].filename);
-#else
-		strcpy(buf, Mission_list[mission_num].filename);
-		strcat(buf, ".MSN");
-#endif
-
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 		snprintf(hog_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.hog", Mission_list[mission_num].filename);
 
-		cfile_use_alternate_hogfile(hog_filename);
+		get_full_file_path(msnfile_full_path, msn_filename, CHOCOLATE_MISSIONS_DIR);
+		get_full_file_path(hogfile_full_path, hog_filename, CHOCOLATE_MISSIONS_DIR);
 
-		mfile = fopen(msn_filename, "rt");
+		cfile_use_alternate_hogfile(hogfile_full_path);
+
+		mfile = fopen(msnfile_full_path, "rt");
 
 		if (mfile == NULL)
 		{
@@ -337,8 +321,10 @@ int load_mission(int mission_num)
 			return 0;		//error!
 		}
 
-#else
-		strcpy(tmp, Mission_list[mission_num].filename);
+		//strcpy(buf, Mission_list[mission_num].filename);
+		//strcat(buf, ".MSN");
+
+		/*strcpy(tmp, Mission_list[mission_num].filename);
 		strcat(tmp, ".HOG");
 
 		cfile_use_alternate_hogfile(tmp);
@@ -349,8 +335,7 @@ int load_mission(int mission_num)
 		{
 			Current_mission_num = -1;
 			return 0;		//error!
-		}
-#endif
+		}*/
 
 		//init vars
 		Last_level = 0;
@@ -382,13 +367,10 @@ int load_mission(int mission_num)
 				if (*bufp == ' ')
 					while (*(++bufp) == ' ')
 						;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 				memset(hogfile_full_path, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
 				get_full_file_path(hogfile_full_path, bufp, CHOCOLATE_MISSIONS_DIR);
 				cfile_use_alternate_hogfile(hogfile_full_path);
-#else
-				cfile_use_alternate_hogfile(bufp);
-#endif
+				//cfile_use_alternate_hogfile(bufp);
 				mprintf((0, "Hog file override = [%s]\n", bufp));
 			}
 			else if (istok(msn_line, "briefing")) 
@@ -433,13 +415,10 @@ int load_mission(int mission_num)
 
 						if(ext_idx != NULL && ext_idx - trimmed_line > 2 && ext_idx[1] == 'h' && ext_idx[2] == 'o' && ext_idx[3] == 'g')
 						{
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 							memset(hogfile_full_path, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
 							get_full_file_path(hogfile_full_path, trimmed_line, CHOCOLATE_MISSIONS_DIR);
 							cfile_use_alternate_hogfile(hogfile_full_path);
-#else
-							cfile_use_alternate_hogfile(trimmed_line);
-#endif
+							//cfile_use_alternate_hogfile(trimmed_line);
 						}
 						else if (strlen(trimmed_line) <= 12 && i < MAX_LEVELS_PER_MISSION) 
 						{
@@ -507,24 +486,18 @@ int load_mission(int mission_num)
 int load_mission_by_name(char* mission_name)
 {
 	int n, i;
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+
 	char mission_name_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_full_file_path(mission_name_full_path, mission_name, CHOCOLATE_MISSIONS_DIR);
-#endif
 
 	n = build_mission_list(true);
 
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	if (strlen(mission_name) == 0)
 		return load_mission(0);
-#endif
 
 	for (i = 0; i < n; i++)
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 		if (!_strfcmp(mission_name_full_path, Mission_list[i].filename))
-#else
-		if (!_strfcmp(mission_name, Mission_list[i].filename))
-#endif
+		//if (!_strfcmp(mission_name, Mission_list[i].filename))
 			return load_mission(i);
 
 	return 0;		//couldn't find mission

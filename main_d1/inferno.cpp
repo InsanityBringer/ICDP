@@ -122,11 +122,6 @@ int D_DescentMain(int argc, const char** argv)
 {
 	int t;
 	uint8_t title_pal[768];
-
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-	init_all_platform_localized_paths();
-	validate_required_files();
-#endif
 	
 	error_init(NULL);
 
@@ -134,24 +129,27 @@ int D_DescentMain(int argc, const char** argv)
 
 	InitArgs(argc, argv);
 
+	init_all_platform_localized_paths();
+	//validate_required_files(); ICDP TODO: This is good but it needs tweaks for the ICDP filesystem. 
+
 	multi_test_packet_serialization();
 
 	int initStatus = plat_init();
 	if (initStatus)
 	{
-		Error("Error initalizing graphics library, code %d\n", initStatus);
+		Error("Error initalizing platform backend, code %d\n", initStatus);
 		return 1;
 	}
 
 	if (FindArg("-verbose"))
 		Inferno_verbose = 1;
 
+	//Add core ICDP hogfiles now
+	cfile_add_hogfile("core.hog");
+
 	char hog_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
+
 	get_full_file_path(hog_filename, "descent.hog", CHOCOLATE_SYSTEM_FILE_DIR);
-#else
-	strcpy(hog_filename, "descent.hog");
-#endif
 	cfile_add_hogfile(hog_filename);
 
 	load_text(621);
