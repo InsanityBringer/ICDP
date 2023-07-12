@@ -266,7 +266,8 @@ void do_option(int select)
 	{
 		char demo_file[16];
 		char localized_demo_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
-		get_platform_localized_query_string(localized_demo_query, CHOCOLATE_DEMOS_DIR, "*.dem");
+		//get_platform_localized_query_string(localized_demo_query, CHOCOLATE_DEMOS_DIR, "*.dem");
+		get_full_file_path(localized_demo_query, "*.dem", CHOCOLATE_DEMOS_DIR);
 		if (newmenu_get_filename(TXT_SELECT_DEMO, localized_demo_query, demo_file, 1))
 		{
 			newdemo_start_playback(demo_file);

@@ -487,17 +487,13 @@ int load_mission_by_name(char* mission_name)
 {
 	int n, i;
 
-	char mission_name_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	get_full_file_path(mission_name_full_path, mission_name, CHOCOLATE_MISSIONS_DIR);
-
 	n = build_mission_list(true);
 
 	if (strlen(mission_name) == 0)
 		return load_mission(0);
 
 	for (i = 0; i < n; i++)
-		if (!_strfcmp(mission_name_full_path, Mission_list[i].filename))
-		//if (!_strfcmp(mission_name, Mission_list[i].filename))
+		if (!_strfcmp(mission_name, Mission_list[i].filename))
 			return load_mission(i);
 
 	return 0;		//couldn't find mission
