@@ -700,11 +700,82 @@ void sound_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 	}
 }
 
+#include "platform/platform.h"
+#include "platform/s_midi.h"
+
+char default_str[] = "Default MIDI device";
+
+void do_chocolate_midi_menu()
+{
+	newmenu_item m[13];
+	int i = 0, j;
+	std::vector<std::string> names;
+	GenDevices new_preferred_device;
+
+	names = music_get_MME_devices();
+
+	do
+	{
+		m[0].type = NM_TYPE_TEXT; m[0].text = (char*)"Preferred general MIDI device";
+		m[1].type = NM_TYPE_RADIO; m[1].text = (char*)"None"; m[1].group = 0; m[1].value = PreferredGenDevice == GenDevices::NullDevice;
+		m[2].type = NM_TYPE_RADIO; m[2].text = (char*)"FluidSynth (if available)"; m[2].group = 0; m[2].value = PreferredGenDevice == GenDevices::FluidSynthDevice;
+		m[3].type = NM_TYPE_TEXT; m[3].text = (char*)"Soundfont path";
+		m[4].type = NM_TYPE_INPUT; m[4].text = SoundFontFilename; m[4].text_len = _MAX_PATH - 1;
+		m[5].type = NM_TYPE_RADIO; m[5].text = (char*)"MS/Native MIDI (if available)"; m[5].group = 0; m[5].value = PreferredGenDevice == GenDevices::MMEDevice;
+		m[6].type = NM_TYPE_MENU; m[6].text = (char*)"Select MME device";
+
+		i = newmenu_do1(NULL, "MIDI Options", 7, m, nullptr, i);
+
+		if (i == 6)
+		{
+			char** strings = new char* [names.size() + 1];
+			strings[0] = default_str;
+			for (j = 0; j < names.size(); j++)
+				strings[j + 1] = (char*)names[j].c_str();
+
+			j = newmenu_listbox1("Available MME devices", names.size() + 1, strings, 1, PreferredMMEDevice + 1, nullptr);
+
+			if (j != -1)
+			{
+				j--;
+				if (j != PreferredMMEDevice)
+				{
+					PreferredMMEDevice = j;
+					//restart the sound system
+					digi_reset();
+					digi_reset();
+
+					songs_play_song(SONG_TITLE, 1);
+				}
+			}
+
+			delete[] strings;
+		}
+	} while (i != -1);
+
+	if (m[2].value)
+		new_preferred_device = GenDevices::FluidSynthDevice;
+	else if (m[5].value)
+		new_preferred_device = GenDevices::MMEDevice;
+	else
+		new_preferred_device = GenDevices::NullDevice;
+
+	if (new_preferred_device != PreferredGenDevice)
+	{
+		PreferredGenDevice = new_preferred_device;
+		//restart the sound system
+		digi_reset();
+		digi_reset();
+
+		songs_play_song(SONG_TITLE, 1);
+	}
+}
+
 const char* sound_menu_title = "SOUND OPTIONS";
 
 void do_sound_menu()
 {
-	newmenu_item m[3];
+	newmenu_item m[5];
 	int i = 0;
 
 	do
@@ -712,8 +783,13 @@ void do_sound_menu()
 		m[0].type = NM_TYPE_SLIDER; m[0].text = TXT_FX_VOLUME; m[0].value = Config_digi_volume; m[0].min_value = 0; m[0].max_value = 8;
 		m[1].type = NM_TYPE_SLIDER; m[1].text = TXT_MUSIC_VOLUME; m[1].value = Config_midi_volume; m[1].min_value = 0; m[1].max_value = 8;
 		m[2].type = NM_TYPE_CHECK; m[2].text = TXT_REVERSE_STEREO; m[2].value = Config_channels_reversed;
+		m[3].type = NM_TYPE_TEXT; m[3].text = (char*)"";
+		m[4].type = NM_TYPE_MENU; m[4].text = (char*)"MIDI Config";
 
-		i = newmenu_do1(NULL, sound_menu_title, 3, m, sound_menuset, i);
+		i = newmenu_do1(NULL, sound_menu_title, 5, m, sound_menuset, i);
+
+		if (i == 4)
+			do_chocolate_midi_menu();
 
 		Config_channels_reversed = m[2].value;
 	} while (i > 1);

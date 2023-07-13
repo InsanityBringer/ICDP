@@ -61,6 +61,7 @@ static const char* GenDeviceStr = "PreferredGenMidiDevice";
 static const char* RenderWidthStr = "RenderWidth";
 static const char* RenderHeightStr = "RenderHeight";
 static const char* RenderAspectStr = "RenderAspect";
+static const char* MMEDeviceStr = "MMEDevice";
 
 char config_last_player[CALLSIGN_LEN + 1] = "";
 char config_last_mission[MISSION_NAME_LEN + 1] = "";
@@ -226,6 +227,8 @@ int ReadConfigFile()
 			}
 			else if (!strcmp(token, GenDeviceStr))
 				PreferredGenDevice = (GenDevices)strtol(value, NULL, 10);
+			else if (!strcmp(token, MMEDeviceStr))
+				PreferredMMEDevice = strtol(value, NULL, 10);
 		}
 	}
 
@@ -252,6 +255,7 @@ int ReadConfigFile()
 	//some basic validation
 	if (WindowWidth <= 320) WindowWidth = 320;
 	if (WindowHeight <= 240) WindowHeight = 240;
+	if (PreferredMMEDevice < -1) PreferredMMEDevice = -1;
 
 	if (cfg_render_width < 320) cfg_render_width = 320;
 	if (cfg_render_height < 200) cfg_render_height = 200;

@@ -35,6 +35,7 @@ as described in copying.txt.
 
 GenDevices PreferredGenDevice = GenDevices::FluidSynthDevice;
 int CurrentDevice = 0;
+int PreferredMMEDevice = -1;
 
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 char SoundFontFilename[CHOCOLATE_MAX_FILE_PATH_SIZE] = "TestSoundfont.sf2";
@@ -221,6 +222,14 @@ void music_set_volume(int volume)
 	if (synth)
 		synth->SetVolume(volume);
 }
+
+#ifndef _WIN32
+std::vector<std::string> music_get_MME_devices()
+{
+	std::vector<std::string> options;
+	return options;
+}
+#endif
 
 int S_ReadDelta(int* pointer, uint8_t* data)
 {
