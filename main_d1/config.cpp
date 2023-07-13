@@ -254,7 +254,7 @@ int ReadConfigFile()
 
 	//some basic validation
 	if (WindowWidth <= 320) WindowWidth = 320;
-	if (WindowHeight <= 240) WindowHeight = 240;
+	if (WindowHeight <= 200) WindowHeight = 200;
 	if (PreferredMMEDevice < -1) PreferredMMEDevice = -1;
 
 	if (cfg_render_width < 320) cfg_render_width = 320;

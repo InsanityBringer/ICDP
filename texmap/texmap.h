@@ -27,7 +27,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #define MAX_LIGHTING_VALUE	((NUM_LIGHTING_LEVELS-1)*F1_0/NUM_LIGHTING_LEVELS)
 #define MIN_LIGHTING_VALUE	(F1_0/NUM_LIGHTING_LEVELS)
 
-#define MAX_Y_POINTERS 1440
+//#define MAX_Y_POINTERS 1440
 
 #ifdef BUILD_DESCENT2
 //variables for clipping the texture-mapper to screen region
@@ -63,7 +63,8 @@ struct g3ds_tmap
 class Texmap
 {
 	g3ds_tmap Tmap1;
-	int	y_pointers[MAX_Y_POINTERS];
+	int num_y_pointers;
+	int*	y_pointers;
 	int	bytes_per_row = -1;
 	uint8_t* write_buffer;
 	int  	window_left;

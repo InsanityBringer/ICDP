@@ -30,8 +30,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #define	EDITOR_TMAP	1		//if in, include extra stuff
 
-int	y_pointers[MAX_Y_POINTERS];
-
 float fix_recip[FIX_RECIP_TABLE_SIZE];
 int	Fix_recip_table_computed = 0;
 
@@ -43,11 +41,15 @@ int	Max_flat_depth;
 Texmap::Texmap()
 {
 	memset(&Tmap1, 0, sizeof(Tmap1));
-	memset(y_pointers, 0, sizeof(y_pointers));
+	//memset(y_pointers, 0, sizeof(y_pointers));
 	write_buffer = nullptr;
 	window_left = window_right = window_top = window_bottom = 0;
 	window_width = window_height = 0;
 	Darkening_level = GR_FADE_LEVELS;
+	num_y_pointers = 1440;
+	y_pointers = (int*)malloc(sizeof(*y_pointers) * num_y_pointers);
+	if (!y_pointers)
+		Error("Texmap::Texmap: failed to allocate y_pointers table");
 }
 
 // -------------------------------------------------------------------------------------
@@ -78,19 +80,29 @@ void Texmap::SetCanvas(grs_canvas* canv)
 {
 	grs_bitmap* bp = &(canv->cv_bitmap);
 
+	bool changed_y_pointers = false;
 	Assert(bp != NULL);
 	Assert(bp->bm_data != NULL);
-	Assert(bp->bm_h <= MAX_Y_POINTERS);
+	//Assert(bp->bm_h <= MAX_Y_POINTERS);
+
+	if (bp->bm_h > num_y_pointers)
+	{
+		free(y_pointers);
+		num_y_pointers = bp->bm_h;
+		y_pointers = (int*)malloc(sizeof(*y_pointers) * num_y_pointers);
+		if (!y_pointers)
+			Error("Texmap::SetCanvas: failed to allocate y_pointers table");
+	}
 
 	//	If bytes_per_row has changed, create new table of pointers.
-	if (bytes_per_row != (int)bp->bm_rowsize)
+	if (bytes_per_row != (int)bp->bm_rowsize || changed_y_pointers)
 	{
 		int	y_val, i;
 
 		bytes_per_row = (int)bp->bm_rowsize;
 
 		y_val = 0;
-		for (i = 0; i < MAX_Y_POINTERS; i++)
+		for (i = 0; i < num_y_pointers; i++)
 		{
 			y_pointers[i] = y_val;
 			y_val += bytes_per_row;

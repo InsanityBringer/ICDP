@@ -1053,6 +1053,38 @@ void do_ip_address_menu()
 
 #include "platform/platform.h"
 
+std::vector<const char*> resolution_menu_strings =
+{
+	"320x200",
+	"320x240",
+	"640x480",
+	"800x600",
+	"1024x768",
+	"1280x1024",
+	"1366x768",
+	"1600x900",
+	"1920x1080",
+	"2560x1440",
+};
+
+const char* get_video_resolution()
+{
+	std::vector<newmenu_item> items;
+
+	for (const char* str : resolution_menu_strings)
+	{
+		newmenu_item item = {};
+		item.type = NM_TYPE_MENU; item.text = (char*)str; 
+		items.push_back(item);
+	}
+
+	int res = newmenu_do(nullptr, nullptr, items.size(), items.data(), nullptr);
+	if (res == -1)
+		return nullptr;
+
+	return resolution_menu_strings[res];
+}
+
 const char* select_window_res_text = "SELECT WINDOW SIZE...";
 const char* select_render_res_text = "SELECT RENDER RESOLUTION...";
 const char* fullscreen_text = "FULLSCREEN";
@@ -1127,7 +1159,26 @@ void do_video_menu()
 	{
 		i = newmenu_do1(NULL, "VIDEO OPTIONS", 10, m, video_menuset, i);
 
-		if (i == 3)
+		if (i == 0)
+		{
+			const char* res = get_video_resolution();
+			if (res)
+			{
+				snprintf(window_res_string, 64, "%s", res);
+				window_res_string[63] = '\0';
+			}
+		}
+		else if (i == 5)
+		{
+			const char* res = get_video_resolution();
+			if (res)
+			{
+				snprintf(render_res_string, 64, "%s", res);
+				render_res_string[63] = '\0';
+			}
+		}
+
+		else if (i == 3)
 		{
 			set_swap_interval = SwapInterval = (SwapInterval + 1) % 3;
 		}
@@ -1155,7 +1206,7 @@ void do_video_menu()
 		*x_ptr = '\0';
 		int new_width = atoi(window_res_string);
 		int new_height = atoi(x_ptr + 1);
-		if (new_width < 320 || new_height < 240)
+		if (new_width < 320 || new_height < 200)
 			nm_messagebox(NULL, 1, TXT_OK, "Window size is invalid");
 		else
 		{
