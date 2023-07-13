@@ -44,7 +44,7 @@ SDL_Window* gameWindow = NULL;
 grs_canvas* screenBuffer;
 
 int BestFit = 0;
-int Fullscreen = 0;
+int Fullscreen = 1;
 int SwapInterval = 0;
 
 SDL_Rect screenRectangle, sourceRectangle;
