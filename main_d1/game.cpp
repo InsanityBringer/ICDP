@@ -429,7 +429,9 @@ void init_cockpit()
 		grs_bitmap* bm = get_cockpit_bitmap(CM_STATUS_BAR);
 		float proportion = (200 - bm->bm_h) / 200.f;
 
-		int height = proportion * VR_render_height;
+		int height = round(proportion * VR_render_height);
+		if (height > VR_render_height)
+			height = VR_render_height;
 
 		gauge_set_hud_proportions(0, proportion, true);
 		game_init_render_sub_buffers(0, 0, VR_render_width, height);
@@ -479,13 +481,15 @@ void toggle_cockpit()
 	{
 
 	case CM_FULL_COCKPIT:
-		if (Game_window_h > max_window_h)			//too big for scalable
-			new_mode = CM_FULL_SCREEN;
-		else
-			new_mode = CM_STATUS_BAR;
+		new_mode = CM_STATUS_BAR;
 		break;
 
 	case CM_STATUS_BAR:
+		if (Rear_view)
+			return;
+		new_mode = CM_FULL_SCREEN;
+		break;
+
 	case CM_FULL_SCREEN:
 		if (Rear_view)
 			return;
@@ -2291,10 +2295,6 @@ void ReadControls()
 #endif
 
 			case KEY_F3:				toggle_cockpit();			break;
-			case KEY_SHIFTED + KEY_MINUS:
-			case KEY_MINUS:			shrink_window();			break;
-			case KEY_SHIFTED + KEY_EQUAL:
-			case KEY_EQUAL:			grow_window();				break;
 			case KEY_F2:				Config_menu_flag = 1;	break;
 			case KEY_F7:
 #ifdef NETWORK
@@ -2430,11 +2430,6 @@ void ReadControls()
 		case KEY_PAUSE:			do_game_pause(1); 		break;
 		case KEY_PRINT_SCREEN: 	save_screen_shot(0);		break;
 
-		case KEY_SHIFTED + KEY_MINUS:
-		case KEY_MINUS:			shrink_window();			break;
-		case KEY_SHIFTED + KEY_EQUAL:
-		case KEY_EQUAL:			grow_window();				break;
-
 			//	Select primary or secondary weapon.
 		case KEY_1:
 		case KEY_2:
@@ -2462,16 +2457,8 @@ void ReadControls()
 			Function_mode = FMODE_EXIT;
 			break;
 
-#ifdef SHAREWARE
-		case KEY_ALTED + KEY_F2:
-		case KEY_ALTED + KEY_F3:
-			HUD_init_message(TXT_ONLY_REGISTERED);
-			digi_play_sample(SOUND_BAD_SELECTION, F1_0);
-			break;
-#else
 		case KEY_ALTED + KEY_F2:	state_save_all(0);		break;	// 0 means not between levels.
 		case KEY_ALTED + KEY_F3:	state_restore_all(1);		break;
-#endif
 
 #ifdef RELEASE
 		case KEY_ALTED + KEY_F: framerate_on = !framerate_on; break;
