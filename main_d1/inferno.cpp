@@ -92,7 +92,6 @@ int Function_mode = FMODE_MENU;		//game or editor?
 int Screen_mode = -1;					//game screen or editor screen?
 
 #ifdef EDITOR
-int Inferno_is_800x600_available = 0;
 extern int bm_init_use_tbl();
 #endif
 
@@ -129,10 +128,10 @@ int D_DescentMain(int argc, const char** argv)
 
 	InitArgs(argc, argv);
 
-	init_all_platform_localized_paths();
-	//validate_required_files(); ICDP TODO: This is good but it needs tweaks for the ICDP filesystem. 
 	//There's only one game ATM, so set the gameinfo prefix string for the filesystem now. 
 	platform_set_filesystem_game_prefix(gameinfo_get_current_game_prefix());
+	init_all_platform_localized_paths();
+	//validate_required_files(); ICDP TODO: This is good but it needs tweaks for the ICDP filesystem. 
 
 	multi_test_packet_serialization();
 
@@ -196,16 +195,6 @@ int D_DescentMain(int argc, const char** argv)
 	g3_set_lighting_mode(1);
 
 	strcpy(Menu_pcx_name, "menu.pcx");	//	Used to be menu2.pcx.
-
-#ifdef EDITOR
-	Inferno_is_800x600_available = true;
-
-	if (!Inferno_is_800x600_available) 
-	{
-		printf("The editor will not be available...\n");
-		Function_mode = FMODE_MENU;
-	}
-#endif
 
 #ifndef NDEBUG
 	minit();

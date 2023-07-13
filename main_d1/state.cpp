@@ -142,7 +142,7 @@ int state_get_save_file(char* fname, char* dsc, int multi)
 			snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.sg%d", Players[Player_num].callsign, i);
 		else
 			snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.mg%d", Players[Player_num].callsign, i);
-		get_full_file_path(filename[i], temp_filename, CHOCOLATE_SAVE_DIR);
+		get_game_full_file_path(filename[i], temp_filename, CHOCOLATE_SAVE_DIR);
 		//if (!multi)
 		//	sprintf(filename[i], "%s.sg%d", Players[Player_num].callsign, i);
 		//else
@@ -210,7 +210,7 @@ int state_get_restore_file(char* fname, int multi)
 			snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.sg%d", Players[Player_num].callsign, i);
 		else
 			snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.mg%d", Players[Player_num].callsign, i);
-		get_full_file_path(filename[i], temp_filename, CHOCOLATE_SAVE_DIR);
+		get_game_full_file_path(filename[i], temp_filename, CHOCOLATE_SAVE_DIR);
 		//if (!multi)
 		//	sprintf(filename[i], "%s.sg%d", Players[Player_num].callsign, i);
 		//else

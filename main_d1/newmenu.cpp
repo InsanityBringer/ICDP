@@ -1249,7 +1249,7 @@ void delete_player_saved_games(const char* name)
 	for (i = 0; i < 10; i++) 
 	{
 		snprintf(filename, 16, "%s.sg%d", name, i);
-		get_full_file_path(filename_full_path, filename, CHOCOLATE_SAVE_DIR);
+		get_game_full_file_path(filename_full_path, filename, CHOCOLATE_SAVE_DIR);
 		_unlink(filename_full_path);
 		//sprintf(filename, "%s.sg%d", name, i);
 		//_unlink(filename);

@@ -41,7 +41,7 @@ static const unsigned int CHOCOLATE_DESCENT_VERSION = 2;
 #define CHOCOLATE_CONFIG_DIR ""
 #define CHOCOLATE_SYSTEM_FILE_DIR "Data"
 #define CHOCOLATE_PILOT_DIR ""
-#define CHOCOLATE_SAVE_DIR ""
+#define CHOCOLATE_SAVE_DIR "Saves"
 #define CHOCOLATE_HISCORE_DIR ""
 #define CHOCOLATE_MISSIONS_DIR "Data/Missions"
 #define CHOCOLATE_DEMOS_DIR "Data/Demos"
@@ -51,7 +51,7 @@ static const unsigned int CHOCOLATE_DESCENT_VERSION = 2;
 #define CHOCOLATE_CONFIG_DIR ""
 #define CHOCOLATE_SYSTEM_FILE_DIR ""
 #define CHOCOLATE_PILOT_DIR ""
-#define CHOCOLATE_SAVE_DIR ""
+#define CHOCOLATE_SAVE_DIR "Saves"
 #define CHOCOLATE_HISCORE_DIR ""
 #define CHOCOLATE_MISSIONS_DIR "Missions"
 #define CHOCOLATE_DEMOS_DIR "Demos"
@@ -80,6 +80,9 @@ void get_platform_localized_interior_path(char* platform_localized_interior_path
 
 //Localize subpaths within the base directory
 void get_platform_localized_path(char* platform_localized_path, const char* subpath);
+
+//Localize subpaths within the base directory, with the gameinfo prefix
+void get_platform_game_localized_path(char* platform_localized_path, const char* subpath);
 
 //Localize file query strings
 void get_platform_localized_query_string(char* platform_localized_query_string, const char* subpath, const char* query);

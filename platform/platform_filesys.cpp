@@ -81,7 +81,7 @@ void init_all_platform_localized_paths()
 	}
 	if(strlen(CHOCOLATE_SAVE_DIR) > 0)
 	{
-		get_platform_localized_path(temp_buf, CHOCOLATE_SAVE_DIR);
+		get_platform_game_localized_path(temp_buf, CHOCOLATE_SAVE_DIR);
 		mkdir_recursive(temp_buf);
 	}
 	if(strlen(CHOCOLATE_HISCORE_DIR) > 0)
@@ -91,12 +91,12 @@ void init_all_platform_localized_paths()
 	}
 	if(strlen(CHOCOLATE_MISSIONS_DIR) > 0)
 	{
-		get_platform_localized_path(temp_buf, CHOCOLATE_MISSIONS_DIR);
+		get_platform_game_localized_path(temp_buf, CHOCOLATE_MISSIONS_DIR);
 		mkdir_recursive(temp_buf);
 	}
 	if(strlen(CHOCOLATE_DEMOS_DIR) > 0)
 	{
-		get_platform_localized_path(temp_buf, CHOCOLATE_DEMOS_DIR);
+		get_platform_game_localized_path(temp_buf, CHOCOLATE_DEMOS_DIR);
 		mkdir_recursive(temp_buf);
 	}
 	if(strlen(CHOCOLATE_SOUNDFONTS_DIR) > 0)
@@ -478,6 +478,13 @@ void get_platform_localized_path(char* platform_localized_path, const char* subp
 	memset(platform_localized_path, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
 	get_full_file_path(platform_localized_path, "", subpath);
 }
+
+void get_platform_game_localized_path(char* platform_localized_path, const char* subpath)
+{
+	memset(platform_localized_path, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
+	get_game_full_file_path(platform_localized_path, "", subpath);
+}
+
 
 void get_platform_localized_query_string(char* platform_localized_query_string, const char* subpath, const char* query)
 {
