@@ -201,12 +201,17 @@ fix flash_scale;
 #define FLASH_CYCLE_RATE f1_0
 
 fix flash_rate = FLASH_CYCLE_RATE;
+fixang flash_ang = 0;
+
+//is it absolutely pedantic to make the reactor flash not leaky between levels? yes.
+void start_flashing_light()
+{
+	flash_ang = 0;
+}
 
 //cycle the flashing light for when mine destroyed
 void flash_frame()
 {
-	static fixang flash_ang = 0;
-
 	if (!Fuelcen_control_center_destroyed)
 		return;
 
@@ -218,7 +223,7 @@ void flash_frame()
 
 	//	flash_ang += fixmul(FLASH_CYCLE_RATE,FrameTime);
 	flash_ang += (fixang)fixmul(flash_rate, FrameTime);
-	fix_fastsincos(flash_ang, &flash_scale, NULL);
+	fix_fastsincos(flash_ang, nullptr, &flash_scale);
 	flash_scale = (flash_scale + f1_0) / 2;
 }
 

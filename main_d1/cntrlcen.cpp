@@ -111,6 +111,9 @@ void do_controlcen_dead_frame(void)
 			create_small_fireball_on_object(&Objects[Dead_controlcen_object_num], F1_0 * 3, 1);
 }
 
+//hack but I really don't want to include render.h here. 
+void start_flashing_light();
+
 //	-----------------------------------------------------------------------------
 //	Called when control center gets destroyed.
 //	This code is common to whether control center is implicitly imbedded in a boss,
@@ -127,13 +130,13 @@ void do_controlcen_destroyed_stuff(object* objp)
 	// And start the countdown stuff.
 	Fuelcen_control_center_destroyed = 1;
 
+	start_flashing_light();
 
 	if (!Control_center_present)
 		return;
 
 	if (objp != NULL)
 		Dead_controlcen_object_num = objp - Objects;
-
 }
 
 //	-----------------------------------------------------------------------------

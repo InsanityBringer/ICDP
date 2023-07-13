@@ -16,11 +16,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "player.h"
 #include "mission.h"
 
-#define SUPER_MISSILE		0
-#define SUPER_SEEKER			1
-#define SUPER_SMARTBOMB		2
-#define SUPER_SHOCKWAVE		3
-
 #ifdef SHAREWARE
 #define Last_level
 #define Last_level			7			//the number of the very last level for shareware
