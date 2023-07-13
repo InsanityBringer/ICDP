@@ -44,7 +44,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "newmenu.h"
 #include "state.h"
 #include "titles.h"
-#include "vfx.h"
 #include "platform/platform.h"
 
 uint8_t New_pal[768];

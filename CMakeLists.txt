@@ -268,8 +268,6 @@ set(DESCENT1_SOURCES
 	main_d1/vclip.cpp
 	main_d1/vclip.h
 	main_d1/vers_id.h
-	main_d1/vfx.cpp
-	main_d1/vfx.h
 	main_d1/wall.cpp
 	main_d1/wall.h
 	main_d1/weapon.cpp
