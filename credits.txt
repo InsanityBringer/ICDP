@@ -9,3 +9,5 @@ btb: Wrote mvelib for the D2X project. quad_sqrt infinite loop fix from d2x. Als
 dpJudas: Wrote the native backend for Windows, as well as providing much-needed code cleanup and readibility, and ported the project to c++. 
 
 Altazimuth and Kaiser: Provided plenty of assistance and macros to assemble the CMakeLists files
+
+divideconcept: For the fluidlite library. 

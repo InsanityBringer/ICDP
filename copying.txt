@@ -81,3 +81,6 @@ following added restrictions:
 3) D1X IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
 IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
 WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+
+The FluidLite library is (c) 2016 Robin Lobel and under the GNU LGPL, as 
+described in the LICENSE file in the thirdparty/fluidlite directory.

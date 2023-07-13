@@ -9,7 +9,11 @@ as described in copying.txt.
 #include <stdlib.h>
 #include <stdint.h>
 
+#ifdef USE_FLUIDLITE
+#include "thirdparty/fluidlite/include/fluidlite.h"
+#else
 #include "fluidsynth.h"
+#endif
 
 #include "fluid_midi.h"
 #include "platform/s_midi.h"

@@ -8,7 +8,12 @@ as described in copying.txt.
 #pragma once
 
 #include "platform/s_midi.h"
+
+#ifdef USE_FLUIDLITE
+#include "thirdparty/fluidlite/include/fluidlite.h"
+#else
 #include "fluidsynth.h"
+#endif
 
 class MidiFluidSynth : MidiSynth
 {
