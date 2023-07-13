@@ -159,8 +159,6 @@ extern int Game_window_w, Game_window_h;		//width and height of player's game wi
 
 extern int Rear_view;			//if true, looking back.
 
-extern int Queued_weapon_switch; //Extern just because gameseq needs to clear this..
-
 //selects a given cockpit (or lack of one).
 void select_cockpit(int mode);
 

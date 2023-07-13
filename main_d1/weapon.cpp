@@ -100,9 +100,16 @@ void select_weapon(int weapon_num, int secondary_flag, int print_message, int wa
 	{
 		if (Primary_weapon != weapon_num) 
 		{
+			//If switching from the fusion cannon and you have some charge left, clear it
+			if (Primary_weapon == FUSION_INDEX && Fusion_charge > 0)
+			{
+				do_laser_firing_player();
+				Fusion_charge = 0;
+			}
 			if (wait_for_rearm) digi_play_sample_once(SOUND_GOOD_SELECTION_PRIMARY, F1_0);
 #ifdef NETWORK
-			if (Game_mode & GM_MULTI) {
+			if (Game_mode & GM_MULTI) 
+			{
 				if (wait_for_rearm) multi_send_play_sound(SOUND_GOOD_SELECTION_PRIMARY, F1_0);
 			}
 #endif
@@ -125,7 +132,8 @@ void select_weapon(int weapon_num, int secondary_flag, int print_message, int wa
 		{
 			if (wait_for_rearm) digi_play_sample_once(SOUND_GOOD_SELECTION_SECONDARY, F1_0);
 #ifdef NETWORK
-			if (Game_mode & GM_MULTI) {
+			if (Game_mode & GM_MULTI) 
+			{
 				if (wait_for_rearm) multi_send_play_sound(SOUND_GOOD_SELECTION_PRIMARY, F1_0);
 			}
 #endif

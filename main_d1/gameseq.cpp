@@ -1253,7 +1253,6 @@ void StartNewLevelSub(int level_num, int page_in_textures)
 	init_all_matcens();
 	reset_palette_add();
 	Laser_init_for_level();
-	Queued_weapon_switch = -1; //[ISB] Agh! These variables should really be initialized better. 
 
 	if (!(Game_mode & GM_MULTI) && !Cheats_enabled)
 		set_highest_level(Current_level_num);

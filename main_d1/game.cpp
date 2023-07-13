@@ -174,8 +174,6 @@ int Game_mode = GM_GAME_OVER;
 int	Global_laser_firing_count = 0;
 int	Global_missile_firing_count = 0;
 
-int Queued_weapon_switch = -1; //ugfihefgiuheg please spare me from more globals
-
 grs_bitmap background_bitmap;
 
 int Game_aborted;
@@ -2487,12 +2485,6 @@ void ReadControls()
 		case KEY_3:
 		case KEY_4:
 		case KEY_5:
-			//If you change weapons while charging the fusion cannon, 
-			//queue the weapon switch for the next frame and force the player to fire immediately
-			//so they don't lose charge. 
-			if (Primary_weapon == FUSION_INDEX && Fusion_charge)
-				Queued_weapon_switch = key - KEY_1;
-			else
 				do_weapon_select(key - KEY_1, 0);
 			break;
 
@@ -2897,9 +2889,6 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 			}
 		}
 
-		if (Queued_weapon_switch != -1)
-			Auto_fire_fusion_cannon_time = GameTime; //Wanting to switch, get the fusion blobs out now. 
-
 		if (Auto_fire_fusion_cannon_time) 
 		{
 			if (Primary_weapon != FUSION_INDEX)
@@ -2939,12 +2928,6 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 
 		if (Global_laser_firing_count < 0)
 			Global_laser_firing_count = 0;
-
-		if (Queued_weapon_switch != -1)
-		{
-			do_weapon_select(Queued_weapon_switch, false);
-			Queued_weapon_switch = -1;
-		}
 	}
 
 	if (Do_appearance_effect)
