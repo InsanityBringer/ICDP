@@ -1018,7 +1018,6 @@ int do_laser_firing_player(void)
 	int		ammo_used;
 	int		weapon_index;
 	int		fired_count = 0;
-	fix		addval;
 
 	if (Player_is_dead)
 		return 0;
@@ -1030,10 +1029,6 @@ int do_laser_firing_player(void)
 		energy_used = fixmul(energy_used, i2f(Difficulty_level + 2) / 4);
 
 	ammo_used = Weapon_info[weapon_index].ammo_usage;
-
-	addval = 2 * FrameTime;
-	if (addval > F1_0)
-		addval = F1_0;
 
 	if (Last_laser_fired_time + 2 * FrameTime < GameTime)
 		Next_laser_fire_time = GameTime;
@@ -1088,7 +1083,7 @@ int do_laser_firing_player(void)
 			break;	//	Couldn't fire weapon, so abort.
 		}
 	}
-	//mprintf(0, "  fires = %i\n", fired_count);
+	//mprintf((0, "  fires = %i\n", fired_count));
 
 	Global_laser_firing_count = 0;
 
