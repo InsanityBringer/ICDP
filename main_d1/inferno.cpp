@@ -136,6 +136,12 @@ int D_DescentMain(int argc, const char** argv)
 
 	multi_test_packet_serialization();
 
+	//Descent 1 missions were placed in the root directory, so they didn't need hogs because all files were part of the filesystem implicitly.
+	//To allow this to work with a mission dir, the mission dir must be registered as an alternate search path.
+	char mission_dir[CHOCOLATE_MAX_FILE_PATH_SIZE] = {};
+	get_game_full_file_path(mission_dir, "", CHOCOLATE_MISSIONS_DIR);
+	cfile_add_alternate_searchdir(mission_dir);
+
 	int initStatus = plat_init();
 	if (initStatus)
 	{

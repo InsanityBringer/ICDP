@@ -34,6 +34,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 std::vector<hogarchive> hogarchives;
 std::vector<hogarchive> alternate_hogarchives;
 
+std::vector<std::string> alternate_searchdirs;
+
 FILE* cfile_get_filehandle(const char* filename, const char* mode)
 {
 	char temp[CHOCOLATE_MAX_FILE_PATH_SIZE];
@@ -49,6 +51,25 @@ FILE* cfile_get_filehandle(const char* filename, const char* mode)
 		get_full_file_path(temp, filename, nullptr);
 
 	FILE* fp = fopen(temp, mode);
+
+	if (!fp)
+	{
+		const char* ptr = strrchr(filename, PLATFORM_PATH_SEPARATOR);
+		if (ptr) //it's rooted, so this can't be found in an alternate searchdir.
+			return nullptr;
+
+		//Didn't find it, so try alternate search dirs
+		for (std::string& str : alternate_searchdirs)
+		{
+			temp[0] = '\0';
+			snprintf(temp, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s%s", str.c_str(), filename);
+			temp[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
+
+			fp = fopen(temp, mode);
+			if (fp)
+				return fp; //found it. 
+		}
+	}
 
 #ifndef _WINDOWS
 	if (!fp)
@@ -147,6 +168,19 @@ bool cfile_use_alternate_hogfile(const char* name)
 		alternate_hogarchives.clear();
 		return true;
 	}
+}
+
+bool cfile_add_alternate_searchdir(const char* dir)
+{
+	if (dir)
+	{
+		std::string newdir(dir);
+		if (newdir[newdir.size() - 1] != '/' && newdir[newdir.size() - 1] != PLATFORM_PATH_SEPARATOR) //thanks windows
+			newdir.push_back(PLATFORM_PATH_SEPARATOR);
+		
+		alternate_searchdirs.push_back(std::move(newdir));
+	}
+	return true;
 }
 
 int cfexist(const char* filename)

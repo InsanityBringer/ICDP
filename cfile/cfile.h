@@ -67,6 +67,10 @@ void cfile_get_string(char* buffer, int count, CFILE* fp);
 // Passing NULL disables this.
 bool cfile_use_alternate_hogfile(const char* name);
 
+//Adds an additional search dir for searching for files.
+//This can be with or without a separator on the end. 
+bool cfile_add_alternate_searchdir(const char* dir);
+
 void cfile_read_vector(vms_vector *vec, CFILE* fp);
 void cfile_read_angvec(vms_angvec *vec, CFILE* fp);
 
