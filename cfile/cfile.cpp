@@ -37,7 +37,16 @@ std::vector<hogarchive> alternate_hogarchives;
 FILE* cfile_get_filehandle(const char* filename, const char* mode)
 {
 	char temp[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	get_full_file_path(temp, filename, nullptr);
+
+	//This is a bit hacky, but if the path is rooted, don't localize it
+	//Filesystem localization should eventually be done at the level of cfopen. 
+	if (strrchr(filename, PLATFORM_PATH_SEPARATOR))
+	{
+		strncpy(temp, filename, CHOCOLATE_MAX_FILE_PATH_SIZE);
+		temp[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
+	}
+	else
+		get_full_file_path(temp, filename, nullptr);
 
 	FILE* fp = fopen(temp, mode);
 

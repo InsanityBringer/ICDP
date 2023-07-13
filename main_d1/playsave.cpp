@@ -18,6 +18,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
+#include "gameinfo/gameinfo.h"
 #include "misc/error.h"
 #include "inferno.h"
 #include "gameseq.h"
@@ -60,31 +61,6 @@ std::vector<pilot_gameinfo> all_gameinfo;
 //After all_gameinfo is populated from the pilot file, set this pointer. 
 pilot_gameinfo* current_gameinfo;
 
-#define SAVED_GAME_VERSION		7		//increment this every time saved_game struct changes
-
-//version 5 -> 6: added new highest level information
-//version 6 -> 7: stripped out the old saved_game array.
-
-//the shareware is level 4
-
-#define COMPATIBLE_SAVED_GAME_VERSION		4
-#define COMPATIBLE_PLAYER_STRUCT_VERSION	16
-
-typedef struct saved_game 
-{
-	char		name[GAME_NAME_LEN + 1];		//extra char for terminating zero
-	player	playerinst;
-	int		difficulty_level;		//which level game is played at
-	int		primary_weapon;		//which weapon selected
-	int		secondary_weapon;		//which weapon selected
-	int		cockpit_mode;			//which cockpit mode selected
-	int		window_w, window_h;	//size of player's window
-	int		next_level_num;		//which level we're going to
-	int		auto_leveling_on;		//does player have autoleveling on?
-} saved_game;
-
-saved_game saved_games[N_SAVE_SLOTS];
-
 int Default_leveling_on = 1;
 int Primary_autoselect_mode, Secondary_autoselect_mode;
 
@@ -112,7 +88,7 @@ static uint32_t get_random_identifier()
 pilot_gameinfo generate_gameinfo_for_current_game()
 {
 	pilot_gameinfo gameinfo = {};
-	gameinfo.Game_name = "Descent";
+	gameinfo.Game_name = gameinfo_get_current_game_prefix();
 
 	//Generate hli for the built-in mission
 	hli default_hli = {};
@@ -195,7 +171,7 @@ void find_gameinfo_for_current_game()
 {
 	for (pilot_gameinfo& gameinfo : all_gameinfo)
 	{
-		if (!gameinfo.Game_name.compare("Descent"))
+		if (!gameinfo.Game_name.compare(gameinfo_get_current_game_prefix()))
 			current_gameinfo = &gameinfo;
 	}
 
@@ -205,12 +181,6 @@ void find_gameinfo_for_current_game()
 		all_gameinfo.push_back(generate_gameinfo_for_current_game());
 		current_gameinfo = &all_gameinfo[all_gameinfo.size() - 1];
 	}
-}
-
-void init_game_list()
-{
-	for (int i = 0; i < N_SAVE_SLOTS; i++)
-		saved_games[i].name[0] = 0;
 }
 
 //[ISB] hack
@@ -432,28 +402,6 @@ int write_player_file()
 	}
 
 	return errno_ret;
-}
-
-//fills in a list of pointers to strings describing saved games
-//returns the number of non-empty slots
-//returns -1 if this is a new player
-int get_game_list(char* game_text[N_SAVE_SLOTS])
-{
-	int i, count, ret;
-
-	ret = read_player_file();
-
-	for (i = count = 0; i < N_SAVE_SLOTS; i++) 
-	{
-		if (game_text)
-			game_text[i] = saved_games[i].name;
-
-		if (saved_games[i].name[0])
-			count++;
-	}
-
-	return (ret == EZERO) ? count : -1;		//-1 means new file was created
-
 }
 
 //update the player's highest level.  returns errno (0 == no error)

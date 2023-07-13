@@ -156,7 +156,7 @@ bool read_mission_file(char* filename, int location, bool anarchy_mode)
 	CFILE* mfile;
 	//TODO: localization should be done in advance, but this isn't done yet since we're not LFN clean here. 
 	char filename2[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	get_full_file_path(filename2, filename, CHOCOLATE_MISSIONS_DIR); 
+	get_game_full_file_path(filename2, filename, CHOCOLATE_MISSIONS_DIR);
 
 	mfile = cfopen(filename2, "rb");
 
@@ -226,7 +226,7 @@ int build_mission_list(bool anarchy_mode)
 	char search_name[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char file_path_name[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	//get_platform_localized_query_string(search_name, CHOCOLATE_MISSIONS_DIR, "*.msn");
-	get_full_file_path(search_name, "*.msn", CHOCOLATE_MISSIONS_DIR);
+	get_game_full_file_path(search_name, "*.msn", CHOCOLATE_MISSIONS_DIR);
 
 	Mission_list.clear();
 
@@ -308,8 +308,8 @@ int load_mission(int mission_num)
 		snprintf(msn_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.msn", Mission_list[mission_num].filename);
 		snprintf(hog_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.hog", Mission_list[mission_num].filename);
 
-		get_full_file_path(msnfile_full_path, msn_filename, CHOCOLATE_MISSIONS_DIR);
-		get_full_file_path(hogfile_full_path, hog_filename, CHOCOLATE_MISSIONS_DIR);
+		get_game_full_file_path(msnfile_full_path, msn_filename, CHOCOLATE_MISSIONS_DIR);
+		get_game_full_file_path(hogfile_full_path, hog_filename, CHOCOLATE_MISSIONS_DIR);
 
 		cfile_use_alternate_hogfile(hogfile_full_path);
 
@@ -368,7 +368,7 @@ int load_mission(int mission_num)
 					while (*(++bufp) == ' ')
 						;
 				memset(hogfile_full_path, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
-				get_full_file_path(hogfile_full_path, bufp, CHOCOLATE_MISSIONS_DIR);
+				get_game_full_file_path(hogfile_full_path, bufp, CHOCOLATE_MISSIONS_DIR);
 				cfile_use_alternate_hogfile(hogfile_full_path);
 				//cfile_use_alternate_hogfile(bufp);
 				mprintf((0, "Hog file override = [%s]\n", bufp));
@@ -416,7 +416,7 @@ int load_mission(int mission_num)
 						if(ext_idx != NULL && ext_idx - trimmed_line > 2 && ext_idx[1] == 'h' && ext_idx[2] == 'o' && ext_idx[3] == 'g')
 						{
 							memset(hogfile_full_path, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
-							get_full_file_path(hogfile_full_path, trimmed_line, CHOCOLATE_MISSIONS_DIR);
+							get_game_full_file_path(hogfile_full_path, trimmed_line, CHOCOLATE_MISSIONS_DIR);
 							cfile_use_alternate_hogfile(hogfile_full_path);
 							//cfile_use_alternate_hogfile(trimmed_line);
 						}

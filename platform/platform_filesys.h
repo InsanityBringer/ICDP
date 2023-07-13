@@ -52,8 +52,8 @@ static const unsigned int CHOCOLATE_DESCENT_VERSION = 2;
 #define CHOCOLATE_PILOT_DIR ""
 #define CHOCOLATE_SAVE_DIR ""
 #define CHOCOLATE_HISCORE_DIR ""
-#define CHOCOLATE_MISSIONS_DIR ""
-#define CHOCOLATE_DEMOS_DIR ""
+#define CHOCOLATE_MISSIONS_DIR "Missions"
+#define CHOCOLATE_DEMOS_DIR "Demos"
 #define CHOCOLATE_SOUNDFONTS_DIR ""
 #endif
 
@@ -85,8 +85,14 @@ void get_platform_localized_query_string(char* platform_localized_query_string, 
 //Get full path to files using the local file path prefix
 void get_full_file_path(char* filename_full_path, const char* filename, const char* additional_path = NULL);
 
+//Get full path to files using the local file path prefix and the game name prefix
+void get_game_full_file_path(char* filename_full_path, const char* filename, const char* additional_path = NULL);
+
 //Get full path to files in an OS-specific temp directory
 void get_temp_file_full_path(char* filename_full_path, const char* filename);
 
 //Explicitly sets the filesystem basedir. 
 void platform_set_filesystem_basedir(const char* basedir);
+
+//Registers a game prefix for use by the game info system
+void platform_set_filesystem_game_prefix(const char* prefix);

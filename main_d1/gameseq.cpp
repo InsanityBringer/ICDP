@@ -585,8 +585,6 @@ try_again:
 
 	strncpy(Players[Player_num].callsign, text, CALLSIGN_LEN);
 
-	init_game_list();				//init to defaults
-
 	write_player_file();
 
 	return 1;

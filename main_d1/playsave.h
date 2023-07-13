@@ -34,11 +34,6 @@ extern int Player_message_level;
 
 extern uint32_t Player_random_identifier;
 
-//fills in a list of pointers to strings describing saved games
-//returns the number of non-empty slots
-//returns -1 if this is a new player
-int get_game_list(char* game_text[N_SAVE_SLOTS]);
-
 //update the player's highest level.  returns errno (0 == no error)
 int update_player_file();
 
@@ -46,7 +41,6 @@ int update_player_file();
 int write_player_file();
 
 int new_player_config();
-void init_game_list();
 
 int read_player_file();
 

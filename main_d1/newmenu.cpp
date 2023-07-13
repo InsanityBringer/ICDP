@@ -1426,7 +1426,7 @@ ReadFileNames:
 					if (player_mode)
 						get_full_file_path(file_full_path, files[citem].filename.c_str(), CHOCOLATE_PILOT_DIR);
 					else if (demo_mode)
-						get_full_file_path(file_full_path, files[citem].filename.c_str(), CHOCOLATE_DEMOS_DIR);
+						get_game_full_file_path(file_full_path, files[citem].filename.c_str(), CHOCOLATE_DEMOS_DIR);
 					ret = _unlink(file_full_path);
 					//ret = _unlink(files[citem].filename.c_str());
 

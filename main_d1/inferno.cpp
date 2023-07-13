@@ -25,7 +25,7 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
-
+#include "gameinfo/gameinfo.h"
 #include "2d/gr.h"
 #include "ui/ui.h"
 #include "platform/mono.h"
@@ -131,6 +131,8 @@ int D_DescentMain(int argc, const char** argv)
 
 	init_all_platform_localized_paths();
 	//validate_required_files(); ICDP TODO: This is good but it needs tweaks for the ICDP filesystem. 
+	//There's only one game ATM, so set the gameinfo prefix string for the filesystem now. 
+	platform_set_filesystem_game_prefix(gameinfo_get_current_game_prefix());
 
 	multi_test_packet_serialization();
 

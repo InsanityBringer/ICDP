@@ -16,6 +16,7 @@ Instead, it is released under the terms of the MIT License.
 #include "misc/args.h"
 
 static char local_file_path_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE] = {0};
+static char local_game_name_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE];
 
 void get_missing_file_locations(char* missing_file_string, const char* missing_file_list);
 
@@ -435,6 +436,11 @@ const char* get_platform_localized_file_path_prefix()
 	return local_file_path_prefix;
 }
 
+const char* get_platform_game_path_prefix()
+{
+	return local_game_name_prefix;
+}
+
 void get_platform_localized_interior_path(char* platform_localized_interior_path, const char* interior_path)
 {
 	memset(platform_localized_interior_path, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
@@ -557,6 +563,62 @@ void get_temp_file_full_path(char* filename_full_path, const char* filename)
 		return;
 	}
 #endif
+
+	snprintf(filename_full_path, CHOCOLATE_MAX_FILE_PATH_SIZE, ".%c%s", PLATFORM_PATH_SEPARATOR, filename);
+	return;
+}
+
+void platform_set_filesystem_game_prefix(const char* prefix)
+{
+	strncpy(local_game_name_prefix, prefix, CHOCOLATE_MAX_FILE_PATH_SIZE);
+	local_game_name_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
+}
+
+void get_game_full_file_path(char* filename_full_path, const char* filename, const char* additional_path)
+{
+	Assert(strlen(local_game_name_prefix) > 0);
+	char temp_buf[CHOCOLATE_MAX_FILE_PATH_SIZE], platform_localized_interior_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	const char* separator_pos;
+	memset(filename_full_path, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
+	memset(temp_buf, 0, CHOCOLATE_MAX_FILE_PATH_SIZE);
+	separator_pos = strrchr(filename, PLATFORM_PATH_SEPARATOR);
+	if (separator_pos == NULL)
+	{
+		if (additional_path == NULL || strlen(additional_path) == 0)
+		{
+			snprintf(filename_full_path, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s%c%s%c%s", 
+				get_platform_localized_file_path_prefix(), PLATFORM_PATH_SEPARATOR, get_platform_game_path_prefix(), PLATFORM_PATH_SEPARATOR, filename);
+			return;
+		}
+		else
+		{
+			get_platform_localized_interior_path(platform_localized_interior_path, additional_path);
+			//I feel this could be done a bit better. 
+			snprintf(filename_full_path, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s%c%s%c%s%c%s", 
+				get_platform_localized_file_path_prefix(), PLATFORM_PATH_SEPARATOR, get_platform_game_path_prefix(), PLATFORM_PATH_SEPARATOR,
+				platform_localized_interior_path, PLATFORM_PATH_SEPARATOR, filename);
+			return;
+		}
+	}
+	else
+	{
+		strncpy(temp_buf, separator_pos + 1, CHOCOLATE_MAX_FILE_PATH_SIZE - 1);
+
+		if (additional_path == NULL || strlen(additional_path) == 0)
+		{
+			snprintf(filename_full_path, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s%c%s%c%s", 
+				get_platform_localized_file_path_prefix(), PLATFORM_PATH_SEPARATOR, get_platform_game_path_prefix(), PLATFORM_PATH_SEPARATOR, temp_buf);
+			return;
+		}
+		else
+		{
+			get_platform_localized_interior_path(platform_localized_interior_path, additional_path);
+			snprintf(filename_full_path, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s%c%s%c%s%c%s", 
+				get_platform_localized_file_path_prefix(), PLATFORM_PATH_SEPARATOR, get_platform_game_path_prefix(), PLATFORM_PATH_SEPARATOR,
+				platform_localized_interior_path, PLATFORM_PATH_SEPARATOR, temp_buf);
+			return;
+		}
+	}
 
 	snprintf(filename_full_path, CHOCOLATE_MAX_FILE_PATH_SIZE, ".%c%s", PLATFORM_PATH_SEPARATOR, filename);
 	return;

@@ -82,6 +82,8 @@ set(SHARED_SOURCES
 	fix/fix.cpp
 	fix/fix.h
 	fix/tables.cpp
+	gameinfo/gameinfo.cpp
+	gameinfo/gameinfo.h
 	iff/iff.cpp
 	iff/iff.h
 	main_shared/compbit.h
@@ -811,6 +813,7 @@ source_group("3d" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/3d/.+")
 source_group("cfile" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/cfile/.+")
 source_group("conf" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/conf/.+")
 source_group("fix" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/fix/.+")
+source_group("gameinfo" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/gameinfo/.+")
 source_group("iff" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/iff/.+")
 source_group("main_d1" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/main_d1/.+")
 source_group("main_d1\\editor" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/main_d1/editor/.+")

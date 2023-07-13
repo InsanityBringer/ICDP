@@ -3057,7 +3057,7 @@ try_again:
 		}
 		else
 			sprintf(save_file, "tmp%d.dem", tmpcnt++);
-		get_full_file_path(demo_filename_full_path, save_file, CHOCOLATE_DEMOS_DIR);
+		get_game_full_file_path(demo_filename_full_path, save_file, CHOCOLATE_DEMOS_DIR);
 		remove(demo_filename_full_path);
 		rename(demo_temp_filename_full_path, demo_filename_full_path);
 
@@ -3089,7 +3089,7 @@ try_again:
 		strcpy(fullname, m[0].text);
 	strcat(fullname, ".dem");
 
-	get_full_file_path(demo_filename_full_path, fullname, CHOCOLATE_DEMOS_DIR);
+	get_game_full_file_path(demo_filename_full_path, fullname, CHOCOLATE_DEMOS_DIR);
 	remove(demo_filename_full_path);
 	rename(demo_temp_filename_full_path, demo_filename_full_path);
 	//remove(fullname);
@@ -3159,7 +3159,7 @@ void newdemo_start_playback(const char* filename)
 		return;
 
 	char demo_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	get_full_file_path(demo_full_path, filename, CHOCOLATE_DEMOS_DIR);
+	get_game_full_file_path(demo_full_path, filename, CHOCOLATE_DEMOS_DIR);
 	infile = fopen(demo_full_path, "rb");
 	//infile = fopen(filename, "rb");
 
@@ -3227,7 +3227,7 @@ void newdemo_strip_frames(char* outname, int bytes_to_strip)
 	total_size = _filelength(_fileno(infile));
 
 	char outname_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	get_full_file_path(outname_full_path, outname, CHOCOLATE_DEMOS_DIR);
+	get_game_full_file_path(outname_full_path, outname, CHOCOLATE_DEMOS_DIR);
 
 	outfile = fopen(outname_full_path, "wb");
 	//outfile = fopen(outname, "wb");
