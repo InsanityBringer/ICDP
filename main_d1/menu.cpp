@@ -767,7 +767,10 @@ void do_chocolate_midi_menu()
 		digi_reset();
 		digi_reset();
 
-		songs_play_song(SONG_TITLE, 1);
+		if (Function_mode == FMODE_MENU)
+			songs_play_song(SONG_TITLE, 1);
+		else
+			songs_play_level_song(Current_level_num);
 	}
 }
 
@@ -784,7 +787,7 @@ void do_sound_menu()
 		m[1].type = NM_TYPE_SLIDER; m[1].text = TXT_MUSIC_VOLUME; m[1].value = Config_midi_volume; m[1].min_value = 0; m[1].max_value = 8;
 		m[2].type = NM_TYPE_CHECK; m[2].text = TXT_REVERSE_STEREO; m[2].value = Config_channels_reversed;
 		m[3].type = NM_TYPE_TEXT; m[3].text = (char*)"";
-		m[4].type = NM_TYPE_MENU; m[4].text = (char*)"MIDI Config";
+		m[4].type = NM_TYPE_MENU; m[4].text = (char*)"MIDI Options";
 
 		i = newmenu_do1(NULL, sound_menu_title, 5, m, sound_menuset, i);
 

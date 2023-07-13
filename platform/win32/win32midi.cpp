@@ -140,9 +140,15 @@ void MidiWin32Synth::SetDefaults()
 		ev.param1 = 0;
 		DoMidiEvent(&ev);
 
+		//Send pan reset.. why is message 121 not setting this?
+		ev.param1 = 10;
+		ev.param2 = 63;
+		DoMidiEvent(&ev);
+
 		//Send default program
 		ev.status = (EVENT_PATCH << 4) | chan;
 		ev.param1 = 0;
+		ev.param2 = 0;
 		DoMidiEvent(&ev);
 
 		ev.status = (EVENT_PITCH << 4) | chan;
