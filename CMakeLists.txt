@@ -1,14 +1,11 @@
 cmake_minimum_required(VERSION 3.11)
-project(ChocolateDescent)
+project(NeptuneEngine)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-set(CHOCOLATE_DESCENT_VERSION "0.1")
+set(NEPTUNE_ENGINE_VERSION "0.1")
 
-set(BUILD_EDITOR OFF CACHE BOOL "Build the game editor. Descent 2 is highly broken atm. Won't link outside of Windows ATM.")
+set(BUILD_EDITOR OFF CACHE BOOL "Build the game editor. Won't link outside of Windows ATM.")
 set(NETWORK OFF CACHE BOOL "Build with UDP networking enabled.")
-#These features are intended for testing.
-set(DESCENT1_TEXMAP_IN_DESCENT2 OFF CACHE BOOL "Swaps Descent 1's texture mapper into Descent 2.")
-set(DESCENT2_TEXMAP_IN_DESCENT1 OFF CACHE BOOL "Swaps Descent 2's texture mapper into Descent 1. ")
 
 function(add_hog_file HOG_NAME HOG_SRC_DIR)
 	string( REPLACE "." "_" HOG_TARGET ${HOG_NAME} )
@@ -369,246 +366,6 @@ set(D1_EDITOR_SOURCES
 	main_d1/editor/nocfile.h
 )
 
-set(DESCENT2_SOURCES
-	main_d2/ai.cpp
-	main_d2/ai.h
-	main_d2/ai2.cpp
-	main_d2/aipath.cpp
-	main_d2/aistruct.cpp
-	main_d2/aistruct.h
-	main_d2/arcade.h
-	main_d2/automap.cpp
-	main_d2/automap.h
-	main_d2/bm.cpp
-	main_d2/bm.h
-	main_d2/bmread.cpp
-	main_d2/bmread.h
-	main_d2/cntrlcen.cpp
-	main_d2/cntrlcen.h
-	main_d2/collide.cpp
-	main_d2/collide.h
-	main_d2/config.cpp
-	main_d2/config.h
-	main_d2/controls.cpp
-	main_d2/controls.h
-	main_d2/credits.cpp
-	main_d2/credits.h
-	main_d2/crypt.cpp
-	main_d2/desc_id.h
-	main_d2/digi.cpp
-	main_d2/digiobj.cpp
-	main_d2/dumpmine.cpp
-	main_d2/endlevel.cpp
-	main_d2/endlevel.h
-	main_d2/escort.cpp
-	main_d2/fireball.cpp
-	main_d2/fireball.h
-	main_d2/fuelcen.cpp
-	main_d2/fuelcen.h
-	main_d2/fvi.cpp
-	main_d2/fvi.h
-	main_d2/game.cpp
-	main_d2/game.h
-	main_d2/gamecntl.cpp
-	main_d2/gamefont.cpp
-	main_d2/gamefont.h
-	main_d2/gamemine.cpp
-	main_d2/gamemine.h
-	main_d2/gamepal.cpp
-	main_d2/gamepal.h
-	main_d2/gamerend.cpp
-	main_d2/gamesave.cpp
-	main_d2/gamesave.h
-	main_d2/gameseg.cpp
-	main_d2/gameseg.h
-	main_d2/gameseq.cpp
-	main_d2/gameseq.h
-	main_d2/gamestat.h
-	main_d2/gauges.cpp
-	main_d2/gauges.h
-	main_d2/hostage.cpp
-	main_d2/hostage.h
-	main_d2/hud.cpp
-	main_d2/inferno.cpp
-	main_d2/inferno.h
-	main_d2/joydefs.cpp
-	main_d2/joydefs.h
-	main_d2/kconfig.cpp
-	main_d2/kconfig.h
-	main_d2/kmatrix.cpp
-	main_d2/kmatrix.h
-	main_d2/laser.cpp
-	main_d2/laser.h
-	main_d2/lighting.cpp
-	main_d2/lighting.h
-	main_d2/menu.cpp
-	main_d2/menu.h
-	main_d2/mglobal.cpp
-	main_d2/mission.cpp
-	main_d2/mission.h
-	main_d2/morph.cpp
-	main_d2/morph.h
-	main_d2/movie.cpp
-	main_d2/movie.h
-	main_d2/multi.cpp
-	main_d2/multi.h
-	main_d2/multibot.cpp
-	main_d2/multibot.h
-	main_d2/netmisc.cpp
-	main_d2/netmisc.h
-	main_d2/network.cpp
-	main_d2/network.h
-	main_d2/newdemo.cpp
-	main_d2/newdemo.h
-	main_d2/newmenu.cpp
-	main_d2/newmenu.h
-	main_d2/object.cpp
-	main_d2/object.h
-	main_d2/paging.cpp
-	main_d2/paging.h
-	main_d2/physics.cpp
-	main_d2/physics.h
-	main_d2/piggy.cpp
-	main_d2/player.cpp
-	main_d2/player.h
-	main_d2/playsave.cpp
-	main_d2/playsave.h
-	main_d2/polyobj.cpp
-	main_d2/polyobj.h
-	main_d2/powerup.cpp
-	main_d2/powerup.h
-	main_d2/render.cpp
-	main_d2/render.h
-	main_d2/robot.cpp
-	main_d2/robot.h
-	main_d2/scores.cpp
-	main_d2/scores.h
-	main_d2/screens.h
-	main_d2/settings.h
-	main_d2/segment.h
-	main_d2/segpoint.h
-	main_d2/slew.cpp
-	main_d2/slew.h
-	main_d2/sounds.h
-	main_d2/state.cpp
-	main_d2/state.h
-	main_d2/stringtable.h
-	main_d2/switch.cpp
-	main_d2/switch.h
-	main_d2/terrain.cpp
-	main_d2/terrain.h
-	main_d2/textures.h
-	main_d2/titles.cpp
-	main_d2/titles.h
-	main_d2/vclip.cpp
-	main_d2/vclip.h
-	main_d2/vers_id.h
-	main_d2/wall.cpp
-	main_d2/wall.h
-	main_d2/weapon.cpp
-	main_d2/weapon.h
-	mve/decoder8.cpp
-	mve/decoder16.cpp
-	mve/decoders.h
-	mve/libmve.h
-	mve/mve_audio.cpp
-	mve/mve_audio.h
-	mve/mvelib.cpp
-	mve/mvelib.h
-	mve/mveplay.cpp
-	2d/font_d2.cpp
-	2d/scale_d2.cpp
-)
-
-set(D2_EDITOR_SOURCES
-	ui/barbox.cpp
-	ui/button.cpp
-	ui/checkbox.cpp
-	ui/file.cpp
-	ui/func.cpp
-	ui/func.h
-	ui/gadget.cpp
-	ui/icon.cpp
-	ui/inputbox.cpp
-	ui/keypad.cpp
-	ui/keypress.cpp
-	ui/keytrap.cpp
-	ui/listbox.cpp
-	ui/menubar.cpp
-	ui/message.cpp
-	ui/popup.cpp
-	ui/radio.cpp
-	ui/scroll.cpp
-	ui/ui.cpp
-	ui/ui.h
-	ui/uidraw.cpp
-	ui/uimenu.cpp
-	ui/uimouse.cpp
-	ui/userbox.cpp
-	ui/window.cpp
-	main_d2/editor/med.cpp
-	main_d2/editor/einit.cpp
-	main_d2/editor/eglobal.cpp
-	main_d2/editor/mine.cpp
-	main_d2/editor/curves.cpp
-	main_d2/editor/kcurve.cpp
-	main_d2/editor/khelp.cpp
-	main_d2/editor/ksegsel.cpp
-	main_d2/editor/kbuild.cpp
-	main_d2/editor/kview.cpp
-	main_d2/editor/kmine.cpp
-	main_d2/editor/seguvs.cpp
-	main_d2/editor/ksegsize.cpp
-	main_d2/editor/ksegmove.cpp
-	main_d2/editor/ktmap.cpp
-	main_d2/editor/kfuncs.cpp
-	main_d2/editor/autosave.cpp
-	main_d2/editor/group.cpp
-	main_d2/editor/texture.cpp
-	main_d2/editor/fixseg.cpp
-	main_d2/editor/eobject.cpp
-	main_d2/editor/elight.cpp
-	main_d2/editor/texpage.cpp
-	main_d2/editor/objpage.cpp
-	main_d2/editor/medmisc.cpp
-	main_d2/editor/medsel.cpp
-	main_d2/editor/kgame.cpp
-	main_d2/editor/info.cpp
-	main_d2/editor/medwall.cpp
-	main_d2/editor/eswitch.cpp
-	main_d2/editor/medrobot.cpp
-	main_d2/editor/meddraw.cpp
-	main_d2/editor/segment.cpp
-	main_d2/editor/centers.cpp
-	main_d2/editor/ehostage.cpp
-	main_d2/editor/centers.h
-	main_d2/editor/editor.h
-	main_d2/editor/ehostage.h
-	main_d2/editor/eobject.h
-	main_d2/editor/eswitch.h
-	main_d2/editor/info.h
-	main_d2/editor/kdefs.h
-	main_d2/editor/meddraw.h
-	main_d2/editor/medmisc.h
-	main_d2/editor/medrobot.h
-	main_d2/editor/medsel.h
-	main_d2/editor/medwall.h
-	main_d2/editor/objpage.h
-	main_d2/editor/seguvs.h
-	main_d2/editor/texpage.h
-	main_d2/editor/func.h
-	main_d2/editor/nocfile.h
-)
-
-set(DESCENT2_TEXMAP_SOURCES
-    texmap/ntmap_d2.cpp
-    texmap/scanline_d2.cpp
-    texmap/scanline.h
-    texmap/texmap.h
-    texmap/texmapl.h
-    texmap/tmapflat_d2.cpp
-)
-
 set(SDL_SOURCES
 	platform/sdl/gr_sdl.cpp
 	platform/sdl/key_sdl.cpp
@@ -641,7 +398,7 @@ set(WIN32_SOURCES
 	platform/win32/win32midi.cpp
 	platform/win32/win32midi.h
 	platform/win32/win32window.cpp
-	ChocolateDescent.manifest
+	NeptuneEngine.manifest
 )
 
 set(UNIX_SOURCES
@@ -665,9 +422,9 @@ set(DESCENT1_LIBS
 set(DESCENT2_LIBS
 )
 
-find_package(OPENAL)
+find_package(OPENAL REQUIRED)
 find_package(FLUIDSYNTH)
-find_package(SDL2)
+find_package(SDL2 REQUIRED)
 
 include_directories(.)
 
@@ -762,56 +519,36 @@ add_subdirectory(hogfiles)
 
 if (APPLE)
 	set(ChocolateDescentIcon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Descent1.icns")
-	#set(ChocolateDescent2Icon "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Descent2.icns")
 	set_source_files_properties(${ChocolateDescentIcon} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-	#set_source_files_properties(${ChocolateDescent2Icon} PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
-	add_executable(ChocolateDescent MACOSX_BUNDLE ${ChocolateDescentIcon} ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
-	#add_executable(ChocolateDescent2 MACOSX_BUNDLE ${ChocolateDescent2Icon} ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
-	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME "ChocolateDescent")
-	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME "ChocolateDescent2")
-	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Info.plist.in")
-	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Info.plist.in")
-	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_ICON_FILE "Descent1.icns")
-	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_ICON_FILE "Descent2.icns")
-	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER "com.chocolatedescent.descent1")
-	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER "com.chocolatedescent.descent2")
-	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Chocolate Descent")
-	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Chocolate Descent 2")
-	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "${CHOCOLATE_DESCENT_VERSION}")
-	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "${CHOCOLATE_DESCENT_VERSION}")
-	set_target_properties(ChocolateDescent PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "Chocolate Descent v${CHOCOLATE_DESCENT_VERSION}")
-	#set_target_properties(ChocolateDescent2 PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "Chocolate Descent 2 v${CHOCOLATE_DESCENT_VERSION}")
+	add_executable(NeptuneEngine MACOSX_BUNDLE ${ChocolateDescentIcon} ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
+	set_target_properties(NeptuneEngine PROPERTIES MACOSX_BUNDLE_EXECUTABLE_NAME "NeptuneEngine")
+	set_target_properties(NeptuneEngine PROPERTIES MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/macos/Info.plist.in")
+	set_target_properties(NeptuneEngine PROPERTIES MACOSX_BUNDLE_ICON_FILE "Descent1.icns")
+	set_target_properties(NeptuneEngine PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER "com.neptuneengine.descent1")
+	set_target_properties(NeptuneEngine PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "Neptune Engine")
+	set_target_properties(NeptuneEngine PROPERTIES MACOSX_BUNDLE_SHORT_VERSION_STRING "${NEPTUNE_ENGINE_VERSION}")
+	set_target_properties(NeptuneEngine PROPERTIES MACOSX_BUNDLE_BUNDLE_VERSION "Neptune Engine v${NEPTUNE_ENGINE_VERSION}")
 	if(EXISTS "/usr/local/bin/dylibbundler")
-		add_custom_command(TARGET ChocolateDescent POST_BUILD COMMAND /bin/zsh -c "/usr/local/bin/dylibbundler -od -b -x \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent.app/Contents/MacOS/ChocolateDescent\" -d \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent.app/Contents/libs\"")
-		#add_custom_command(TARGET ChocolateDescent2 POST_BUILD COMMAND /bin/zsh -c "/usr/local/bin/dylibbundler -od -b -x \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent2.app/Contents/MacOS/ChocolateDescent2\" -d \"${CMAKE_CURRENT_SOURCE_DIR}/ChocolateDescent2.app/Contents/libs\"")
+		add_custom_command(TARGET NeptuneEngine POST_BUILD COMMAND /bin/zsh -c "/usr/local/bin/dylibbundler -od -b -x \"${CMAKE_CURRENT_SOURCE_DIR}/NeptuneEngine.app/Contents/MacOS/NeptuneEngine\" -d \"${CMAKE_CURRENT_SOURCE_DIR}/NeptuneEngine.app/Contents/libs\"")
 	endif()
 elseif(UNIX)
-	add_executable(ChocolateDescent ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
-	#add_executable(ChocolateDescent2 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
+	add_executable(NeptuneEngine ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
 elseif(WIN32)
-	add_executable(ChocolateDescent WIN32 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
-	#add_executable(ChocolateDescent2 WIN32 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT2_SOURCES})
+	add_executable(NeptuneEngine WIN32 ${SHARED_SOURCES} ${NOT_COMPILED_SOURCES} ${DESCENT1_SOURCES})
 endif()
 
-#set_target_properties(ChocolateDescent ChocolateDescent2 PROPERTIES CXX_STANDARD 20)
-set_target_properties(ChocolateDescent PROPERTIES CXX_STANDARD 20)
+set_target_properties(NeptuneEngine PROPERTIES CXX_STANDARD 20)
 
 if (BUILD_EDITOR)
-	target_compile_definitions(ChocolateDescent PUBLIC "$<$<CONFIG:DEBUG>:EDITOR>")
-	#target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:DEBUG>:EDITOR>")
+	target_compile_definitions(NeptuneEngine PUBLIC "$<$<CONFIG:DEBUG>:EDITOR>")
 endif()
 
-target_link_libraries(ChocolateDescent ${SHARED_LIBS} ${DESCENT1_LIBS})
-#target_link_libraries(ChocolateDescent2 ${SHARED_LIBS} ${DESCENT2_LIBS})
+target_link_libraries(NeptuneEngine ${SHARED_LIBS} ${DESCENT1_LIBS})
 
-target_compile_definitions(ChocolateDescent PUBLIC BUILD_DESCENT1)
-#target_compile_definitions(ChocolateDescent2 PUBLIC BUILD_DESCENT2)
-target_compile_definitions(ChocolateDescent PUBLIC "$<$<CONFIG:RELEASE>:RELEASE>")
-#target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:RELEASE>:RELEASE>")
-target_compile_definitions(ChocolateDescent PUBLIC "$<$<CONFIG:MINSIZEREL>:RELEASE>")
-#target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:MINSIZEREL>:RELEASE>")
-target_compile_definitions(ChocolateDescent PUBLIC "$<$<CONFIG:RELWITHDEBINFO>:RELEASE>")
-#target_compile_definitions(ChocolateDescent2 PUBLIC "$<$<CONFIG:RELWITHDEBINFO>:RELEASE>")
+target_compile_definitions(NeptuneEngine PUBLIC BUILD_DESCENT1)
+target_compile_definitions(NeptuneEngine PUBLIC "$<$<CONFIG:RELEASE>:RELEASE>")
+target_compile_definitions(NeptuneEngine PUBLIC "$<$<CONFIG:MINSIZEREL>:RELEASE>")
+target_compile_definitions(NeptuneEngine PUBLIC "$<$<CONFIG:RELWITHDEBINFO>:RELEASE>")
 
 set_source_files_properties(${NOT_COMPILED_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
 

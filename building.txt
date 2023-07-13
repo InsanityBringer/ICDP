@@ -2,14 +2,14 @@ Everything described in this document is in a very early state, and is subject
 to change. I'll confess I barely know what I'm doing with CMake, so there's
 a number of limitations so far. 
 
-The project can be built on Windows (only tested with Visual Studio 2019),
+The project can be built on Windows (only tested with Visual Studio 2022),
 Linux (Tested with clang and gcc), and macOS (tested with clang).
 
 There are three external libraries, but most are optional.
 
-SDL 2.0.10 - Required on Linux and macOS, Optional on Windows
-OpenAL (OpenAL Soft implementation preferred) - Optional
-FluidSynth - Optional
+SDL 2.0.10 - Required (I want to eventually get the Win32 backend up to spec.)
+OpenAL (OpenAL Soft implementation preferred) - Required
+FluidSynth - Optional, FLuidLite will be used if not provided. 
 
 There are two Graphics/Input and Audio backends available on Windows. If these
 libraries are not present, a native Windows backend provided by dpJudas will be
@@ -22,27 +22,24 @@ Building on Windows
 Here's a step by step outline to building on Windows with CMake-gui. I don't 
 know enough about the CLI version to give instructions there, sorry.
 
-1. Point the "Where is the source code" directory at the root ChocolateDescent 
+1. Point the "Where is the source code" directory at the root Neptune Engine 
 directory, and point the "Where to build the binaries" file field at a provided
-build directory. You can do a /build/ subdirectory in the root ChocolateDescent
+build directory. You can do a /build/ subdirectory in the root Neptune Engine
 directory, and it will be properly .gitignored. 
 
 2. Click Generate, and set the generator to a Visual Studio project. Currently,
-only building with 2019 is tested, I can't comment on earlier versions working.
+only building with 2022 is tested, I can't comment on earlier versions working.
 
-3. Set the platform as needed. Fluidsynth, if built through vcpkg, will only
-be 32-bit, so you'll have to set the platform to Win32 for it.
-
-4. Click Finish, and wait for the configuration to complete. When it does,
+3. Click Finish, and wait for the configuration to complete. When it does,
 you'll see a number of red fields. Since the library detection code is 
 currently spotty, you'll probably need to fill out the fields manually.
 Provide the library and include directories for which libraries you wish to 
 build with. 
 
-5. When these libraries are filled out, click Configure again to update these
+4. When these libraries are filled out, click Configure again to update these
 values, and then click Generate to make the project files.
 
-6. Open up the generated solution file in Visual Studio, and then build the
+5. Open up the generated solution file in Visual Studio, and then build the
 projects as desired. 
 
 -------------------------------------------------------------------------------
@@ -59,20 +56,18 @@ current package manager
   the three libraries without any issue, at least they do on my machine
   
 -Navigate to the build directory and run make. Assuming everything goes well,
-this should produce ChocolateDescent and ChocolateDescent2. You can use
-
-  make ChocolateDescent
-  or make ChocolateDescent2
-  
-to build just one of the projects.
+this should produce NeptuneEngine.
 
 -------------------------------------------------------------------------------
 Building on macOS
 -------------------------------------------------------------------------------
+Note: This is entirely untested in Neptune Engine. I got access to an old mac
+recently so I'd like to ensure this works. 
+
 Installing the libraries depends on which package manager you want to use. For
 the purposes of these instructions, I'll assume that's Homebrew.
 
--Install the libraries and tools for building ChocolateDescent:
+-Install the libraries and tools for building Neptune Engine:
     brew install sdl2 openal-soft readline fluid-synth dylibbundler
 
 -Navigate to the source directory and run cmake with a desired build directory.
@@ -84,9 +79,4 @@ the purposes of these instructions, I'll assume that's Homebrew.
   -DSDL2_INCLUDE_DIRS=/usr/local/Cellar/sdl2/2.0.14_1/include/SDL2/
 
 -Navigate to the build directory and run make. Assuming everything goes well,
-this should produce ChocolateDescent and ChocolateDescent2. You can use
-
-  make ChocolateDescent
-  or make ChocolateDescent2
-  
-to build just one of the projects.
+this should produce NeptuneEngine.

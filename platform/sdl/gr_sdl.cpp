@@ -38,7 +38,7 @@ Instead, it is released under the terms of the MIT License.
 #define FITMODE_BEST 1
 #define FITMODE_FILTERED 2
 
-const char* titleMsg = "unnamed Descent port (UDP) (" __DATE__ ")";
+const char* titleMsg = "Neptune Engine (" __DATE__ ")";
 
 int WindowWidth = 1600, WindowHeight = 900;
 int CurWindowWidth, CurWindowHeight;

@@ -314,7 +314,7 @@ void do_cheat_key(int keycode)
 		if (all_cheat_codes[i].effect == cheat_effect::RobotPainting)
 		{
 			size_t len = strlen(all_cheat_codes[i].input_string);
-			if (!strnicmp(&cheat_input_buffer[cheat_buffer_size - len], all_cheat_codes[i].input_string, len - 3)) //pletch matched, now check the number
+			if (!_strnicmp(&cheat_input_buffer[cheat_buffer_size - len], all_cheat_codes[i].input_string, len - 3)) //pletch matched, now check the number
 			{
 				if (isdigit(cheat_input_buffer[cheat_buffer_size - 1]) && isdigit(cheat_input_buffer[cheat_buffer_size - 2]) && isdigit(cheat_input_buffer[cheat_buffer_size - 3]))
 				{
@@ -326,7 +326,7 @@ void do_cheat_key(int keycode)
 		else
 		{
 			size_t len = strlen(all_cheat_codes[i].input_string);
-			if (!strnicmp(&cheat_input_buffer[cheat_buffer_size - len], all_cheat_codes[i].input_string, len))
+			if (!_strnicmp(&cheat_input_buffer[cheat_buffer_size - len], all_cheat_codes[i].input_string, len))
 			{
 				do_generic_cheat(all_cheat_codes[i]);
 				return;

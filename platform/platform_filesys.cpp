@@ -416,7 +416,7 @@ void validate_required_files()
 void platform_set_filesystem_basedir(const char* basedir)
 {
 	strncpy(local_file_path_prefix, basedir, CHOCOLATE_MAX_FILE_PATH_SIZE);
-	local_file_path_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] == '\0';
+	local_file_path_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE - 1] = '\0';
 	//check for a terminating path separator
 	int len = strlen(local_file_path_prefix);
 	if (local_file_path_prefix[len - 1] == '\\' || local_file_path_prefix[len - 1] == '/')

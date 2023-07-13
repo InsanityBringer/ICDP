@@ -281,22 +281,22 @@ bool scanner::read_string()
 	char ch = buf[cursor];
 	if (is_number_start(remaining)) //Number literals can be floating point prefixed with a ., so handle that
 	{
-		last_token_type == token_type::number;
+		last_token_type = token_type::number;
 		read_number();
 	}
 	else if (is_punct(ch))
 	{
-		last_token_type == token_type::punctuation;
+		last_token_type = token_type::punctuation;
 		read_punct();
 	}
 	else if (ch == '"')
 	{
-		last_token_type == token_type::quoted_string;
+		last_token_type = token_type::quoted_string;
 		read_quoted_string();
 	}
 	else
 	{
-		last_token_type == token_type::string;
+		last_token_type = token_type::string;
 		read_unquoted_string();
 	}
 

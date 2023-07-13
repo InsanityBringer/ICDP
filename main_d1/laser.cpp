@@ -1360,7 +1360,7 @@ void do_missile_firing(void)
 		Players[Player_num].secondary_ammo[Secondary_weapon]--;
 
 		int weapon_index = Secondary_weapon_to_weapon_info[Secondary_weapon];
-		if (Laser_rapid_fire != 0xBADA55)
+		if (Laser_rapid_fire)
 			Next_missile_fire_time = GameTime + Weapon_info[weapon_index].fire_wait;
 		else
 			Next_missile_fire_time = GameTime + F1_0 / 25;
