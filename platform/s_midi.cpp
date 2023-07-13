@@ -33,14 +33,19 @@ as described in copying.txt.
 //Uncomment to enable diagonstics of SOS's special MIDI controllers. 
 //#define DEBUG_SPECIAL_CONTROLLERS
 
-GenDevices PreferredGenDevice = GenDevices::FluidSynthDevice;
+GenDevices PreferredGenDevice =
+#ifdef _WIN32
+GenDevices::MMEDevice;
+#else
+GenDevices::FluidSynthDevice;
+#endif
 int CurrentDevice = 0;
 int PreferredMMEDevice = -1;
 
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-char SoundFontFilename[CHOCOLATE_MAX_FILE_PATH_SIZE] = "TestSoundfont.sf2";
+char SoundFontFilename[CHOCOLATE_MAX_FILE_PATH_SIZE] = "";
 #else
-char SoundFontFilename[CHOCOLATE_MAX_FILE_PATH_SIZE] = "TestSoundfont.sf2";
+char SoundFontFilename[CHOCOLATE_MAX_FILE_PATH_SIZE] = "";
 #endif
 MidiSynth* synth = nullptr;
 MidiSequencer* sequencer = nullptr;
