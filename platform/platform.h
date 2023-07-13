@@ -101,6 +101,9 @@ void plat_present_canvas_masked_on(grs_canvas& canv, grs_canvas& base, float asp
 //Flips the native back buffer. This is no longer implicit because the new presentation system lets you present multiple canvases
 void plat_flip();
 
+//Requests a screenshot to be saved to the given filename
+void plat_request_screenshot(const char* dest_filename);
+
 //-----------------------------------------------------------------------------
 //	Control operations
 //-----------------------------------------------------------------------------

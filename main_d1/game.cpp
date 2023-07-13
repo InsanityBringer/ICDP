@@ -1310,65 +1310,21 @@ void game_render_frame()
 
 }
 
+//TODO: Destroy the mem macros
+#undef malloc
+#undef free
+
+#include <chrono>
+#include <format>
+
 void save_screen_shot(int automap_flag)
 {
-	fix t1;
-	char message[100];
-	grs_canvas* screen_canv = VR_screen_buffer;
-	grs_font* save_font;
-	static int savenum = 0;
-	grs_canvas* temp_canv, * save_canv;
-	char savename[13];
-	uint8_t pal[768];
-	int w, h, aw, x, y;
+	char full_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 
-	stop_time();
-
-	save_canv = grd_curcanv;
-	temp_canv = gr_create_canvas(screen_canv->cv_bitmap.bm_w, screen_canv->cv_bitmap.bm_h);
-	gr_set_current_canvas(temp_canv);
-	gr_ubitmap(0, 0, &screen_canv->cv_bitmap);
-
-	if (savenum > 99) savenum = 0;
-	sprintf(savename, "screen%02d.pcx", savenum++);
-	sprintf(message, "%s '%s'", TXT_DUMPING_SCREEN, savename);
-
-	gr_set_current_canvas(VR_screen_buffer);
-	save_font = grd_curcanv->cv_font;
-	gr_set_curfont(GAME_FONT);
-	gr_set_fontcolor(gr_find_closest_color_current(0, 31, 0), -1);
-	gr_get_string_size(message, &w, &h, &aw);
-	x = (VR_screen_buffer->cv_w - w) / 2;
-	y = (VR_screen_buffer->cv_h - h) / 2;
-
-	if (automap_flag) 
-	{
-		modex_print_message(32, y, message);
-	}
-	else 
-	{
-		gr_setcolor(gr_find_closest_color_current(0, 0, 0));
-		gr_rect(x - 2, y - 2, x + w + 2, y + h + 2);
-		gr_printf(x, y, message);
-		gr_set_curfont(save_font);
-	}
-	t1 = timer_get_fixed_seconds() + F1_0;
-
-	gr_palette_read(pal);		//get actual palette from the hardware
-	pcx_write_bitmap(savename, &temp_canv->cv_bitmap, pal);
-
-	while (timer_get_fixed_seconds() < t1);		// Wait so that messag stays up at least 1 second.
-
-	gr_set_current_canvas(screen_canv);
-
-	if (!automap_flag)
-		gr_ubitmap(0, 0, &temp_canv->cv_bitmap);
-
-	gr_free_canvas(temp_canv);
-
-	gr_set_current_canvas(save_canv);
-	key_flush();
-	start_time();
+	auto now = std::chrono::system_clock::now();
+	std::string savename = std::format("Screenshot-{0:%F}-{0:%H-%M-%S}.png", now);
+	get_full_file_path(full_filename, savename.c_str(), CHOCOLATE_SCREENSHOTS_DIR);
+	plat_request_screenshot(full_filename);
 }
 
 //initialize flying

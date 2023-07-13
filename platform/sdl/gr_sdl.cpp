@@ -11,6 +11,7 @@ Instead, it is released under the terms of the MIT License.
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 #ifdef USE_SDL
 
@@ -25,6 +26,7 @@ Instead, it is released under the terms of the MIT License.
 #include "platform/platform.h"
 #include "misc/error.h"
 #include "misc/types.h"
+#include "misc/stb_image_write.h"
 
 #include "platform/joy.h"
 #include "platform/mouse.h"
@@ -55,6 +57,9 @@ uint32_t localPal[256];
 SDL_Color colors[256];
 
 int refreshDuration = US_70FPS;
+
+std::string pending_screenshot_name;
+bool screenshot_pending;
 
 int plat_init()
 {
@@ -371,8 +376,25 @@ void plat_present_canvas_masked_on(grs_canvas& canvas, grs_canvas& base, float a
 	GL_DrawCanvas(canvas, screenRectangle, true);
 }
 
+void plat_request_screenshot(const char* dest_filename)
+{
+	pending_screenshot_name = std::string(dest_filename);
+	screenshot_pending = true;
+}
+
 void plat_flip()
 {
+	if (screenshot_pending)
+	{
+		uint8_t* buffer = GL_GetScreenshotPixels(CurWindowWidth, CurWindowHeight);
+
+		stbi_flip_vertically_on_write(true); //Flip pixels because origin is lower left with OpenGL.
+
+		int res = stbi_write_png(pending_screenshot_name.c_str(), CurWindowWidth, CurWindowHeight, 4, buffer, CurWindowWidth * 4);
+
+		free(buffer);
+		screenshot_pending = false;
+	}
 	SDL_GL_SwapWindow(gameWindow);
 }
 

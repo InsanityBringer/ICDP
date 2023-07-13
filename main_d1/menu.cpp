@@ -1078,7 +1078,7 @@ const char* get_video_resolution()
 		items.push_back(item);
 	}
 
-	int res = newmenu_do(nullptr, nullptr, items.size(), items.data(), nullptr);
+	int res = newmenu_do(nullptr, "Select resolution", items.size(), items.data(), nullptr);
 	if (res == -1)
 		return nullptr;
 

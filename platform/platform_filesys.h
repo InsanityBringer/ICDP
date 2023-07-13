@@ -46,6 +46,7 @@ static const unsigned int CHOCOLATE_DESCENT_VERSION = 2;
 #define CHOCOLATE_MISSIONS_DIR "Data/Missions"
 #define CHOCOLATE_DEMOS_DIR "Data/Demos"
 #define CHOCOLATE_SOUNDFONTS_DIR "Data/SoundFonts"
+#define CHOCOLATE_SCREENSHOTS_DIR "Screenshots"
 #else
 #define CHOCOLATE_CONFIG_DIR ""
 #define CHOCOLATE_SYSTEM_FILE_DIR ""
@@ -55,6 +56,7 @@ static const unsigned int CHOCOLATE_DESCENT_VERSION = 2;
 #define CHOCOLATE_MISSIONS_DIR "Missions"
 #define CHOCOLATE_DEMOS_DIR "Demos"
 #define CHOCOLATE_SOUNDFONTS_DIR ""
+#define CHOCOLATE_SCREENSHOTS_DIR "Screenshots"
 #endif
 
 //-----------------------------------------------------------------------------

@@ -104,6 +104,11 @@ void init_all_platform_localized_paths()
 		get_platform_localized_path(temp_buf, CHOCOLATE_SOUNDFONTS_DIR);
 		mkdir_recursive(temp_buf);
 	}
+	if(strlen(CHOCOLATE_SCREENSHOTS_DIR) > 0)
+	{
+		get_platform_localized_path(temp_buf, CHOCOLATE_SCREENSHOTS_DIR);
+		mkdir_recursive(temp_buf);
+	}
 }
 
 void validate_required_files()

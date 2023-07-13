@@ -154,6 +154,7 @@ bool I_InitGLContext(SDL_Window *win)
 
 	//Context created, so start loading funcs
 	//TODO: Is there a way to avoid the hideous casts in C++?
+	//ANSWER: yes, that way is to use typedefs
 	sglGetError = (GLenum(APIENTRY*)())SDL_GL_GetProcAddress("glGetError");
 	sglClear = (void (APIENTRY*)(GLbitfield mask))SDL_GL_GetProcAddress("glClear");
 	sglClearColor = (void (APIENTRY*)(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha))SDL_GL_GetProcAddress("glClearColor");
@@ -211,6 +212,8 @@ bool I_InitGLContext(SDL_Window *win)
 	sglBlendFunc = (void (APIENTRY*)(GLenum src, GLenum dest))SDL_GL_GetProcAddress("glBlendFunc");
 	sglEnable = (void (APIENTRY*)(GLenum cap))SDL_GL_GetProcAddress("glEnable");
 	sglDisable = (void (APIENTRY*)(GLenum cap))SDL_GL_GetProcAddress("glDisable");
+	sglFinish = (void (APIENTRY*)())SDL_GL_GetProcAddress("glFinish");
+	sglReadPixels = (void (APIENTRY*)(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, GLvoid*))SDL_GL_GetProcAddress("glReadPixels");
 
 	//The window size is constant, so just do this now
 	int w, h;
@@ -344,6 +347,17 @@ void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds, bool blend)
 		sglDisable(GL_BLEND);
 }
 
+uint8_t* GL_GetScreenshotPixels(int width, int height)
+{
+	uint8_t* buffer = (uint8_t*)malloc(width * height * 4);
+	sglFinish(); //Ensure the draw buffer is actually finished before taking the screenshot.
+
+	sglReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+	GL_ErrorCheck("Reading framebuffer pixels");
+
+	return buffer;
+}
+
 void I_ShutdownGL()
 {
 	if (context)
@@ -373,6 +387,7 @@ GLenum(APIENTRY* sglGetError)();
 void (APIENTRY* sglClear)(GLbitfield mask);
 void (APIENTRY* sglClearColor)(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
 void (APIENTRY* sglViewport)(GLint x, GLint y, GLsizei width, GLsizei height);
+void (APIENTRY* sglFinish)();
 
 //shaders
 GLuint(APIENTRY* sglCreateShader)(GLenum type);
@@ -437,3 +452,5 @@ void(APIENTRY* sglBlendFunc)(GLenum sfactor, GLenum dfactor);
 
 void(APIENTRY* sglEnable)(GLenum cap);
 void(APIENTRY* sglDisable)(GLenum cap);
+
+void(APIENTRY* sglReadPixels)(GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, GLvoid*);

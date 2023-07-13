@@ -117,6 +117,8 @@ set(SHARED_SOURCES
 	misc/rand.cpp
 	misc/scanner.cpp
 	misc/scanner.h
+	misc/stb.c
+	misc/stb_image_write.h
 	misc/stb_vorbis.h
 	misc/types.h
 	platform/disk.h

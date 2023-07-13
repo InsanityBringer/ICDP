@@ -1,6 +1,8 @@
 /*
-	Hi this code isn't the sole property of PARALLAX SOFTWARE CORPORATION
-	and is instead released under the MIT license.
+The code contained in this file is not the property of Parallax Software,
+and is not under the terms of the Parallax Software Source license.
+Instead, it is released under the terms of the MIT License,
+as described in copying.txt.
 */
 
 #include <chrono>
