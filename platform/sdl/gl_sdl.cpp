@@ -80,9 +80,12 @@ void GL_ErrorCheck(const char* context)
 #endif
 }
 
+constexpr int NUM_FB_TEXTURES = 8;
+int current_fb_num = 0;
+
 //GL State
 GLuint paletteName;
-GLuint sourceFBName;
+GLuint sourceFBNames[NUM_FB_TEXTURES];
 GLuint vaoName;
 GLuint bufName;
 
@@ -220,7 +223,7 @@ bool I_InitGLContext(SDL_Window *win)
 
 	//Textures shouldn't need to be recreated ever, so get that done too
 	sglGenTextures(1, &paletteName);
-	sglGenTextures(1, &sourceFBName);
+	sglGenTextures(NUM_FB_TEXTURES, sourceFBNames);
 
 	GL_ErrorCheck("Creating GL resources");
 
@@ -235,7 +238,7 @@ bool I_InitGLContext(SDL_Window *win)
 
 	//Bind the initial source framebuffer, but don't create it yet. It will be created when the video mode changes.
 	sglActiveTexture(GL_TEXTURE0);
-	sglBindTexture(GL_TEXTURE_2D, sourceFBName);
+	sglBindTexture(GL_TEXTURE_2D, sourceFBNames[0]);
 
 	//Compile the shaders and link the phase 1 program
 	GLuint p1vert = GL_CompileShader(vertexSource, GL_VERTEX_SHADER);
@@ -326,7 +329,8 @@ void GL_DrawCanvas(grs_canvas& canvas, SDL_Rect& bounds, bool blend)
 
 	SDL_GL_MakeCurrent(window, context);
 	sglActiveTexture(GL_TEXTURE0);
-	sglBindTexture(GL_TEXTURE_2D, sourceFBName);
+	sglBindTexture(GL_TEXTURE_2D, sourceFBNames[current_fb_num]);
+	current_fb_num = (current_fb_num + 1) % NUM_FB_TEXTURES;
 	sglTexImage2D(GL_TEXTURE_2D, 0, GL_R8UI, canvas.cv_bitmap.bm_w, canvas.cv_bitmap.bm_h, 0, GL_RED_INTEGER, GL_UNSIGNED_BYTE, canvas.cv_bitmap.bm_data);
 	GL_ErrorCheck("Creating source framebuffer texture");
 	sglTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -356,7 +360,7 @@ void I_ShutdownGL()
 		sglDeleteProgram(phase1ProgramName);
 		sglDeleteBuffers(1, &bufName);
 		sglDeleteTextures(1, &paletteName);
-		sglDeleteTextures(1, &sourceFBName);
+		sglDeleteTextures(NUM_FB_TEXTURES, sourceFBNames);
 
 		sglBindVertexArray(0);
 		sglDeleteVertexArrays(1, &vaoName);
