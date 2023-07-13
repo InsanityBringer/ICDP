@@ -21,6 +21,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <string.h>
 #include <stdarg.h>
 #include <algorithm>
+#include "gameinfo/gameinfo.h"
 #include "misc/rand.h"
 #include "inferno.h"
 #include "game.h"
@@ -1326,7 +1327,7 @@ void save_screen_shot(int automap_flag)
 	char full_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 
 	auto now = std::chrono::system_clock::now();
-	std::string savename = std::format("Screenshot-{0:%F}-{0:%H-%M-%S}.png", now);
+	std::string savename = std::format("{0}-{1:%F}-{1:%H-%M-%S}.png", gameinfo_get_current_game_prefix(), now);
 	get_full_file_path(full_filename, savename.c_str(), CHOCOLATE_SCREENSHOTS_DIR);
 	plat_request_screenshot(full_filename);
 }
