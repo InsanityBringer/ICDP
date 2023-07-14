@@ -39,11 +39,13 @@ void validate_modified_segments(void)
 	for (v=0; v<=Highest_segment_index; v++)
 		modified_segments[v] = 0;
 
-	for (v=0; v<Modified_vertex_index; v++) {
+	for (v=0; v<Modified_vertex_index; v++) 
+	{
 		v0 = Modified_vertices[v];
 
-		for (seg = 0; seg <= Highest_segment_index; seg++) {
-			short *vp = Segments[seg].verts;
+		for (seg = 0; seg <= Highest_segment_index; seg++) 
+		{
+			unsigned short *vp = Segments[seg].verts;
 			if (Segments[seg].segnum != -1)
 				for (w=0; w<MAX_VERTICES_PER_SEGMENT; w++)
 					if (*vp++ == v0)
@@ -52,12 +54,14 @@ void validate_modified_segments(void)
 	}
 
 	for (v=0; v<=Highest_segment_index; v++)
-		if (modified_segments[v]) {
+		if (modified_segments[v]) 
+		{
 			int	s;
 
 			// mprintf(0, "Validating segment #%04i\n", v);
 			validate_segment(&Segments[v]);
-			for (s=0; s<MAX_SIDES_PER_SEGMENT; s++) {
+			for (s=0; s<MAX_SIDES_PER_SEGMENT; s++) 
+			{
 				Num_tilings = 1;
 				assign_default_uvs_to_side(&Segments[v], s);
 			}

@@ -49,7 +49,7 @@ void apply_light(fix obj_intensity, int obj_seg, vms_vector* obj_pos, int n_rend
 
 		// for pretty dim sources, only process vertices in object's own segment.
 		if (obji_64 <= F1_0 * 8) {
-			short* vp = Segments[obj_seg].verts;
+			unsigned short* vp = Segments[obj_seg].verts;
 
 			for (vv = 0; vv < MAX_VERTICES_PER_SEGMENT; vv++) 
 			{
@@ -146,7 +146,7 @@ void set_dynamic_light(void)
 		segnum = Render_list[render_seg];
 		if (segnum != -1) 
 		{
-			short* vp = Segments[segnum].verts;
+			unsigned short* vp = Segments[segnum].verts;
 			for (v = 0; v < MAX_VERTICES_PER_SEGMENT; v++)
 			{
 				int	vnum = vp[v];
@@ -297,7 +297,7 @@ fix compute_seg_dynamic_light(int segnum)
 {
 	fix sum;
 	segment* seg;
-	short* verts;
+	unsigned short* verts;
 
 	seg = &Segments[segnum];
 

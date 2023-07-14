@@ -65,9 +65,9 @@ extern vms_angvec Player_head_angles;
 void render_start_frame(void);
 
 //Given a lit of point numbers, rotate any that haven't been rotated this frame
-g3s_codes rotate_list(int nv, short* pointnumlist);
+g3s_codes rotate_list(int nv, unsigned short* pointnumlist);
 
 //Given a lit of point numbers, project any that haven't been projected
-void project_list(int nv, short* pointnumlist);
+void project_list(int nv, unsigned short* pointnumlist);
 
 void render_mine(int start_seg_num, fix eye_offset);

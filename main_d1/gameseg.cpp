@@ -105,7 +105,7 @@ void get_side_verts(short* vertlist, int segnum, int sidenum)
 {
 	int	i;
 	int8_t* sv = Side_to_verts[sidenum];
-	short* vp = Segments[segnum].verts;
+	unsigned short* vp = Segments[segnum].verts;
 
 	for (i = 4; i--;)
 		vertlist[i] = vp[sv[i]];
@@ -240,7 +240,7 @@ void create_all_vertnum_lists(int* num_faces, int* vertnums, int segnum, int sid
 //like create_all_vertex_lists(), but generate absolute point numbers
 void create_abs_vertex_lists(int* num_faces, int* vertices, int segnum, int sidenum)
 {
-	short* vp = Segments[segnum].verts;
+	unsigned short* vp = Segments[segnum].verts;
 	side* sidep = &Segments[segnum].sides[sidenum];
 	int* sv = Side_to_verts_int[sidenum];
 

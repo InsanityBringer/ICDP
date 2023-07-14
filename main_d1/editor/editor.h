@@ -429,7 +429,7 @@ extern	void med_assign_uvs_to_side(segment *con_seg, int con_common_side, segmen
 extern	void show_matrix(char *s,vms_matrix *mp,int type);
 
 //	Create coordinate axes in orientation of specified segment, stores vertices at *vp.
-extern	void create_coordinate_axes_from_segment(segment *sp,short *vertnums);
+extern	void create_coordinate_axes_from_segment(segment *sp,unsigned short *vertnums);
 
 //	Scale a segment.  Then, if it is connected to something, rotate it.
 extern	int med_scale_and_rotate_segment(segment *seg, vms_angvec *rot);

@@ -118,7 +118,7 @@ fix get_average_light_at_vertex(int vnum, short *segs)
 	for (segnum=0; segnum<=Highest_segment_index; segnum++) 
 	{
 		segment *segp = &Segments[segnum];
-		short *vp = segp->verts;
+		unsigned short *vp = segp->verts;
 
 		for (relvnum=0; relvnum<MAX_VERTICES_PER_SEGMENT; relvnum++)
 			if (*vp++ == vnum)

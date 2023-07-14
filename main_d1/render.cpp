@@ -579,7 +579,7 @@ void render_start_frame()
 }
 
 //Given a lit of point numbers, rotate any that haven't been rotated this frame
-g3s_codes rotate_list(int nv, short* pointnumlist)
+g3s_codes rotate_list(int nv, unsigned short* pointnumlist)
 {
 	g3s_codes cc;
 
@@ -604,7 +604,7 @@ g3s_codes rotate_list(int nv, short* pointnumlist)
 }
 
 //Given a lit of point numbers, project any that haven't been projected
-void project_list(int nv, short* pointnumlist)
+void project_list(int nv, unsigned short* pointnumlist)
 {
 	for (int i = 0; i < nv; i++) 
 	{
@@ -775,7 +775,7 @@ int find_seg_side(segment* seg, short* verts, int notside)
 
 	int v0 = verts[0];
 	int v1 = verts[1];
-	short* vp = seg->verts;
+	unsigned short* vp = seg->verts;
 
 	for (int i = 0; i < 8; i++) 
 	{

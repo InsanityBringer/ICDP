@@ -68,7 +68,7 @@ struct Edge_info
 {
 	union
 	{
-		short	verts[2];		// 4 bytes
+		unsigned short	verts[2];		// 4 bytes
 		int32_t vv;
 	};
 	uint8_t sides[4];			// 4 bytes

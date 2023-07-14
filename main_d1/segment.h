@@ -89,21 +89,21 @@ struct side
 struct segment
 {
 #ifdef	EDITOR
-	short		segnum;								// segment number, not sure what it means
+	short			segnum;								// segment number, not sure what it means
 #endif
-	side		sides[MAX_SIDES_PER_SEGMENT];		// 6 sides
-	short		children[MAX_SIDES_PER_SEGMENT];	// indices of 6 children segments, front, left, top, right, bottom, back
-	short		verts[MAX_VERTICES_PER_SEGMENT];	// vertex ids of 4 front and 4 back vertices
+	side			sides[MAX_SIDES_PER_SEGMENT];		// 6 sides
+	short			children[MAX_SIDES_PER_SEGMENT];	// indices of 6 children segments, front, left, top, right, bottom, back
+	unsigned short	verts[MAX_VERTICES_PER_SEGMENT];	// vertex ids of 4 front and 4 back vertices
 #ifdef	EDITOR
-	short		group;								// group number to which the segment belongs.
+	short			group;								// group number to which the segment belongs.
 #endif
-	short		objects;							// pointer to objects in this segment
-	uint8_t		special;							// special property of a segment (such as damaging, trigger, etc.)
-	int8_t		matcen_num;							//	which center segment is associated with.
-	short		value;
-	fix			static_light;						//average static light in segment
+	short			objects;							// pointer to objects in this segment
+	uint8_t			special;							// special property of a segment (such as damaging, trigger, etc.)
+	int8_t			matcen_num;							//	which center segment is associated with.
+	short			value;
+	fix				static_light;						//average static light in segment
 #ifndef	EDITOR
-	short		pad;								//make structure longword aligned
+	short			pad;								//make structure longword aligned
 #endif
 };
 
@@ -152,7 +152,7 @@ extern	char	Side_opposite[];								// Side_opposite[my_side] returns side oppos
 //	Return a pointer to the list of vertex indices for the current segment in vp and
 //	the number of vertices in *nv.
 #ifdef EDITOR
-extern void med_get_vertex_list(segment* s, int* nv, short** vp);
+extern void med_get_vertex_list(segment* s, int* nv, unsigned short** vp);
 
 // Delete segment function added for curves.c
 extern int med_delete_segment(segment* sp);

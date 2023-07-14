@@ -249,7 +249,7 @@ int ToggleBottom(void)
 // ----------------------------------------------------------------------------
 //	Return a pointer to the list of vertex indices for the current segment in vp and
 //	the number of vertices in *nv.
-void med_get_vertex_list(segment *s,int *nv,short **vp)
+void med_get_vertex_list(segment *s,int *nv,unsigned short **vp)
 {
 	*vp = s->verts;
 	*nv = MAX_VERTICES_PER_SEGMENT;
@@ -1883,7 +1883,7 @@ void med_copy_segment(segment *dsp,segment *ssp)
 
 // -----------------------------------------------------------------------------
 //	Create coordinate axes in orientation of specified segment, stores vertices at *vp.
-void create_coordinate_axes_from_segment(segment *sp,short *vertnums)
+void create_coordinate_axes_from_segment(segment *sp,unsigned short *vertnums)
 {
 	vms_matrix	rotmat;
 	vms_vector t;

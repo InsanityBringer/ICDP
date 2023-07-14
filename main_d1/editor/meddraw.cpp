@@ -97,7 +97,7 @@ void draw_line(int pnum0,int pnum1)
 // ----------------------------------------------------------------------------
 void draw_segment(segment *seg)
 {
-	short	*svp;
+	unsigned short	*svp;
 	int	nv;
 	g3s_codes cc;
 
@@ -127,7 +127,7 @@ void draw_segment(segment *seg)
 //for looking for segment under a mouse click
 void check_segment(segment *seg)
 {
-	short	*svp;
+	unsigned short	*svp;
 	int	nv;
 	g3s_codes cc;
 
@@ -167,7 +167,7 @@ void check_segment(segment *seg)
 // ----------------------------------------------------------------------------
 void draw_seg_side(segment *seg,int side)
 {
-	short	*svp;
+	unsigned short	*svp;
 	int	nv;
 	g3s_codes cc;
 
@@ -187,7 +187,7 @@ void draw_seg_side(segment *seg,int side)
 
 void draw_side_edge(segment *seg,int side,int edge)
 {
-	short	*svp;
+	unsigned short	*svp;
 	int	nv;
 	g3s_codes cc;
 
@@ -367,7 +367,7 @@ void add_edge(int v0,int v1,uint8_t type)
 //adds a segment's edges to the edge list
 void add_edges(segment *seg)
 {
-	short	*svp;
+	unsigned short	*svp;
 	int	nv;
 	g3s_codes cc;
 
@@ -432,7 +432,7 @@ void add_edges(segment *seg)
 // ----------------------------------------------------------------------------
 void draw_trigger_side(segment *seg,int side)
 {
-	short	*svp;
+	unsigned short	*svp;
 	int	nv;
 	g3s_codes cc;
 
@@ -449,7 +449,7 @@ void draw_trigger_side(segment *seg,int side)
 // ----------------------------------------------------------------------------
 void draw_wall_side(segment *seg,int side)
 {
-	short	*svp;
+	unsigned short	*svp;
 	int	nv;
 	g3s_codes cc;
 
@@ -724,7 +724,7 @@ void free_vert(int vert_num)
 void draw_coordinate_axes(void)
 {
 	int			i;
-	short			Axes_verts[16];
+	unsigned short			Axes_verts[16];
 	vms_vector	tvec,xvec,yvec,zvec;
 
 	for (i=0; i<16; i++)
