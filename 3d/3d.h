@@ -172,6 +172,9 @@ public:
 	//Draws a line with exactly the points specified. They are not copied or recoded. 
 	bool draw_line_direct(g3s_point* p0, g3s_point* p1, int color);
 
+	//draws a line in 2D
+	void draw_line_2d(fix x1, fix y1, fix x2, fix y2, int color);
+
 	void draw_bitmap(g3s_point* pnt, fix w, fix h, grs_bitmap* bm, int orientation);
 
 	//Set clip ratios. All should be in the range [-1.0, 1.0]
@@ -396,6 +399,9 @@ public:
 	//draws a line. takes two points.
 	dbool draw_line(g3s_point* p0, g3s_point* p1);
 
+	//draws a line in 2D
+	void draw_line_2d(fix x1, fix y1, fix x2, fix y2);
+
 	//draw a polygon that is always facing you
 	//returns 1 if off screen, 0 if drew
 	dbool draw_rod_flat(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width);
@@ -407,6 +413,8 @@ public:
 	//draws a bitmap with the specified 3d width & height 
 	//returns 1 if off screen, 0 if drew
 	dbool draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int orientation);
+
+	bool get_blob_points(vms_vector* pos, fix w, fix h, grs_point* points);
 
 	//Object functions:
 
@@ -550,6 +558,9 @@ dbool g3_check_and_draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, g
 //draws a line. takes two points.
 dbool g3_draw_line(g3s_point* p0, g3s_point* p1);
 
+//draws a 2D line, needed to allow multithreading.
+void g3_draw_line_2d(fix x1, fix y1, fix x2, fix y2);
+
 //draw a polygon that is always facing you
 //returns 1 if off screen, 0 if drew
 dbool g3_draw_rod_flat(g3s_point* bot_point, fix bot_width, g3s_point* top_point, fix top_width);
@@ -565,6 +576,11 @@ dbool g3_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm, int
 #else
 dbool g3_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm);
 #endif
+
+//Runs the same calculations as g3_draw_vertices, but doesn't draw anything and instead fills out points
+//with the points of the object that would have been drawn. 
+//Returns true if it would be offscreen, and points is unchanged, false otherwise. 
+bool g3_get_blob_vertices(vms_vector* pos, fix width, fix height, grs_point* points);
 
 //specifies 2d drawing routines to use instead of defaults.  Passing
 //NULL for either or both restores defaults

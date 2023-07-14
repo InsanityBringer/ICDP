@@ -149,3 +149,39 @@ dbool g3_draw_bitmap(vms_vector* pos, fix width, fix height, grs_bitmap* bm)
 {
 	return g3_global_inst.draw_bitmap(pos, width, height, bm, 0);
 }
+
+bool G3Instance::get_blob_points(vms_vector* pos, fix width, fix height, grs_point* points)
+{
+	g3s_point pnt;
+	fix t, w, h;
+
+	if (rotate_point(&pnt, pos) & CC_BEHIND)
+		return true;
+
+	project_point(&pnt);
+
+	if (pnt.p3_flags & PF_OVERFLOW)
+		return true;
+
+	if (checkmuldiv(&t, width, Canv_w2, pnt.p3_z))
+		w = fixmul(t, Matrix_scale.x);
+	else
+		return true;
+
+	if (checkmuldiv(&t, height, Canv_h2, pnt.p3_z))
+		h = fixmul(t, Matrix_scale.y);
+	else
+		return true;
+
+	points[0].x = pnt.p3_sx - w;
+	points[0].y = points[1].y = pnt.p3_sy - h;
+	points[1].x = points[2].x = pnt.p3_sx + w;
+	points[2].y = pnt.p3_sy + h;
+
+	return false;
+}
+
+bool g3_get_blob_vertices(vms_vector* pos, fix width, fix height, grs_point* points)
+{
+	return g3_global_inst.get_blob_points(pos, width, height, points);
+}

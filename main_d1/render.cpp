@@ -671,10 +671,10 @@ void outline_seg_side(segment* seg, int _side, int edge, int vert)
 
 		g3_project_point(pnt);		//make sure projected
 
-		gr_line(pnt->p3_sx - CROSS_WIDTH, pnt->p3_sy, pnt->p3_sx, pnt->p3_sy - CROSS_HEIGHT);
-		gr_line(pnt->p3_sx, pnt->p3_sy - CROSS_HEIGHT, pnt->p3_sx + CROSS_WIDTH, pnt->p3_sy);
-		gr_line(pnt->p3_sx + CROSS_WIDTH, pnt->p3_sy, pnt->p3_sx, pnt->p3_sy + CROSS_HEIGHT);
-		gr_line(pnt->p3_sx, pnt->p3_sy + CROSS_HEIGHT, pnt->p3_sx - CROSS_WIDTH, pnt->p3_sy);
+		g3_draw_line_2d(pnt->p3_sx - CROSS_WIDTH, pnt->p3_sy, pnt->p3_sx, pnt->p3_sy - CROSS_HEIGHT);
+		g3_draw_line_2d(pnt->p3_sx, pnt->p3_sy - CROSS_HEIGHT, pnt->p3_sx + CROSS_WIDTH, pnt->p3_sy);
+		g3_draw_line_2d(pnt->p3_sx + CROSS_WIDTH, pnt->p3_sy, pnt->p3_sx, pnt->p3_sy + CROSS_HEIGHT);
+		g3_draw_line_2d(pnt->p3_sx, pnt->p3_sy + CROSS_HEIGHT, pnt->p3_sx - CROSS_WIDTH, pnt->p3_sy);
 	}
 }
 
@@ -713,10 +713,10 @@ void draw_window_box(int color, short left, short top, short right, short bot)
 	if (r >= grd_curcanv->cv_bitmap.bm_w) r = grd_curcanv->cv_bitmap.bm_w - 1;
 	if (b >= grd_curcanv->cv_bitmap.bm_h) b = grd_curcanv->cv_bitmap.bm_h - 1;
 
-	gr_line(i2f(l), i2f(t), i2f(r), i2f(t));
-	gr_line(i2f(r), i2f(t), i2f(r), i2f(b));
-	gr_line(i2f(r), i2f(b), i2f(l), i2f(b));
-	gr_line(i2f(l), i2f(b), i2f(l), i2f(t));
+	g3_draw_line_2d(i2f(l), i2f(t), i2f(r), i2f(t));
+	g3_draw_line_2d(i2f(r), i2f(t), i2f(r), i2f(b));
+	g3_draw_line_2d(i2f(r), i2f(b), i2f(l), i2f(b));
+	g3_draw_line_2d(i2f(l), i2f(b), i2f(l), i2f(t));
 }
 #endif
 
@@ -1381,7 +1381,7 @@ void build_segment_list(int start_seg_num)
 							if (draw_edges) 
 							{
 								gr_setcolor(BM_XRGB(31, 0, 31));
-								gr_line(pnt->p3_sx, pnt->p3_sy,
+								g3_draw_line_2d(pnt->p3_sx, pnt->p3_sy,
 									Segment_points[seg->verts[Side_to_verts[siden][(i + 1) % 4]]].p3_sx,
 									Segment_points[seg->verts[Side_to_verts[siden][(i + 1) % 4]]].p3_sy);
 							}

@@ -520,6 +520,10 @@ bool G3Drawer::draw_line_direct(g3s_point* p0, g3s_point* p1, int color)
 	return !!gr_line_explicit_clip(canv, color, p0->p3_sx, p0->p3_sy, p1->p3_sx, p1->p3_sy, window_left, window_top, window_right, window_bottom);
 }
 
+void G3Drawer::draw_line_2d(fix x1, fix y1, fix x2, fix y2, int color)
+{
+	gr_line_explicit_clip(canv, color, x1, y1, x2, y2, window_left, window_top, window_right, window_bottom);
+}
 
 //draws a line. takes two points.  returns true if drew
 dbool g3_draw_line(g3s_point* p0, g3s_point* p1)
@@ -569,4 +573,9 @@ dbool g3_draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, grs_bitmap*
 int g3_draw_sphere(g3s_point* pnt, fix rad)
 {
 	return g3_global_inst.draw_sphere(pnt, rad);
+}
+
+void g3_draw_line_2d(fix x1, fix y1, fix x2, fix y2)
+{
+	return g3_global_inst.draw_line_2d(x1, y1, x2, y2);
 }

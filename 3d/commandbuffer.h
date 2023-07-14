@@ -24,7 +24,8 @@ enum class G3CmdType
 	set_transparency,
 	set_tmap_seg_depth,
 	set_tmap_clip_window,
-	set_darkening_level
+	set_darkening_level,
+	draw_line_2d
 };
 
 struct G3CmdBase
@@ -88,6 +89,13 @@ struct G3CmdWindowSet
 	int left, top, right, bottom;
 };
 
+struct G3CmdDrawLine2D
+{
+	G3CmdBase base;
+	fix x1, y1, x2, y2;
+	int color;
+};
+
 class G3CommandBuffer
 {
 	void* buffer, * current;
@@ -118,6 +126,8 @@ public:
 	void cmd_draw_line(g3s_point* p0, g3s_point* p1);
 	//Records a bitmap draw command
 	void cmd_draw_bitmap(g3s_point* pnt, fix width, fix height, grs_bitmap* bm, int orientation);
+	//Records a line drawn directly in 2D. 
+	void cmd_draw_line_2d(fix x1, fix y1, fix x2, fix y2, int color);
 
 	//Variable setting commands. These will change the state of the texmapper when decoded
 	//Records a texture mapper lighting change. 0 is no lighting, 1 is lighting, and 2 is "editor" lighting, for pick tests.

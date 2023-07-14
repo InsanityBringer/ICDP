@@ -103,48 +103,48 @@ void do_powerup_frame(object* obj)
 }
 
 #ifdef EDITOR
-extern grs_point blob_vertices[]; 
+grs_point powerup_verts[4]; 
 
-//	blob_vertices has 3 vertices in it, 4th must be computed
+//	powerup_verts has 3 vertices in it, 4th must be computed
 void draw_blob_outline(void)
 {
-/*	fix	v3x, v3y;
-
-	//v3x = blob_vertices[4] - blob_vertices[2] + blob_vertices[0];
-	v3x = blob_vertices[2].x - blob_vertices[1].x + blob_vertices[0].x;
-	//v3y = blob_vertices[5] - blob_vertices[3] + blob_vertices[1];
-	v3y = blob_vertices[2].y - blob_vertices[1].y + blob_vertices[0].y;
+	fix v3x = powerup_verts[2].x - powerup_verts[1].x + powerup_verts[0].x;
+	fix v3y = powerup_verts[2].y - powerup_verts[1].y + powerup_verts[0].y;
 
 	gr_setcolor(BM_XRGB(63, 63, 63));
 
-	mprintf((0, "[%7.3f %7.3f]  [%7.3f %7.3f]  [%7.3f %7.3f]\n", f2fl(blob_vertices[0].x), f2fl(blob_vertices[0].y), f2fl(blob_vertices[1].x), f2fl(blob_vertices[1].y), f2fl(blob_vertices[2].x), f2fl(blob_vertices[2].y)));
+	mprintf((0, "[%7.3f %7.3f]  [%7.3f %7.3f]  [%7.3f %7.3f]\n", f2fl(powerup_verts[0].x), f2fl(powerup_verts[0].y), f2fl(powerup_verts[1].x), f2fl(powerup_verts[1].y), f2fl(powerup_verts[2].x), f2fl(powerup_verts[2].y)));
 
-	gr_line(blob_vertices[0].x, blob_vertices[0].y, blob_vertices[1].x, blob_vertices[1].y);
-	gr_line(blob_vertices[1].x, blob_vertices[1].y, blob_vertices[2].x, blob_vertices[2].y);
-	gr_line(blob_vertices[2].x, blob_vertices[2].y, v3x, v3y);
+	g3_draw_line_2d(powerup_verts[0].x, powerup_verts[0].y, powerup_verts[1].x, powerup_verts[1].y);
+	g3_draw_line_2d(powerup_verts[1].x, powerup_verts[1].y, powerup_verts[2].x, powerup_verts[2].y);
+	g3_draw_line_2d(powerup_verts[2].x, powerup_verts[2].y, v3x, v3y);
 
-	gr_line(v3x, v3y, blob_vertices[0].x, blob_vertices[0].y);*/
+	g3_draw_line_2d(v3x, v3y, powerup_verts[0].x, powerup_verts[0].y);
 }
 #endif
 
 void draw_powerup(object* obj)
 {
-	/*
 #ifdef EDITOR
-	blob_vertices[0].x = 0x80000;
+	powerup_verts[0].x = 0x80000;
 #endif
-*/
 
 	draw_object_blob(obj, Vclip[obj->rtype.vclip_info.vclip_num].frames[obj->rtype.vclip_info.framenum]);
 
-	/*
 #ifdef EDITOR
 	if ((Function_mode == FMODE_EDITOR) && (Cur_object_index == obj - Objects))
-		if (blob_vertices[0].x != 0x80000)
-			draw_blob_outline();
-#endif
-*/
+	{
+		grs_bitmap* bm = &GameBitmaps[Vclip[obj->rtype.vclip_info.vclip_num].frames[obj->rtype.vclip_info.framenum].index];
 
+		if (bm->bm_w > bm->bm_h)
+			g3_get_blob_vertices(&obj->pos, obj->size, fixmuldiv(obj->size, bm->bm_h, bm->bm_w), powerup_verts);
+		else
+			g3_get_blob_vertices(&obj->pos, fixmuldiv(obj->size, bm->bm_w, bm->bm_h), obj->size, powerup_verts);
+
+		if (powerup_verts[0].x != 0x80000)
+			draw_blob_outline();
+	}
+#endif
 }
 
 void powerup_basic(int redadd, int greenadd, int blueadd, int score, const char* format, ...)
