@@ -21,6 +21,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <vector>
 #include <span>
 #include <stack>
+#include <memory>
 
 #include "platform/platform_filesys.h"
 #include "platform/posixstub.h"
@@ -76,10 +77,12 @@ struct bkg
 	grs_bitmap* background;
 };
 
-grs_bitmap nm_background;
+grs_canvas* nm_canvas;
 
-#define MESSAGEBOX_TEXT_SIZE 300		// How many characters in messagebox
-#define MAX_TEXT_WIDTH 	200				// How many pixels wide a input box can be
+constexpr int MESSAGEBOX_TEXT_SIZE = 300;	// How many characters in messagebox
+constexpr int MAX_TEXT_WIDTH = 200;			// How many pixels wide a input box can be
+
+grs_bitmap nm_background;
 
 extern void gr_bm_bitblt(int w, int h, int dx, int dy, int sx, int sy, grs_bitmap * src, grs_bitmap * dest);
 
@@ -97,7 +100,15 @@ void newmenu_close(void)
 {
 	if (nm_background.bm_data)
 		free(nm_background.bm_data);
+	if (nm_canvas)
+		gr_free_canvas(nm_canvas);
 	Newmenu_first_time = 1;
+}
+
+void newmenu_init(void)
+{
+	nm_canvas = gr_create_canvas(320, 200);
+	atexit(newmenu_close);
 }
 
 void nm_draw_background1(const char* filename)
@@ -122,7 +133,6 @@ void nm_draw_background(int x1, int y1, int x2, int y2)
 	{
 		int pcx_error;
 		uint8_t newpal[768];
-		atexit(newmenu_close);
 		Newmenu_first_time = 0;
 
 		nm_background.bm_data = NULL;
@@ -474,8 +484,662 @@ int newmenu_do2(const char* title, const char* subtitle, int nitems, newmenu_ite
 	return newmenu_do3(title, subtitle, nitems, item, subfunction, citem, filename, -1, -1);
 }
 
+class nm_menu
+{
+	std::string title, subtitle, bg_filename;
+	std::vector<newmenu_item> items;
+	int choice, old_choice;
+	int tw, th;
+	int w, h, x, y;
+	bool tiny, all_text, closing;
+	bkg bg;
+
+	//Callback executed when a choice is selected.
+	//Returns true if the menu should remain open, or false if it should close. 
+	bool (*choice_callback)(int choice);
+	//Callback executed each frame, to update and redraw contents. 
+	void (*newmenu_callback)(int nitems, newmenu_item* items, int* last_key, int citem);
+public:
+	nm_menu(std::vector<newmenu_item>& source_items, const char* new_title, const char* new_subtitle,
+		void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice),
+		int citem, const char* filename, int width, int height, bool tiny_mode)
+	{
+		for (newmenu_item& item : source_items)
+			items.push_back(item);
+
+		grs_canvas* save_canvas = grd_curcanv;
+		gr_set_current_canvas(nm_canvas);
+
+		choice = old_choice = 0;
+
+		Assert(choicefunc != nullptr);
+
+		bg = {};
+		all_text = false;
+		choice_callback = choicefunc;
+		newmenu_callback = subfunction;
+		closing = false;
+
+		if (new_title)
+			title = std::string(new_title);
+		if (new_subtitle)
+			subtitle = std::string(new_subtitle);
+
+		//Temp variables
+		int string_width, string_height, average_width;
+
+		tw = th = 0;
+
+		//Find the size of the title and subtitle.
+		if (title.size())
+		{
+			grd_curcanv->cv_font = TITLE_FONT;
+			gr_get_string_size(title.c_str(), &string_width, &string_height, &average_width);
+			tw = string_width;
+			th = string_height;
+		}
+		if (subtitle.size())
+		{
+			grd_curcanv->cv_font = SUBTITLE_FONT;
+			gr_get_string_size(subtitle.c_str(), &string_width, &string_height, &average_width);
+			if (string_width > tw)
+				tw = string_width;
+			th += string_height;
+		}
+
+		th += 8;		//put some space between titles & body
+
+		tiny = tiny_mode;
+		if (tiny)
+			grd_curcanv->cv_font = SMALL_FONT;
+		else
+			grd_curcanv->cv_font = NORMAL_FONT;
+
+		w = 0; h = th;
+		int aw = 0;
+
+		//Find ths size of all the menu items
+		for (newmenu_item& item : items)
+		{
+			item.redraw = 1;
+			item.y = h;
+			gr_get_string_size(item.text, &string_width, &string_height, &average_width);
+			item.right_offset = 0;
+
+			item.saved_text[0] = '\0';
+
+			if (item.type == NM_TYPE_SLIDER)
+			{
+				int w1, h1, aw1;
+				sprintf(item.saved_text, "%s", SLIDER_LEFT);
+				for (int j = 0; j < (item.max_value - item.min_value + 1); j++)
+				{
+					sprintf(item.saved_text, "%s%s", item.saved_text, SLIDER_MIDDLE);
+				}
+				sprintf(item.saved_text, "%s%s", item.saved_text, SLIDER_RIGHT);
+				gr_get_string_size(item.saved_text, &w1, &h1, &aw1);
+				string_width += w1 + aw;
+			}
+
+			if (item.type == NM_TYPE_CHECK)
+			{
+				int w1, h1, aw1;
+				gr_get_string_size(NORMAL_CHECK_BOX, &w1, &h1, &aw1);
+				item.right_offset = w1;
+				gr_get_string_size(CHECKED_CHECK_BOX, &w1, &h1, &aw1);
+				if (w1 > item.right_offset)
+					item.right_offset = w1;
+			}
+
+			if (item.type == NM_TYPE_RADIO)
+			{
+				int w1, h1, aw1;
+				gr_get_string_size(NORMAL_RADIO_BOX, &w1, &h1, &aw1);
+				item.right_offset = w1;
+				gr_get_string_size(CHECKED_RADIO_BOX, &w1, &h1, &aw1);
+				if (w1 > item.right_offset)
+					item.right_offset = w1;
+			}
+
+			if (item.type == NM_TYPE_NUMBER)
+			{
+				int w1, h1, aw1;
+				char test_text[20];
+				sprintf(test_text, "%d", item.max_value);
+				gr_get_string_size(test_text, &w1, &h1, &aw1);
+				item.right_offset = w1;
+				sprintf(test_text, "%d", item.min_value);
+				gr_get_string_size(test_text, &w1, &h1, &aw1);
+				if (w1 > item.right_offset)
+					item.right_offset = w1;
+			}
+
+			if (item.type == NM_TYPE_INPUT)
+			{
+				Assert(strlen(item.text) < NM_MAX_TEXT_LEN);
+				strcpy(item.saved_text, item.text);
+				string_width = item.text_len * grd_curcanv->cv_font->ft_w + item.text_len;
+				if (string_width > MAX_TEXT_WIDTH)
+					string_width = MAX_TEXT_WIDTH;
+				item.value = -1;
+			}
+
+			if (item.type == NM_TYPE_INPUT_MENU)
+			{
+				Assert(strlen(item.text) < NM_MAX_TEXT_LEN);
+				strcpy(item.saved_text, item.text);
+				string_width = item.text_len * grd_curcanv->cv_font->ft_w + item.text_len;
+				item.value = -1;
+				item.group = 0;
+			}
+
+			item.w = string_width;
+			item.h = string_height;
+
+			if (string_width > w)
+				w = string_width;		// Save maximum width
+			if (average_width > aw)
+				aw = average_width;
+			h += string_height + 1;		// Find the height of all strings
+		}
+
+		int right_offset = 0;
+
+		if (width > -1)
+			w = width;
+
+		if (height > -1)
+			h = height;
+
+		for (newmenu_item& item : items)
+		{
+			item.w = w;
+			if (item.right_offset > right_offset)
+				right_offset = item.right_offset;
+		}
+		if (right_offset > 0)
+			right_offset += 3;
+
+		//mprintf( 0, "Right offset = %d\n", right_offset );
+
+		//gr_get_string_size("",&string_width,&string_height,&average_width );
+
+		w += right_offset;
+
+		int twidth = 0;
+		if (tw > w)
+		{
+			twidth = (tw - w) / 2;
+			w = tw;
+		}
+
+		// Find min point of menu border
+		w += 30;
+		h += 30;
+
+		if (w > 320) w = 320;
+		if (h > 200) h = 200;
+
+		x = (grd_curcanv->cv_bitmap.bm_w - w) / 2;
+		y = (grd_curcanv->cv_bitmap.bm_h - h) / 2;
+
+		if (x < 0) x = 0;
+		if (y < 0) y = 0;
+		if (filename != NULL)
+		{
+			nm_draw_background1(filename);
+			bg_filename = std::string(filename);
+		}
+
+		// Save the background of the display
+		bg.menu_canvas = gr_create_sub_canvas(nm_canvas, x, y, w, h);
+		gr_set_current_canvas(bg.menu_canvas);
+
+		if (filename == NULL)
+		{
+			// Save the background under the menu...
+			bg.saved = gr_create_bitmap(w, h);
+			Assert(bg.saved != NULL);
+			gr_set_current_canvas(nm_canvas);
+			gr_bm_bitblt(w, h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.saved);
+			nm_draw_background(x, y, x + w - 1, y + h - 1);
+			bg.background = gr_create_sub_bitmap(&nm_background, 0, 0, w, h);
+			gr_set_current_canvas(bg.menu_canvas);
+		}
+		else
+		{
+			bg.saved = NULL;
+			bg.background = gr_create_bitmap(w, h);
+			Assert(bg.background != NULL);
+			gr_bm_bitblt(w, h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.background);
+		}
+
+		int ty = 15;
+
+		if (title.size() > 0)
+		{
+			grd_curcanv->cv_font = TITLE_FONT;
+			gr_set_fontcolor(GR_GETCOLOR(31, 31, 31), -1);
+			gr_get_string_size(title.c_str(), &string_width, &string_height, &average_width);
+			tw = string_width;
+			th = string_height;
+			gr_printf(0x8000, ty, title.c_str());
+			ty += th;
+		}
+
+		if (subtitle.size() > 0)
+		{
+			grd_curcanv->cv_font = SUBTITLE_FONT;
+			gr_set_fontcolor(GR_GETCOLOR(21, 21, 21), -1);
+			gr_get_string_size(subtitle.c_str(), &string_width, &string_height, &average_width);
+			tw = string_width;
+			th = string_height;
+			gr_printf(0x8000, ty, subtitle.c_str());
+			ty += th;
+		}
+
+		if (tiny_mode)
+			grd_curcanv->cv_font = SMALL_FONT;
+		else
+			grd_curcanv->cv_font = NORMAL_FONT;
+
+		// Update all item's x & y values.
+		for (newmenu_item& item : items)
+		{
+			item.x = 15 + twidth + right_offset;
+			item.y += 15;
+			if (item.type == NM_TYPE_RADIO)
+			{
+				int fm = -1;	// find first marked one
+				for (int j = 0; j < items.size(); j++)
+				{
+					if (items[j].type == NM_TYPE_RADIO && items[j].group == item.group)
+					{
+						if (fm == -1 && items[j].value)
+							fm = j;
+						items[j].value = 0;
+					}
+				}
+				if (fm >= 0)
+					items[fm].value = 1;
+				else
+					item.value = 1;
+			}
+		}
+
+		if (citem == -1)
+		{
+			choice = -1;
+		}
+		else
+		{
+			if (citem < 0) citem = 0;
+			if (citem > items.size() - 1) citem = items.size() - 1;
+			choice = citem;
+
+			while (items[choice].type == NM_TYPE_TEXT)
+			{
+				choice++;
+				if (choice >= items.size())
+				{
+					choice = 0;
+				}
+				if (choice == citem)
+				{
+					choice = 0;
+					all_text = true;
+					break;
+				}
+			}
+		}
+
+		gr_set_current_canvas(save_canvas);
+	}
+
+	void frame()
+	{
+		bool done = false;
+		int k = key_inkey();
+
+		gr_set_current_canvas(bg.menu_canvas);
+
+		if (newmenu_callback)
+			(*newmenu_callback)(items.size(), items.data(), &k, choice);
+
+		if (k < -1)
+		{
+			choice = k;
+			k = -1;
+			done = true;
+		}
+
+		old_choice = choice;
+
+		switch (k)
+		{
+		case KEY_TAB + KEY_SHIFTED:
+		case KEY_UP:
+		case KEY_PAD8:
+			if (all_text) break;
+			do
+			{
+				choice--;
+				if (choice >= items.size()) choice = 0;
+				if (choice < 0) choice = items.size() - 1;
+			} while (items[choice].type == NM_TYPE_TEXT);
+			if ((items[choice].type == NM_TYPE_INPUT) && (choice != old_choice))
+				items[choice].value = -1;
+			if ((old_choice > -1) && (items[old_choice].type == NM_TYPE_INPUT_MENU) && (old_choice != choice))
+			{
+				items[old_choice].group = 0;
+				strcpy(items[old_choice].text, items[old_choice].saved_text);
+				items[old_choice].value = -1;
+			}
+			if (old_choice > -1)
+				items[old_choice].redraw = 1;
+			items[choice].redraw = 1;
+			break;
+		case KEY_TAB:
+		case KEY_DOWN:
+		case KEY_PAD2:
+			if (all_text) break;
+			do
+			{
+				choice++;
+				if (choice < 0) choice = items.size() - 1;
+				if (choice >= items.size()) choice = 0;
+			} while (items[choice].type == NM_TYPE_TEXT);
+			if ((items[choice].type == NM_TYPE_INPUT) && (choice != old_choice))
+				items[choice].value = -1;
+			if ((old_choice > -1) && (items[old_choice].type == NM_TYPE_INPUT_MENU) && (old_choice != choice))
+			{
+				items[old_choice].group = 0;
+				strcpy(items[old_choice].text, items[old_choice].saved_text);
+				items[old_choice].value = -1;
+			}
+			if (old_choice > -1)
+				items[old_choice].redraw = 1;
+			items[choice].redraw = 1;
+			break;
+		case KEY_SPACEBAR:
+			if (choice > -1)
+			{
+				switch (items[choice].type)
+				{
+				case NM_TYPE_MENU:
+				case NM_TYPE_INPUT:
+				case NM_TYPE_INPUT_MENU:
+					break;
+				case NM_TYPE_CHECK:
+					if (items[choice].value)
+						items[choice].value = 0;
+					else
+						items[choice].value = 1;
+					items[choice].redraw = 1;
+					break;
+				case NM_TYPE_RADIO:
+					for (int i = 0; i < items.size(); i++)
+					{
+						if ((i != choice) && (items[i].type == NM_TYPE_RADIO) && (items[i].group == items[choice].group) && (items[i].value))
+						{
+							items[i].value = 0;
+							items[i].redraw = 1;
+						}
+					}
+					items[choice].value = 1;
+					items[choice].redraw = 1;
+					break;
+				}
+			}
+			break;
+
+		case KEY_ENTER:
+		case KEY_PADENTER:
+			if ((choice > -1) && (items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 0))
+			{
+				items[choice].group = 1;
+				items[choice].redraw = 1;
+				if (!_strnicmp(items[choice].saved_text, TXT_EMPTY, strlen(TXT_EMPTY)))
+				{
+					items[choice].text[0] = 0;
+					items[choice].value = -1;
+				}
+				else
+				{
+					strip_end_whitespace(items[choice].text);
+				}
+			}
+			else
+				done = true;
+			break;
+
+		case KEY_ESC:
+			if ((choice > -1) && (items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 1))
+			{
+				items[choice].group = 0;
+				strcpy(items[choice].text, items[choice].saved_text);
+				items[choice].redraw = 1;
+				items[choice].value = -1;
+			}
+			else
+			{
+				done = true;
+				choice = -1;
+			}
+			break;
+
+		case KEY_PRINT_SCREEN: 		save_screen_shot(0); break;
+
+#ifndef NDEBUG
+		case KEY_BACKSP:
+			if ((choice > -1) && (items[choice].type != NM_TYPE_INPUT) && (items[choice].type != NM_TYPE_INPUT_MENU))
+				Int3();
+			break;
+#endif
+
+		}
+
+		if (choice > -1)
+		{
+			int ascii;
+
+			if (((items[choice].type == NM_TYPE_INPUT) || ((items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 1))) && (old_choice == choice))
+			{
+				if (k == KEY_LEFT || k == KEY_BACKSP || k == KEY_PAD4)
+				{
+					if (items[choice].value == -1) items[choice].value = strlen(items[choice].text);
+					if (items[choice].value > 0)
+						items[choice].value--;
+					items[choice].text[items[choice].value] = 0;
+					items[choice].redraw = 1;
+				}
+				else
+				{
+					ascii = key_to_ascii(k);
+					if ((ascii < 255) && (items[choice].value < items[choice].text_len))
+					{
+						int allowed;
+
+						if (items[choice].value == -1)
+						{
+							items[choice].value = 0;
+						}
+
+						allowed = char_allowed(ascii);
+
+						if (!allowed && ascii == ' ' && char_allowed('_'))
+						{
+							ascii = '_';
+							allowed = 1;
+						}
+
+						if (allowed)
+						{
+							items[choice].text[items[choice].value++] = ascii;
+							items[choice].text[items[choice].value] = 0;
+							items[choice].redraw = 1;
+						}
+					}
+				}
+			}
+			else if ((items[choice].type != NM_TYPE_INPUT) && (items[choice].type != NM_TYPE_INPUT_MENU))
+			{
+				ascii = key_to_ascii(k);
+				if (ascii < 255)
+				{
+					int choice1 = choice;
+					ascii = toupper(ascii);
+					do
+					{
+						int i, ch;
+						choice1++;
+						if (choice1 >= items.size()) choice1 = 0;
+						for (i = 0; (ch = items[choice1].text[i]) != 0 && ch == ' '; i++);
+						if (((items[choice1].type == NM_TYPE_MENU) ||
+							(items[choice1].type == NM_TYPE_CHECK) ||
+							(items[choice1].type == NM_TYPE_RADIO) ||
+							(items[choice1].type == NM_TYPE_NUMBER) ||
+							(items[choice1].type == NM_TYPE_SLIDER))
+							&& (ascii == toupper(ch)))
+						{
+							k = 0;
+							choice = choice1;
+							if (old_choice > -1)
+								items[old_choice].redraw = 1;
+							items[choice].redraw = 1;
+						}
+					} while (choice1 != choice);
+				}
+			}
+
+			if ((items[choice].type == NM_TYPE_NUMBER) || (items[choice].type == NM_TYPE_SLIDER))
+			{
+				int ov = items[choice].value;
+				switch (k)
+				{
+				case KEY_PAD4:
+				case KEY_LEFT:
+				case KEY_MINUS:
+				case KEY_MINUS + KEY_SHIFTED:
+				case KEY_PADMINUS:
+					items[choice].value -= 1;
+					break;
+				case KEY_RIGHT:
+				case KEY_PAD6:
+				case KEY_EQUAL:
+				case KEY_EQUAL + KEY_SHIFTED:
+				case KEY_PADPLUS:
+					items[choice].value++;
+					break;
+				case KEY_PAGEUP:
+				case KEY_PAD9:
+				case KEY_SPACEBAR:
+					items[choice].value += 10;
+					break;
+				case KEY_PAGEDOWN:
+				case KEY_BACKSP:
+				case KEY_PAD3:
+					items[choice].value -= 10;
+					break;
+				}
+				if (ov != items[choice].value)
+					items[choice].redraw = 1;
+			}
+
+		}
+
+		gr_set_current_canvas(bg.menu_canvas);
+		// Redraw everything...
+		for (int i = 0; i < items.size(); i++)
+		{
+			if (items[i].redraw)
+			{
+				draw_item(&bg, &items[i], (i == choice && !all_text), tiny);
+				items[i].redraw = 0;
+			}
+			else if (i == choice && (items[i].type == NM_TYPE_INPUT || (items[i].type == NM_TYPE_INPUT_MENU && items[i].group)))
+				update_cursor(&items[i]);
+		}
+
+		if (done) //A choice was made
+		{
+			bool keep_open = choice_callback(choice);
+			if (keep_open)
+			{
+				if (choice == -1) //hit escape, but remaining open?
+					choice = old_choice; 
+			}
+			else
+			{
+				closing = true;
+			}
+		}
+	}
+
+	void close()
+	{
+		// Restore everything...
+		gr_set_current_canvas(bg.menu_canvas);
+		if (bg_filename.size() == 0)
+		{
+			// Save the background under the menu...
+			gr_bitmap(0, 0, bg.saved);
+			gr_free_bitmap(bg.saved);
+			free(bg.background);
+		}
+		else
+		{
+			gr_bitmap(0, 0, bg.background);
+			gr_free_bitmap(bg.background);
+		}
+
+		gr_free_sub_canvas(bg.menu_canvas);
+	}
+
+	bool is_closing()
+	{
+		return closing;
+	}
+};
+
+//Stack of all available menus.
+//The menu on top will be the one that gets all input, but prior menus will remain in order to return to the previous window.
+std::stack <std::unique_ptr<nm_menu>> nm_open_menus;
+
+void newmenu_open2(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice), int citem, const char* filename)
+{
+	nm_open_menus.push(std::make_unique<nm_menu>(items, title, subtitle, subfunction, choicefunc, citem, filename, -1, -1, false));
+}
+
+void newmenu_frame()
+{
+	bool did_frame = false;
+	while (!nm_open_menus.empty() && !did_frame)
+	{
+		std::unique_ptr<nm_menu>& top = nm_open_menus.top();
+		if (top->is_closing()) //Menu wants to close?
+		{
+			top->close(); //let the menu do some cleanup
+			nm_open_menus.pop(); //kill it, and then loop to check the next menu.
+		}
+		else
+		{
+			top->frame(); //Run the menu frame. 
+			did_frame = true;
+		}
+	}
+}
+
+void newmenu_present()
+{
+	plat_present_canvas_masked(*nm_canvas, 3.f / 4.f);
+}
+
 int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
+	Int3();
+	return -1;
+#if 0
 	int old_keyd_repeat, done;
 	int  choice, old_choice, x, y, twidth, fm, right_offset;
 	int k, nmenus, nothers;
@@ -700,8 +1364,6 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 		Assert(bg.background != NULL);
 		gr_bm_bitblt(w, h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.background);
 	}
-
-	// ty = 15 + (yborder/4);
 
 	int ty = 15;
 
@@ -1118,6 +1780,7 @@ int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_ite
 	gr_free_canvas(menu_canvas);
 
 	return choice;
+#endif
 }
 
 int nm_messagebox1(const char* title, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int nchoices, ...)

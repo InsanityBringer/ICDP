@@ -15,6 +15,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "misc/types.h"
 #include "2d/gr.h"
+#include <vector>
 
 #define NM_TYPE_MENU  		0		// A menu item... when enter is hit on this, newmenu_do returns this item number
 #define NM_TYPE_INPUT 		1		// An input box... fills the text field in, and you need to fill in text_len field.
@@ -43,6 +44,14 @@ struct newmenu_item
 	char	saved_text[NM_MAX_TEXT_LEN + 1];
 };
 
+void newmenu_init();
+
+//Does a frame of the menu system
+void newmenu_frame();
+
+//Presents the currently drawn menu to the screen
+void newmenu_present();
+
 // Pass an array of newmenu_items and it processes the menu. It will
 // return a -1 if Esc is pressed, otherwise, it returns the index of 
 // the item that was current when Enter was was selected.
@@ -66,7 +75,8 @@ inline int newmenu_dotiny(const char* title, const char* subtitle, int nitems, n
 	return newmenu_do3(title, subtitle, nitems, item, subfunction, citem, nullptr, width, -1, true);
 }
 
-//ICDP TODO: These can be all consolidated into one menu func with default parameters
+extern void newmenu_open2(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice), int citem, const char* filename);
+
 
 // Sample Code:
 /*

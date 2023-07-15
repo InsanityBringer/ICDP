@@ -115,6 +115,15 @@ extern int Network_allow_socket_changes;
 
 extern void multi_test_packet_serialization();
 
+bool test_choice_func(int choice)
+{
+	mprintf((0, "got choice %d\n", choice));
+	if (choice == -1)
+		return false; //kill if pressed esc
+
+	return true; //keep open
+}
+
 //[ISB] Okay, the trouble is that SDL redefines main. I don't want to include SDL here. Solution is to rip off doom
 //and add a separate main function
 int D_DescentMain(int argc, const char** argv)
@@ -357,7 +366,29 @@ int D_DescentMain(int argc, const char** argv)
 	set_screen_mode(SCREEN_MENU);
 
 	init_game();
+	newmenu_init();
 	set_detail_level_parameters(Detail_level);
+
+	//New newmenu testing garbage
+	char buffer[40] = {};
+	std::vector<newmenu_item> test_items;
+	test_items.push_back({.type = NM_TYPE_MENU, .text = (char*)"varg"});
+	test_items.push_back({.type = NM_TYPE_TEXT, .text = (char*)"blargh"});
+	test_items.push_back({.type = NM_TYPE_SLIDER, .value = 0, .min_value = 0, .max_value = 6, .text = (char*)"value"});
+	test_items.push_back({ .type = NM_TYPE_INPUT, .text_len = sizeof(buffer) - 1, .text = buffer });
+
+	newmenu_open2("Test menu", "this is exciting", test_items, nullptr, test_choice_func, 0, nullptr);
+
+	while (1)
+	{
+		timer_mark_start();
+		plat_do_events();
+		newmenu_frame();
+
+		newmenu_present();
+		plat_flip();
+		timer_mark_end(US_60FPS);
+	}
 
 	Players[Player_num].callsign[0] = '\0';
 	if (!Auto_demo) 
