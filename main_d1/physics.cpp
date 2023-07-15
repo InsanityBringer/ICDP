@@ -224,6 +224,14 @@ void do_physics_sim_rot(object* obj)
 			vm_vec_scale(&obj->mtype.phys_info.rotvel, total_drag);
 		}
 
+		//[ISB] Fix drifting when you're turning left or up
+		//This is because the game uses a shift down in fixmul, but this won't shift low enough values down properly
+		if (abs(obj->mtype.phys_info.rotvel.x) < 15)
+			obj->mtype.phys_info.rotvel.x = 0;
+		if (abs(obj->mtype.phys_info.rotvel.y) < 15)
+			obj->mtype.phys_info.rotvel.y = 0;
+		if (abs(obj->mtype.phys_info.rotvel.z) < 15)
+			obj->mtype.phys_info.rotvel.z = 0;
 	}
 
 	//mprintf( (0, "Rot vel = %.3f,%.3f,%.3f\n", f2fl(obj->mtype.phys_info.rotvel.x),f2fl(obj->mtype.phys_info.rotvel.y), f2fl(obj->mtype.phys_info.rotvel.z) ));
