@@ -1604,7 +1604,7 @@ void multi_do_create_powerup(uint8_t* buf)
 
 	obj_relink(my_objnum, packet.segnum);
 
-	map_objnum_local_to_remote(my_objnum, packet.objnum, packet.powerup_type);
+	map_objnum_local_to_remote(my_objnum, packet.objnum, packet.player_num);
 
 	object_create_explosion(packet.segnum, &new_pos, i2f(5), VCLIP_POWERUP_DISAPPEARANCE);
 	mprintf((0, "Creating powerup type %d in segment %i.\n", packet.powerup_type, packet.segnum));
