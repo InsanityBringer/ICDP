@@ -62,12 +62,15 @@ static const char* RenderWidthStr = "RenderWidth";
 static const char* RenderHeightStr = "RenderHeight";
 static const char* RenderAspectStr = "RenderAspect";
 static const char* MMEDeviceStr = "MMEDevice";
+static const char* FPSLimitStr = "FPSLimit";
 
 char config_last_player[CALLSIGN_LEN + 1] = "";
 char config_last_mission[MISSION_NAME_LEN + 1] = "";
 
 int Config_digi_type = 0;
 int Config_midi_type = 0;
+
+int Config_fps_limit = 30;
 
 extern int8_t	Object_complexity, Object_detail, Wall_detail, Wall_render_depth, Debris_amount, SoundChannels;
 
@@ -229,6 +232,8 @@ int ReadConfigFile()
 				PreferredGenDevice = (GenDevices)strtol(value, NULL, 10);
 			else if (!strcmp(token, MMEDeviceStr))
 				PreferredMMEDevice = strtol(value, NULL, 10);
+			else if (!strcmp(token, FPSLimitStr))
+				Config_fps_limit = strtol(value, NULL, 10);
 		}
 	}
 
@@ -261,6 +266,12 @@ int ReadConfigFile()
 	if (cfg_render_height < 200) cfg_render_height = 200;
 
 	if (cfg_aspect_ratio < 0 || cfg_aspect_ratio >= GAMEASPECT_COUNT) cfg_aspect_ratio = GAMEASPECT_AUTO;
+	if (Config_fps_limit < 5)
+		Config_fps_limit = 5;
+	else if (Config_fps_limit > 150)
+		Config_fps_limit = 150;
+
+	FPSLimit = Config_fps_limit;
 
 	return 0;
 }
@@ -331,6 +342,8 @@ int WriteConfigFile()
 	if (SoundFontFilename[0])
 		fprintf(infile, "%s=%s\n", SoundFontPath, SoundFontFilename);
 	fprintf(infile, "%s=%d\n", GenDeviceStr, (int)PreferredGenDevice);
+	fprintf(infile, "%s=%d\n", MMEDeviceStr, PreferredMMEDevice);
+	fprintf(infile, "%s=%d\n", FPSLimitStr, Config_fps_limit);
 
 	fclose(infile);
 	return 0;
