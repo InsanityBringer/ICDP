@@ -154,6 +154,7 @@ void autodemo_menu_check(int nitems, newmenu_item* items, int* last_key, int cit
 
 //static int First_time = 1;
 static int main_menu_choice = 0;
+static int menu_choice[25];
 
 //	-----------------------------------------------------------------------------
 //	Create the main menu.
@@ -164,29 +165,9 @@ void create_main_menu(newmenu_item* m, int* menu_choice, int* callers_num_option
 #ifndef DEMO_ONLY
 	num_options = 0;
 
-	//	//	Move down to allow for space to display "Destination Saturn"
-	//	if (Saturn) {
-	//		int	i;
-	//
-	//		for (i=0; i<4; i++)
-	//			ADD_ITEM("", 0, -1);
-	//
-	//		if (First_time) {
-	//			main_menu_choice = 4;
-	//			First_time = 0;
-	//		}
-	//	}
-
 	ADD_ITEM(TXT_NEW_GAME, MENU_NEW_GAME, KEY_N);
-
-#ifdef SHAREWARE
-	if (get_game_list(NULL) > 0)
-#endif
-
-		ADD_ITEM(TXT_LOAD_GAME, MENU_LOAD_GAME, KEY_L);
-
+	ADD_ITEM(TXT_LOAD_GAME, MENU_LOAD_GAME, KEY_L);
 	ADD_ITEM(TXT_MULTIPLAYER_, MENU_MULTIPLAYER, -1);
-
 	ADD_ITEM(TXT_OPTIONS_, MENU_CONFIG, -1);
 	ADD_ITEM(TXT_CHANGE_PILOTS, MENU_NEW_PLAYER, unused);
 	ADD_ITEM(TXT_VIEW_DEMO, MENU_DEMO_PLAY, 0);
@@ -216,10 +197,16 @@ void create_main_menu(newmenu_item* m, int* menu_choice, int* callers_num_option
 	* callers_num_options = num_options;
 }
 
+bool MainMenuCallback(int choice, newmenu_item* item)
+{
+	main_menu_choice = choice;
+	do_option(menu_choice[choice]);
+	return true; //Always keep the main menu up if possible
+}
+
 //returns number of item chosen
 int DoMenu()
 {
-	int menu_choice[25];
 	newmenu_item m[25];
 	int num_options = 0;
 
@@ -231,22 +218,13 @@ int DoMenu()
 
 	create_main_menu(m, menu_choice, &num_options);
 
-	do 
-	{
-		keyd_time_when_last_pressed = timer_get_fixed_seconds();		// .. 20 seconds from now!
-		if (main_menu_choice < 0)	main_menu_choice = 0;
-		Menu_draw_copyright = 1;
-		main_menu_choice = newmenu_do2("", NULL, num_options, m, autodemo_menu_check, main_menu_choice, Menu_pcx_name);
-		if (main_menu_choice > -1) do_option(menu_choice[main_menu_choice]);
-		create_main_menu(m, menu_choice, &num_options);	//	may have to change, eg, maybe selected pilot and no save games.
-	} while (Function_mode == FMODE_MENU);
+	keyd_time_when_last_pressed = timer_get_fixed_seconds();		// .. 20 seconds from now!
+	if (main_menu_choice < 0)	main_menu_choice = 0;
+	Menu_draw_copyright = 1;
 
-	//	if (main_menu_choice != -2)
-	//		do_auto_demo = 0;		// No more auto demos
-	if (Function_mode == FMODE_GAME)
-		gr_palette_fade_out(gr_palette, 32, 0);
+	newmenu_open("", NULL, num_options, m, autodemo_menu_check, MainMenuCallback, main_menu_choice, Menu_pcx_name);
 
-	return main_menu_choice;
+	return 0;
 }
 
 extern void show_order_form(void);	// John didn't want this in inferno.h so I just externed it.
@@ -275,11 +253,7 @@ void do_option(int select)
 	}
 	break;
 	case MENU_LOAD_GAME:
-#ifdef SHAREWARE
-		do_load_game_menu();
-#else
 		state_restore_all(0);
-#endif
 		break;
 #ifdef EDITOR
 	case MENU_EDITOR:
@@ -698,6 +672,8 @@ void sound_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 		Config_midi_volume = items[1].value;
 		digi_set_midi_volume((Config_midi_volume * 128) / 8);
 	}
+
+	Config_channels_reversed = items[2].value;
 }
 
 #include "platform/platform.h"
@@ -765,7 +741,6 @@ void do_chocolate_midi_menu()
 		PreferredGenDevice = new_preferred_device;
 		//restart the sound system
 		digi_reset();
-		digi_reset();
 
 		if (Function_mode == FMODE_MENU)
 			songs_play_song(SONG_TITLE, 1);
@@ -774,33 +749,34 @@ void do_chocolate_midi_menu()
 	}
 }
 
+bool sound_menu_callback(int choice, newmenu_item* item)
+{
+	switch (choice)
+	{
+	case -1:
+		if (Config_midi_volume < 1)
+			digi_play_midi_song(NULL, NULL, NULL, 0);
+		return false;
+	case 4:
+		do_chocolate_midi_menu();
+		break;
+	}
+
+	return true;
+}
+
 const char* sound_menu_title = "SOUND OPTIONS";
 
 void do_sound_menu()
 {
 	newmenu_item m[5];
-	int i = 0;
+	m[0].type = NM_TYPE_SLIDER; m[0].text = TXT_FX_VOLUME; m[0].value = Config_digi_volume; m[0].min_value = 0; m[0].max_value = 8;
+	m[1].type = NM_TYPE_SLIDER; m[1].text = TXT_MUSIC_VOLUME; m[1].value = Config_midi_volume; m[1].min_value = 0; m[1].max_value = 8;
+	m[2].type = NM_TYPE_CHECK; m[2].text = TXT_REVERSE_STEREO; m[2].value = Config_channels_reversed;
+	m[3].type = NM_TYPE_TEXT; m[3].text = (char*)"";
+	m[4].type = NM_TYPE_MENU; m[4].text = (char*)"MIDI Options";
 
-	do
-	{
-		m[0].type = NM_TYPE_SLIDER; m[0].text = TXT_FX_VOLUME; m[0].value = Config_digi_volume; m[0].min_value = 0; m[0].max_value = 8;
-		m[1].type = NM_TYPE_SLIDER; m[1].text = TXT_MUSIC_VOLUME; m[1].value = Config_midi_volume; m[1].min_value = 0; m[1].max_value = 8;
-		m[2].type = NM_TYPE_CHECK; m[2].text = TXT_REVERSE_STEREO; m[2].value = Config_channels_reversed;
-		m[3].type = NM_TYPE_TEXT; m[3].text = (char*)"";
-		m[4].type = NM_TYPE_MENU; m[4].text = (char*)"MIDI Options";
-
-		i = newmenu_do1(NULL, sound_menu_title, 5, m, sound_menuset, i);
-
-		if (i == 4)
-			do_chocolate_midi_menu();
-
-		Config_channels_reversed = m[2].value;
-	} while (i > 1);
-
-	if (Config_midi_volume < 1)
-	{
-		digi_play_midi_song(NULL, NULL, NULL, 0);
-	}
+	newmenu_open(NULL, sound_menu_title, 5, m, sound_menuset, sound_menu_callback);
 }
 
 //this change was made in DESCENT.TEX, but since we're not including that
@@ -865,40 +841,45 @@ void gameplay_options_menuset(int nitems, newmenu_item* items, int* last_key, in
 		items[citem + 1].text = (char*)Message_level_names[Player_message_level];
 		items[citem + 1].redraw = true;
 	}
+
+	Auto_leveling_on = items[0].value;
+}
+
+bool gameplay_options_callback(int choice, newmenu_item* item)
+{
+	switch (choice)
+	{
+	case -1:
+		return false;
+	case 1:
+		Primary_autoselect_mode = (Primary_autoselect_mode + 1) % AS_NUM_MODES;
+		item->text = (char*)Autoselect_mode_names[Primary_autoselect_mode]; item->redraw = true;
+		break;
+	case 3:
+		Secondary_autoselect_mode = (Secondary_autoselect_mode + 1) % AS_NUM_MODES;
+		item->text = (char*)Autoselect_mode_names[Secondary_autoselect_mode]; item->redraw = true;
+		break;
+	case 5:
+		Player_message_level = (Player_message_level + 1) % MSG_NUM_MODES;
+		item->text = (char*)Message_level_names[Player_message_level]; item->redraw = true;
+		break;
+	}
+
+	return true;
 }
 
 void do_gameplay_options_menu()
 {
 	newmenu_item m[7];
-	int i = 0;
+	m[0].type = NM_TYPE_CHECK; m[0].text = (char*)"Ship auto-leveling"; m[0].value = Auto_leveling_on;
+	m[1].type = NM_TYPE_MENU; m[1].text = (char*)"Primary autoselect on pickup:";
+	m[2].type = NM_TYPE_TEXT; m[2].text = (char*)Autoselect_mode_names[Primary_autoselect_mode];
+	m[3].type = NM_TYPE_MENU; m[3].text = (char*)"Secondary autoselect on pickup:";
+	m[4].type = NM_TYPE_TEXT; m[4].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode];
+	m[5].type = NM_TYPE_MENU; m[5].text = (char*)"Message level:";
+	m[6].type = NM_TYPE_TEXT; m[6].text = (char*)Message_level_names[Player_message_level];
 
-	do
-	{
-		m[0].type = NM_TYPE_CHECK; m[0].text = (char*)"Ship auto-leveling"; m[0].value = Auto_leveling_on;
-		m[1].type = NM_TYPE_MENU; m[1].text = (char*)"Primary autoselect on pickup:";
-		m[2].type = NM_TYPE_TEXT; m[2].text = (char*)Autoselect_mode_names[Primary_autoselect_mode];
-		m[3].type = NM_TYPE_MENU; m[3].text = (char*)"Secondary autoselect on pickup:";
-		m[4].type = NM_TYPE_TEXT; m[4].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode];
-		m[5].type = NM_TYPE_MENU; m[5].text = (char*)"Message level:";
-		m[6].type = NM_TYPE_TEXT; m[6].text = (char*)Message_level_names[Player_message_level];
-
-		i = newmenu_do1(nullptr, "GAME OPTIONS", 7, m, gameplay_options_menuset, i);
-
-		switch (i)
-		{
-		case 1:
-			Primary_autoselect_mode = (Primary_autoselect_mode + 1) % AS_NUM_MODES;
-			break;
-		case 3:
-			Secondary_autoselect_mode = (Secondary_autoselect_mode + 1) % AS_NUM_MODES;
-			break;
-		case 5:
-			Player_message_level = (Player_message_level + 1) % MSG_NUM_MODES;
-			break;
-		}
-
-		Auto_leveling_on = m[0].value;
-	} while (i > -1);
+	newmenu_open(nullptr, "GAME OPTIONS", 7, m, gameplay_options_menuset, gameplay_options_callback);
 }
 
 void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
@@ -907,44 +888,44 @@ void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 	*last_key = *last_key;
 }
 
+bool joydef_callback(int choice, newmenu_item* item)
+{
+	switch (choice)
+	{
+	case -1:
+		write_player_file();
+		return false; //Done here
+	case 0:
+		do_sound_menu();
+		break;
+	case 1:
+		do_video_menu();
+		break;
+	case 3:
+		joydefs_config();
+		break;
+	case 4:
+		do_detail_level_menu();
+		break;
+	case 6:
+		do_gameplay_options_menu();
+		break;
+	}
+	return true;
+}
+
 void do_options_menu()
 {
 	newmenu_item m[10];
-	int i = 0;
+	m[0].type = NM_TYPE_MENU; m[0].text = (char*)"SOUND OPTIONS...";
+	m[1].type = NM_TYPE_MENU; m[1].text = (char*)"VIDEO OPTIONS...";
+	m[2].type = NM_TYPE_TEXT; m[2].text = (char*)"";
+	m[3].type = NM_TYPE_MENU; m[3].text = TXT_CONTROLS_;
+	m[4].type = NM_TYPE_MENU; m[4].text = TXT_DETAIL_LEVELS;
+	m[5].type = NM_TYPE_TEXT; m[5].text = (char*)"";
+	m[6].type = NM_TYPE_MENU; m[6].text = (char*)"GAMEPLAY OPTIONS...";
 
-	do 
-	{
-		m[0].type = NM_TYPE_MENU; m[0].text = (char*)"SOUND OPTIONS...";
-		m[1].type = NM_TYPE_MENU; m[1].text = (char*)"VIDEO OPTIONS...";
-		m[2].type = NM_TYPE_TEXT; m[2].text = (char*)"";
-		m[3].type = NM_TYPE_MENU; m[3].text = TXT_CONTROLS_;
-		m[4].type = NM_TYPE_MENU; m[4].text = TXT_DETAIL_LEVELS;
-		m[5].type = NM_TYPE_TEXT; m[5].text = (char*)"";
-		m[6].type = NM_TYPE_MENU; m[6].text = (char*)"GAMEPLAY OPTIONS...";
-
-		i = newmenu_do1(NULL, TXT_OPTIONS, 7, m, joydef_menuset, i);
-
-		switch (i) 
-		{
-		case 0: 
-			do_sound_menu();
-			break;
-		case 1:
-			do_video_menu();
-			break;
-		case 3: 
-			joydefs_config();
-			break;
-		case 4: 
-			do_detail_level_menu();	
-			break;
-		case 6:
-			do_gameplay_options_menu();
-			break;
-		}
-	} while (i > -1);
-
-	write_player_file();
+	newmenu_open(NULL, TXT_OPTIONS, 7, m, joydef_menuset, joydef_callback);
 }
 
 char direct_join_str[40] = "CONNECT TO IP ADDRESS...";

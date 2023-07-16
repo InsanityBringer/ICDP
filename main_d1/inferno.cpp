@@ -115,11 +115,19 @@ extern int Network_allow_socket_changes;
 
 extern void multi_test_packet_serialization();
 
-bool test_choice_func(int choice)
+bool open_new_menu = false;
+bool test_choice_func(int choice, newmenu_item* item)
 {
 	mprintf((0, "got choice %d\n", choice));
 	if (choice == -1)
 		return false; //kill if pressed esc
+
+	if (choice == 0)
+	{
+		//open another window and then close this window to test delayed draw
+		nm_open_messagebox("varg", nullptr, 1, TXT_OK, "you smell of poo poo pee pee");
+		return false;
+	}
 
 	return true; //keep open
 }
@@ -127,6 +135,18 @@ bool test_choice_func(int choice)
 void test_string_func(std::string& str, int choice)
 {
 	mprintf((0, "got choice %s, number %d\n", str.c_str(), choice));
+
+	static char buffer[40] = {};
+	std::vector<newmenu_item> test_items;
+	test_items.push_back({ .type = NM_TYPE_MENU, .text = (char*)"varg" });
+	test_items.push_back({ .type = NM_TYPE_TEXT, .text = (char*)"blargh" });
+	test_items.push_back({ .type = NM_TYPE_SLIDER, .value = 0, .min_value = 0, .max_value = 6, .text = (char*)"value" });
+	test_items.push_back({ .type = NM_TYPE_INPUT, .text_len = sizeof(buffer) - 1, .text = buffer });
+	strncpy(buffer, str.c_str(), sizeof(buffer));
+	buffer[sizeof(buffer) - 1] = '\0';
+
+	newmenu_open("Test menu", "this is exciting", test_items, nullptr, test_choice_func, 0, nullptr);
+	open_new_menu = false;
 }
 
 //[ISB] Okay, the trouble is that SDL redefines main. I don't want to include SDL here. Solution is to rip off doom
@@ -383,10 +403,10 @@ int D_DescentMain(int argc, const char** argv)
 	test_items.push_back({.type = NM_TYPE_SLIDER, .value = 0, .min_value = 0, .max_value = 6, .text = (char*)"value"});
 	test_items.push_back({ .type = NM_TYPE_INPUT, .text_len = sizeof(buffer) - 1, .text = buffer });
 
-	newmenu_open2("Test menu", "this is exciting", test_items, nullptr, test_choice_func, 0, nullptr);*/
+	newmenu_open("Test menu", "this is exciting", test_items, nullptr, test_choice_func, 0, nullptr);*/
 
-	char localized_pilot_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	//get_platform_localized_query_string(localized_pilot_query, CHOCOLATE_PILOT_DIR, "*.nplt");
+	/*char localized_pilot_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	get_platform_localized_query_string(localized_pilot_query, CHOCOLATE_PILOT_DIR, "*.nplt");
 	get_full_file_path(localized_pilot_query, "*.nplt", CHOCOLATE_PILOT_DIR); //Possibly a bad idea, but I need the search string relative to the basedir. 
 	newmenu_open_filepicker(TXT_SELECT_PILOT, localized_pilot_query, false, test_string_func);
 
@@ -396,10 +416,11 @@ int D_DescentMain(int argc, const char** argv)
 		plat_do_events();
 		newmenu_frame();
 
+
 		newmenu_present();
 		plat_flip();
 		timer_mark_end(US_60FPS);
-	}
+	}*/
 
 	Players[Player_num].callsign[0] = '\0';
 	if (!Auto_demo) 
@@ -408,7 +429,7 @@ int D_DescentMain(int argc, const char** argv)
 		RegisterPlayer();		//get player's name
 	}
 
-	gr_palette_fade_out(title_pal, 32, 0);
+	//gr_palette_fade_out(title_pal, 32, 0);
 
 	//kconfig_load_all();
 
@@ -416,19 +437,36 @@ int D_DescentMain(int argc, const char** argv)
 
 	if (Auto_demo) 
 	{
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-		char demo_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-		get_full_file_path(demo_full_path, "descent.dem", CHOCOLATE_DEMOS_DIR);
-		newdemo_start_playback(demo_full_path);
-#else
 		newdemo_start_playback("DESCENT.DEM");
-#endif
+
 		if (Newdemo_state == ND_STATE_PLAYBACK)
 			Function_mode = FMODE_GAME;
 	}
 
 	build_mission_list(false);		// This also loads mission 0.
 
+	while (Function_mode != FMODE_EXIT)
+	{
+		timer_mark_start();
+		plat_do_events();
+		newmenu_frame();
+
+		//do game and editor frames here
+		switch (Function_mode)
+		{
+		case FMODE_MENU:
+			//If the menu list is empty, show the main menu. 
+			if (newmenu_empty())
+				DoMenu(); 
+			break;
+		}
+
+		newmenu_present();
+		plat_flip();
+		timer_mark_end(US_60FPS);
+	}
+
+#if 0
 	while (Function_mode != FMODE_EXIT)
 	{
 		switch (Function_mode) 
@@ -482,6 +520,7 @@ int D_DescentMain(int argc, const char** argv)
 			Error("Invalid function mode %d", Function_mode);
 		}
 	}
+#endif
 
 	WriteConfigFile();
 

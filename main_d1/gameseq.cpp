@@ -536,34 +536,19 @@ void create_player_appearance_effect(object* player_obj)
 //pairs of chars describing ranges
 char playername_allowed_chars[] = "azAZ09__--";
 
-int MakeNewPlayerFile(int allow_abort)
+static char new_pilot_name[CALLSIGN_LEN + 1];
+
+void MakeNewPlayerFile(int allow_abort);
+bool MakeNewPlayerFileCallback(int choice, newmenu_item* item)
 {
-	int x;
 	char filename[14];
-	newmenu_item m;
-	char text[CALLSIGN_LEN + 1] = "";
-	FILE* fp;
 
-	strncpy(text, Players[Player_num].callsign, CALLSIGN_LEN);
+	if (new_pilot_name[0] == 0)	//null string
+		return true; //keep open
 
-try_again:
-	m.type = NM_TYPE_INPUT; m.text_len = 8; m.text = text;
+	sprintf(filename, "%s.nplt", new_pilot_name);
 
-	Newmenu_allowed_chars = playername_allowed_chars;
-	x = newmenu_do(NULL, TXT_ENTER_PILOT_NAME, 1, &m, NULL);
-	Newmenu_allowed_chars = NULL;
-
-	if (x < 0) {
-		if (allow_abort) return 0;
-		goto try_again;
-	}
-
-	if (text[0] == 0)	//null string
-		goto try_again;
-
-	sprintf(filename, "%s.plr", text);
-
-	fp = fopen(filename, "rb");
+	FILE* fp = fopen(filename, "rb");
 
 	//if the callsign is the name of a tty device, prepend a char
 	/*if (fp && isatty(fileno(fp))) //[ISB] fixme pls
@@ -573,21 +558,60 @@ try_again:
 		fp = fopen(filename, "rb");
 	}*/
 
-	if (fp) 
+	if (fp)
 	{
-		nm_messagebox(NULL, 1, TXT_OK, "%s '%s' %s", TXT_PLAYER, text, TXT_ALREADY_EXISTS);
+		nm_messagebox(NULL, 1, TXT_OK, "%s '%s' %s", TXT_PLAYER, new_pilot_name, TXT_ALREADY_EXISTS);
 		fclose(fp);
-		goto try_again;
+		return true;
 	}
 
-	if (!new_player_config())
-		goto try_again;			// They hit Esc during New player config
+	//Unlike before, this never fails. 
+	new_player_config();
 
-	strncpy(Players[Player_num].callsign, text, CALLSIGN_LEN);
+	strncpy(Players[Player_num].callsign, new_pilot_name, CALLSIGN_LEN);
 
 	write_player_file();
 
-	return 1;
+	Auto_leveling_on = Default_leveling_on;
+
+	WriteConfigFile();		// Update lastplr
+
+	return false; //no need to keep the window up
+}
+
+void MakeNewPlayerFile(int allow_abort)
+{
+	newmenu_item m;
+
+	strncpy(new_pilot_name, Players[Player_num].callsign, CALLSIGN_LEN);
+
+	m.type = NM_TYPE_INPUT; m.text_len = 8; m.text = new_pilot_name;
+
+	Newmenu_allowed_chars = playername_allowed_chars;
+	newmenu_open(NULL, TXT_ENTER_PILOT_NAME, 1, &m, nullptr, MakeNewPlayerFileCallback);
+	Newmenu_allowed_chars = NULL;
+}
+
+void RegisterPlayerCallback(std::string& str, int choice)
+{
+	int allow_abort_flag = 1;
+	if (config_last_player[0] == 0)
+		allow_abort_flag = 0;
+
+	if (choice == 0) 
+	{
+		// They selected 'create new pilot'
+		MakeNewPlayerFile(allow_abort_flag);
+	}
+	else
+	{
+		strncpy(Players[Player_num].callsign, str.c_str(), CALLSIGN_LEN);
+		read_player_file();
+
+		Auto_leveling_on = Default_leveling_on;
+
+		WriteConfigFile();		// Update lastplr
+	}
 }
 
 //Inputs the player's name, without putting up the background screen
@@ -617,34 +641,12 @@ int RegisterPlayer()
 			allow_abort_flag = 0;
 	}
 
-do_menu_again:
-	;
 
 	char localized_pilot_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	//get_platform_localized_query_string(localized_pilot_query, CHOCOLATE_PILOT_DIR, "*.nplt");
 	get_full_file_path(localized_pilot_query, "*.nplt", CHOCOLATE_PILOT_DIR); //Possibly a bad idea, but I need the search string relative to the basedir. 
-	if (!newmenu_get_filename(TXT_SELECT_PILOT, localized_pilot_query, filename, allow_abort_flag)) 
-	{
-		return 0;		// They hit Esc in file selector
-	}
-
-	if (filename[0] == '<') 
-	{
-		// They selected 'create new pilot'
-		if (!MakeNewPlayerFile(allow_abort_flag))
-			//return 0;		// They hit Esc during enter name stage
-			goto do_menu_again;
-	}
-	else 
-	{
-		strncpy(Players[Player_num].callsign, filename, CALLSIGN_LEN);
-	}
-
-	read_player_file();
-
-	Auto_leveling_on = Default_leveling_on;
-
-	WriteConfigFile();		// Update lastplr
+	//newmenu_get_filename(TXT_SELECT_PILOT, localized_pilot_query, filename, allow_abort_flag)
+	newmenu_open_filepicker(TXT_SELECT_PILOT, localized_pilot_query, allow_abort_flag, RegisterPlayerCallback);
 
 	return 1;
 }

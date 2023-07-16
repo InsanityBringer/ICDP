@@ -18,6 +18,13 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <vector>
 #include <string>
 
+struct bkg
+{
+	grs_canvas* menu_canvas;
+	grs_bitmap* saved;			// The background under the menu.
+	grs_bitmap* background;
+};
+
 #define NM_TYPE_MENU  		0		// A menu item... when enter is hit on this, newmenu_do returns this item number
 #define NM_TYPE_INPUT 		1		// An input box... fills the text field in, and you need to fill in text_len field.
 #define NM_TYPE_CHECK 		2		// A check box. Set and get its status by looking at flags field (1=on, 0=off)
@@ -47,6 +54,7 @@ struct newmenu_item
 
 class nm_window
 {
+	bool drawn = false;
 	bool closing = false;
 public:
 	//Closes the window, and cleans it up from the newmenu canvas. 
@@ -62,11 +70,26 @@ public:
 		return closing;
 	}
 
+	bool must_draw() const
+	{
+		return !drawn;
+	}
+
+	//Draws the window, and marks it as drawn
+	virtual void draw()
+	{
+		drawn = true;
+	}
+
 	//Runs a single frame for this window.
 	virtual void frame() = 0;
 	//Cleans up this window from the newmenu canvas. 
 	virtual void cleanup() = 0;
 };
+
+//Honestly, I should have a private header for newmenu. 
+extern grs_canvas* nm_canvas;
+extern grs_bitmap nm_background;
 
 void newmenu_init();
 
@@ -75,6 +98,9 @@ void newmenu_frame();
 
 //Presents the currently drawn menu to the screen
 void newmenu_present();
+
+//Checks if there are no windows open
+bool newmenu_empty();
 
 // Pass an array of newmenu_items and it processes the menu. It will
 // return a -1 if Esc is pressed, otherwise, it returns the index of 
@@ -99,14 +125,20 @@ inline int newmenu_dotiny(const char* title, const char* subtitle, int nitems, n
 	return newmenu_do3(title, subtitle, nitems, item, subfunction, citem, nullptr, width, -1, true);
 }
 
-extern void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice), int citem = 0, const char* filename = nullptr);
+extern void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, 
+	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, newmenu_item* item), 
+	int citem = 0, const char* filename = nullptr, int width = -1, int height = -1, bool tiny_mode = false);
+
+extern void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_item* items,
+	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, newmenu_item* item),
+	int citem = 0, const char* filename = nullptr, int width = -1, int height = -1, bool tiny_mode = false);
 
 //Simple callback for purely informative message boxes.
 //This will be the default if you don't specify a callback. 
-bool newmenu_messagebox_informative_callback(int choice);
+bool newmenu_messagebox_informative_callback(int choice, newmenu_item* item);
 
 //Opens a messagebox
-void nm_open_messagebox(const char* title, bool (*callback)(int choice), int nchoices, ...);
+void nm_open_messagebox(const char* title, bool (*callback)(int choice, newmenu_item* item), int nchoices, ...);
 
 // Sample Code:
 /*
@@ -140,6 +172,7 @@ int nm_messagebox(const char* title, int nchoices, ...);
 // Same as above, but you can pass a function
 int nm_messagebox1(const char* title, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int nchoices, ...);
 
+void nm_draw_background1(const char* filename);
 void nm_draw_background(int x1, int y1, int x2, int y2);
 void nm_restore_background(int x, int y, int w, int h);
 

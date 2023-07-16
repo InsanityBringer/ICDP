@@ -1634,13 +1634,13 @@ int allowed_to_fire_missile(void)
 	return 1;
 }
 
-typedef struct bkg 
+struct game_bkg
 {
 	short x, y, w, h;			// The location of the menu.
 	grs_bitmap* bmp;			// The background under the menu.
-} bkg;
+};
 
-bkg bg = { 0,0,0,0,NULL };
+game_bkg bg = { 0,0,0,0,NULL };
 
 //show a message in a nice little box
 void show_boxed_message(char* msg)
@@ -1772,21 +1772,18 @@ void show_help()
 {
 	newmenu_item m[14];
 
-	//if (VR_render_mode != VR_NONE) //[ISB] I'm confused
-	{
-		m[0].type = NM_TYPE_TEXT; m[0].text = TXT_HELP_ESC;
-		m[1].type = NM_TYPE_TEXT; m[1].text = TXT_HELP_ALT_F2;
-		m[2].type = NM_TYPE_TEXT; m[2].text = TXT_HELP_ALT_F3;
-		m[3].type = NM_TYPE_TEXT; m[3].text = TXT_HELP_F2;
-		m[4].type = NM_TYPE_TEXT; m[4].text = TXT_HELP_F4;
-		m[5].type = NM_TYPE_TEXT; m[5].text = TXT_HELP_F5;
-		m[6].type = NM_TYPE_TEXT; m[6].text = TXT_HELP_PAUSE;
-		m[7].type = NM_TYPE_TEXT; m[7].text = TXT_HELP_1TO5;
-		m[8].type = NM_TYPE_TEXT; m[8].text = TXT_HELP_6TO10;
-		m[9].type = NM_TYPE_TEXT; m[9].text = (char*)"";
-		m[10].type = NM_TYPE_TEXT; m[10].text = TXT_HELP_TO_VIEW;
-		newmenu_do(NULL, TXT_KEYS, 11, m, NULL);
-	}
+	m[0].type = NM_TYPE_TEXT; m[0].text = TXT_HELP_ESC;
+	m[1].type = NM_TYPE_TEXT; m[1].text = TXT_HELP_ALT_F2;
+	m[2].type = NM_TYPE_TEXT; m[2].text = TXT_HELP_ALT_F3;
+	m[3].type = NM_TYPE_TEXT; m[3].text = TXT_HELP_F2;
+	m[4].type = NM_TYPE_TEXT; m[4].text = TXT_HELP_F4;
+	m[5].type = NM_TYPE_TEXT; m[5].text = TXT_HELP_F5;
+	m[6].type = NM_TYPE_TEXT; m[6].text = TXT_HELP_PAUSE;
+	m[7].type = NM_TYPE_TEXT; m[7].text = TXT_HELP_1TO5;
+	m[8].type = NM_TYPE_TEXT; m[8].text = TXT_HELP_6TO10;
+	m[9].type = NM_TYPE_TEXT; m[9].text = (char*)"";
+	m[10].type = NM_TYPE_TEXT; m[10].text = TXT_HELP_TO_VIEW;
+	newmenu_do(NULL, TXT_KEYS, 11, m, NULL);
 }
 
 //deal with rear view - switch it on, or off, or whatever
