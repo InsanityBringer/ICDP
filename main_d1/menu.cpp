@@ -1125,14 +1125,14 @@ bool video_callback(int choice, int nitems, newmenu_item* item)
 			x_ptr = strchr(item[1].text, '*');
 
 		if (!x_ptr)
-			nm_messagebox(NULL, 1, TXT_OK, "Can't read window size");
+			nm_open_messagebox(nullptr, nullptr, 1, TXT_OK, "Can't read window size");
 		else
 		{
 			*x_ptr = '\0';
 			int new_width = atoi(item[1].text);
 			int new_height = atoi(x_ptr + 1);
 			if (new_width < 320 || new_height < 200)
-				nm_messagebox(NULL, 1, TXT_OK, "Window size is invalid");
+				nm_open_messagebox(nullptr, nullptr, 1, TXT_OK, "Window size is invalid");
 			else
 			{
 				WindowWidth = new_width;
@@ -1149,14 +1149,14 @@ bool video_callback(int choice, int nitems, newmenu_item* item)
 			x_ptr = strchr(item[6].text, '*');
 
 		if (!x_ptr)
-			nm_messagebox(NULL, 1, TXT_OK, "Can't read render size");
+			nm_open_messagebox(nullptr, nullptr, 1, TXT_OK, "Can't read render size");
 		else
 		{
 			*x_ptr = '\0';
 			int new_width = atoi(item[6].text);
 			int new_height = atoi(x_ptr + 1);
 			if (new_width < 320 || new_height < 200)
-				nm_messagebox(NULL, 1, TXT_OK, "Render size is invalid");
+				nm_open_messagebox(nullptr, nullptr, 1, TXT_OK, "Render size is invalid");
 			else
 			{
 				cfg_render_width = new_width;

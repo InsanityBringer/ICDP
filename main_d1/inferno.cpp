@@ -116,7 +116,7 @@ extern int Network_allow_socket_changes;
 extern void multi_test_packet_serialization();
 
 bool open_new_menu = false;
-bool test_choice_func(int choice, newmenu_item* item)
+bool test_choice_func(int choice, int nitems, newmenu_item* item)
 {
 	mprintf((0, "got choice %d\n", choice));
 	if (choice == -1)
@@ -448,6 +448,7 @@ int D_DescentMain(int argc, const char** argv)
 	while (Function_mode != FMODE_EXIT)
 	{
 		timer_mark_start();
+		plat_clear_screen();
 		plat_do_events();
 		newmenu_frame();
 
