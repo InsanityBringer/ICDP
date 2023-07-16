@@ -321,7 +321,9 @@ void nm_filelist::frame()
 
 	if (done)
 	{
-		file_selected(files[citem].displayname, citem);
+		if (citem > -1)
+			file_selected(files[citem].displayname, citem);
+
 		close();
 	}
 	else

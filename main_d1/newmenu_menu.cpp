@@ -457,11 +457,15 @@ void nm_menu::frame()
 		do
 		{
 			choice--;
-			if (choice >= items.size()) choice = 0;
-			if (choice < 0) choice = items.size() - 1;
+			if (choice < 0)
+				choice = items.size() - 1;
+			if (choice >= items.size()) 
+				choice = 0;
 		} while (items[choice].type == NM_TYPE_TEXT);
+
 		if ((items[choice].type == NM_TYPE_INPUT) && (choice != old_choice))
 			items[choice].value = -1;
+
 		if ((old_choice > -1) && (items[old_choice].type == NM_TYPE_INPUT_MENU) && (old_choice != choice))
 		{
 			items[old_choice].group = 0;
