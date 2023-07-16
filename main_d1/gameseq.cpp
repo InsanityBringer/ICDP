@@ -539,7 +539,7 @@ char playername_allowed_chars[] = "azAZ09__--";
 static char new_pilot_name[CALLSIGN_LEN + 1];
 
 void MakeNewPlayerFile(int allow_abort);
-bool MakeNewPlayerFileCallback(int choice, newmenu_item* item)
+bool MakeNewPlayerFileCallback(int choice, int nitems, newmenu_item* item)
 {
 	char filename[14];
 

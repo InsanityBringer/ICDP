@@ -197,7 +197,7 @@ void create_main_menu(newmenu_item* m, int* menu_choice, int* callers_num_option
 	* callers_num_options = num_options;
 }
 
-bool MainMenuCallback(int choice, newmenu_item* item)
+bool MainMenuCallback(int choice, int nitems, newmenu_item* item)
 {
 	main_menu_choice = choice;
 	do_option(menu_choice[choice]);
@@ -436,10 +436,25 @@ void set_detail_level_parameters(int detail_level)
 	}
 }
 
+bool detail_level_menu_callback(int choice, int nitems, newmenu_item* item)
+{
+	if (choice >= 0 && choice < 5)
+	{
+		Detail_level = choice;
+		mprintf((0, "Detail level set to %i\n", Detail_level));
+		set_detail_level_parameters(Detail_level);
+	}
+	else if (choice == 6)
+	{
+		Detail_level = 5;
+		do_detail_level_menu_custom();
+	}
+	return false;
+}
+
 //	-----------------------------------------------------------------------------
 void do_detail_level_menu(void)
 {
-	int s;
 	newmenu_item m[7];
 
 	m[0].type = NM_TYPE_MENU; m[0].text = MENU_DETAIL_TEXT(0);
@@ -450,28 +465,7 @@ void do_detail_level_menu(void)
 	m[5].type = NM_TYPE_TEXT; m[5].text = (char*)"";
 	m[6].type = NM_TYPE_MENU; m[6].text = MENU_DETAIL_TEXT(5);
 
-	s = newmenu_do1(NULL, TXT_DETAIL_LEVEL, NDL + 2, m, NULL, Detail_level);
-
-	if (s > -1)
-	{
-		switch (s) 
-		{
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-			Detail_level = s;
-			mprintf((0, "Detail level set to %i\n", Detail_level));
-			set_detail_level_parameters(Detail_level);
-			break;
-		case 6:
-			Detail_level = 5;
-			do_detail_level_menu_custom();
-			break;
-		}
-	}
-
+	newmenu_open(nullptr, TXT_DETAIL_LEVEL, NDL + 2, m, nullptr, detail_level_menu_callback, Detail_level);
 }
 
 //	-----------------------------------------------------------------------------
@@ -506,57 +500,62 @@ void set_custom_detail_vars(void)
 	digi_set_max_channels(Max_sound_channels[SoundChannels]);
 }
 
+bool custom_detail_level_menu_callback(int choice, int nitems, newmenu_item* item)
+{
+	if (choice == -1)
+	{
+		set_custom_detail_vars();
+		return false;
+	}
+
+	return true;
+}
+
 //	-----------------------------------------------------------------------------
 void do_detail_level_menu_custom(void)
 {
-	int	s = 0;
 	newmenu_item m[7];
 
-	do 
-	{
-		m[0].type = NM_TYPE_SLIDER;
-		m[0].text = TXT_OBJ_COMPLEXITY;
-		m[0].value = Object_complexity;
-		m[0].min_value = 0;
-		m[0].max_value = NDL - 1;
+	m[0].type = NM_TYPE_SLIDER;
+	m[0].text = TXT_OBJ_COMPLEXITY;
+	m[0].value = Object_complexity;
+	m[0].min_value = 0;
+	m[0].max_value = NDL - 1;
 
-		m[1].type = NM_TYPE_SLIDER;
-		m[1].text = TXT_OBJ_DETAIL;
-		m[1].value = Object_detail;
-		m[1].min_value = 0;
-		m[1].max_value = NDL - 1;
+	m[1].type = NM_TYPE_SLIDER;
+	m[1].text = TXT_OBJ_DETAIL;
+	m[1].value = Object_detail;
+	m[1].min_value = 0;
+	m[1].max_value = NDL - 1;
 
-		m[2].type = NM_TYPE_SLIDER;
-		m[2].text = TXT_WALL_DETAIL;
-		m[2].value = Wall_detail;
-		m[2].min_value = 0;
-		m[2].max_value = NDL - 1;
+	m[2].type = NM_TYPE_SLIDER;
+	m[2].text = TXT_WALL_DETAIL;
+	m[2].value = Wall_detail;
+	m[2].min_value = 0;
+	m[2].max_value = NDL - 1;
 
-		m[3].type = NM_TYPE_SLIDER;
-		m[3].text = TXT_WALL_RENDER_DEPTH;
-		m[3].value = Wall_render_depth;
-		m[3].min_value = 0;
-		m[3].max_value = NDL - 1;
+	m[3].type = NM_TYPE_SLIDER;
+	m[3].text = TXT_WALL_RENDER_DEPTH;
+	m[3].value = Wall_render_depth;
+	m[3].min_value = 0;
+	m[3].max_value = NDL - 1;
 
-		m[4].type = NM_TYPE_SLIDER;
-		m[4].text = TXT_DEBRIS_AMOUNT;
-		m[4].value = Debris_amount;
-		m[4].min_value = 0;
-		m[4].max_value = NDL - 1;
+	m[4].type = NM_TYPE_SLIDER;
+	m[4].text = TXT_DEBRIS_AMOUNT;
+	m[4].value = Debris_amount;
+	m[4].min_value = 0;
+	m[4].max_value = NDL - 1;
 
-		m[5].type = NM_TYPE_SLIDER;
-		m[5].text = TXT_SOUND_CHANNELS;
-		m[5].value = SoundChannels;
-		m[5].min_value = 0;
-		m[5].max_value = NDL - 1;
+	m[5].type = NM_TYPE_SLIDER;
+	m[5].text = TXT_SOUND_CHANNELS;
+	m[5].value = SoundChannels;
+	m[5].min_value = 0;
+	m[5].max_value = NDL - 1;
 
-		m[6].type = NM_TYPE_TEXT;
-		m[6].text = TXT_LO_HI;
+	m[6].type = NM_TYPE_TEXT;
+	m[6].text = TXT_LO_HI;
 
-		s = newmenu_do1(NULL, TXT_DETAIL_CUSTOM, 7, m, do_detail_level_menu_custom_menuset, s);
-	} while (s > -1);
-
-	set_custom_detail_vars();
+	newmenu_open(NULL, TXT_DETAIL_CUSTOM, 7, m, do_detail_level_menu_custom_menuset, custom_detail_level_menu_callback);
 }
 
 void do_new_game_menu()
@@ -749,7 +748,7 @@ void do_chocolate_midi_menu()
 	}
 }
 
-bool sound_menu_callback(int choice, newmenu_item* item)
+bool sound_menu_callback(int choice, int nitems, newmenu_item* item)
 {
 	switch (choice)
 	{
@@ -845,7 +844,7 @@ void gameplay_options_menuset(int nitems, newmenu_item* items, int* last_key, in
 	Auto_leveling_on = items[0].value;
 }
 
-bool gameplay_options_callback(int choice, newmenu_item* item)
+bool gameplay_options_callback(int choice, int nitems, newmenu_item* item)
 {
 	switch (choice)
 	{
@@ -853,15 +852,15 @@ bool gameplay_options_callback(int choice, newmenu_item* item)
 		return false;
 	case 1:
 		Primary_autoselect_mode = (Primary_autoselect_mode + 1) % AS_NUM_MODES;
-		item->text = (char*)Autoselect_mode_names[Primary_autoselect_mode]; item->redraw = true;
+		item[choice].text = (char*)Autoselect_mode_names[Primary_autoselect_mode]; item[choice].redraw = true;
 		break;
 	case 3:
 		Secondary_autoselect_mode = (Secondary_autoselect_mode + 1) % AS_NUM_MODES;
-		item->text = (char*)Autoselect_mode_names[Secondary_autoselect_mode]; item->redraw = true;
+		item[choice].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode]; item[choice].redraw = true;
 		break;
 	case 5:
 		Player_message_level = (Player_message_level + 1) % MSG_NUM_MODES;
-		item->text = (char*)Message_level_names[Player_message_level]; item->redraw = true;
+		item[choice].text = (char*)Message_level_names[Player_message_level]; item[choice].redraw = true;
 		break;
 	}
 
@@ -888,7 +887,7 @@ void joydef_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 	*last_key = *last_key;
 }
 
-bool joydef_callback(int choice, newmenu_item* item)
+bool joydef_callback(int choice, int nitems, newmenu_item* item)
 {
 	switch (choice)
 	{
@@ -1048,7 +1047,18 @@ std::vector<const char*> resolution_menu_strings =
 	"2560x1440",
 };
 
-const char* get_video_resolution()
+//TODO: I'm going to need to change up how menus are generated to avoid these globals
+static char* vid_res_buffer;
+
+bool video_resolution_callback(int choice, int nitems, newmenu_item* items)
+{
+	if (choice >= 0)
+		sprintf(vid_res_buffer, 0, resolution_menu_strings[choice]);
+
+	return false;
+}
+
+void get_video_resolution(char* buf)
 {
 	std::vector<newmenu_item> items;
 
@@ -1059,11 +1069,7 @@ const char* get_video_resolution()
 		items.push_back(item);
 	}
 
-	int res = newmenu_do(nullptr, "Select resolution", items.size(), items.data(), nullptr);
-	if (res == -1)
-		return nullptr;
-
-	return resolution_menu_strings[res];
+	newmenu_open(nullptr, "Select resolution", items, nullptr, video_resolution_callback);
 }
 
 const char* select_window_res_text = "SELECT WINDOW SIZE...";
@@ -1075,6 +1081,7 @@ const char* aspect_text = "ASPECT RATIO";
 const char* vsync_status[] = { "OFF", "ON", "ADAPTIVE" };
 const char* aspect_status[] = { "AUTO", "4:3", "5:4", "16:10", "16:9", "21:9" };
 
+static int set_swap_interval;
 
 void video_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 {
@@ -1105,15 +1112,101 @@ void video_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 	}
 }
 
+bool video_callback(int choice, int nitems, newmenu_item* item)
+{
+	if (choice == -1)
+	{
+		Fullscreen = item[2].value;
+
+		char* x_ptr = strchr(item[1].text, 'x');
+		if (!x_ptr)
+			x_ptr = strchr(item[1].text, 'X');
+		if (!x_ptr)
+			x_ptr = strchr(item[1].text, '*');
+
+		if (!x_ptr)
+			nm_messagebox(NULL, 1, TXT_OK, "Can't read window size");
+		else
+		{
+			*x_ptr = '\0';
+			int new_width = atoi(item[1].text);
+			int new_height = atoi(x_ptr + 1);
+			if (new_width < 320 || new_height < 200)
+				nm_messagebox(NULL, 1, TXT_OK, "Window size is invalid");
+			else
+			{
+				WindowWidth = new_width;
+				WindowHeight = new_height;
+			}
+
+			*x_ptr = 'x';
+		}
+
+		x_ptr = strchr(item[6].text, 'x');
+		if (!x_ptr)
+			x_ptr = strchr(item[6].text, 'X');
+		if (!x_ptr)
+			x_ptr = strchr(item[6].text, '*');
+
+		if (!x_ptr)
+			nm_messagebox(NULL, 1, TXT_OK, "Can't read render size");
+		else
+		{
+			*x_ptr = '\0';
+			int new_width = atoi(item[6].text);
+			int new_height = atoi(x_ptr + 1);
+			if (new_width < 320 || new_height < 200)
+				nm_messagebox(NULL, 1, TXT_OK, "Render size is invalid");
+			else
+			{
+				cfg_render_width = new_width;
+				cfg_render_height = new_height;
+			}
+
+			*x_ptr = 'x';
+		}
+
+		plat_update_window();
+
+		//The platform code will have changed SwapInterval if an option was picked that wasn't supported
+		if (SwapInterval != 2 && set_swap_interval == 2)
+			nm_open_messagebox(TXT_ERROR, nullptr, 1, TXT_OK, "Adaptive vsync is not available.\nNormal vsync has been enabled.");
+
+		return false;
+	}
+	if (choice == 0)
+	{
+		get_video_resolution(item[1].text);
+		item[1].redraw = true;
+	}
+	else if (choice == 5)
+	{
+		get_video_resolution(item[6].text);
+		item[6].redraw = true;
+	}
+
+	else if (choice == 3)
+	{
+		set_swap_interval = SwapInterval = (SwapInterval + 1) % 3;
+	}
+
+	else if (choice == 7)
+	{
+		cfg_aspect_ratio = (cfg_aspect_ratio + 1) % GAMEASPECT_COUNT;
+	}
+
+	item[choice].redraw = true;
+	return true;
+}
+
 void do_video_menu()
 {
 	newmenu_item m[10];
-	char window_res_string[64];
-	char render_res_string[64];
-	char vsync_buffer[64];
-	char aspect_buffer[64];
-	int i = 0;
-	int set_swap_interval = 0;
+	static char window_res_string[64];
+	static char render_res_string[64];
+	static char vsync_buffer[64];
+	static char aspect_buffer[64];
+	set_swap_interval = 0;
 
 	snprintf(window_res_string, 64, "%dx%d", WindowWidth, WindowHeight);
 	window_res_string[63] = '\0';
@@ -1136,95 +1229,5 @@ void do_video_menu()
 	m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
 	m[9].type = NM_TYPE_SLIDER; m[9].text = TXT_BRIGHTNESS; m[9].value = gr_palette_get_gamma(); m[9].min_value = 0; m[9].max_value = 8;
 	
-	do
-	{
-		i = newmenu_do1(NULL, "VIDEO OPTIONS", 10, m, video_menuset, i);
-
-		if (i == 0)
-		{
-			const char* res = get_video_resolution();
-			if (res)
-			{
-				snprintf(window_res_string, 64, "%s", res);
-				window_res_string[63] = '\0';
-			}
-		}
-		else if (i == 5)
-		{
-			const char* res = get_video_resolution();
-			if (res)
-			{
-				snprintf(render_res_string, 64, "%s", res);
-				render_res_string[63] = '\0';
-			}
-		}
-
-		else if (i == 3)
-		{
-			set_swap_interval = SwapInterval = (SwapInterval + 1) % 3;
-		}
-
-		else if (i == 7)
-		{
-			cfg_aspect_ratio = (cfg_aspect_ratio + 1) % GAMEASPECT_COUNT;
-		}
-
-
-	} while (i > -1);
-
-	Fullscreen = m[2].value;
-
-	char* x_ptr = strchr(window_res_string, 'x');
-	if (!x_ptr)
-		x_ptr = strchr(window_res_string, 'X');
-	if (!x_ptr)
-		x_ptr = strchr(window_res_string, '*');
-
-	if (!x_ptr)
-		nm_messagebox(NULL, 1, TXT_OK, "Can't read window size");
-	else
-	{
-		*x_ptr = '\0';
-		int new_width = atoi(window_res_string);
-		int new_height = atoi(x_ptr + 1);
-		if (new_width < 320 || new_height < 200)
-			nm_messagebox(NULL, 1, TXT_OK, "Window size is invalid");
-		else
-		{
-			WindowWidth = new_width;
-			WindowHeight = new_height;
-		}
-
-		*x_ptr = 'x';
-	}
-
-	x_ptr = strchr(render_res_string, 'x');
-	if (!x_ptr)
-		x_ptr = strchr(render_res_string, 'X');
-	if (!x_ptr)
-		x_ptr = strchr(render_res_string, '*');
-
-	if (!x_ptr)
-		nm_messagebox(NULL, 1, TXT_OK, "Can't read render size");
-	else
-	{
-		*x_ptr = '\0';
-		int new_width = atoi(render_res_string);
-		int new_height = atoi(x_ptr + 1);
-		if (new_width < 320 || new_height < 200)
-			nm_messagebox(NULL, 1, TXT_OK, "Render size is invalid");
-		else
-		{
-			cfg_render_width = new_width;
-			cfg_render_height = new_height;
-		}
-
-		*x_ptr = 'x';
-	}
-
-	plat_update_window();
-
-	//The platform code will have changed SwapInterval if an option was picked that wasn't supported
-	if (SwapInterval != 2 && set_swap_interval == 2)
-		nm_messagebox(TXT_ERROR, 1, TXT_OK, "Adaptive vsync is not available.\nNormal vsync has been enabled.");
+	newmenu_open(NULL, "VIDEO OPTIONS", 10, m, video_menuset, video_callback);
 }

@@ -126,19 +126,19 @@ inline int newmenu_dotiny(const char* title, const char* subtitle, int nitems, n
 }
 
 extern void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, 
-	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, newmenu_item* item), 
+	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* items), 
 	int citem = 0, const char* filename = nullptr, int width = -1, int height = -1, bool tiny_mode = false);
 
 extern void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_item* items,
-	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, newmenu_item* item),
+	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* items),
 	int citem = 0, const char* filename = nullptr, int width = -1, int height = -1, bool tiny_mode = false);
 
 //Simple callback for purely informative message boxes.
 //This will be the default if you don't specify a callback. 
-bool newmenu_messagebox_informative_callback(int choice, newmenu_item* item);
+bool newmenu_messagebox_informative_callback(int choice, int nitems, newmenu_item* item);
 
 //Opens a messagebox
-void nm_open_messagebox(const char* title, bool (*callback)(int choice, newmenu_item* item), int nchoices, ...);
+void nm_open_messagebox(const char* title, bool (*callback)(int choice, int nitems, newmenu_item* item), int nchoices, ...);
 
 // Sample Code:
 /*

@@ -60,7 +60,7 @@ void delete_player_saved_games(const char* name)
 //This isn't particularly elegant, but there will only be one nm_filelist active with pending deletes
 static bool filelist_do_delete = false;
 
-bool nm_delete_callback(int num, newmenu_item* item)
+bool nm_delete_callback(int num, int nitems, newmenu_item* item)
 {
 	if (num == 0)
 		filelist_do_delete = true;

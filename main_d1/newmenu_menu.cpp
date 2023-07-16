@@ -130,7 +130,7 @@ void draw_item(bkg* b, newmenu_item* item, int is_current, bool tiny)
 }
 
 nm_menu::nm_menu(std::vector<newmenu_item>& source_items, const char* new_title, const char* new_subtitle,
-	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, newmenu_item* item),
+	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item),
 	int citem, const char* filename, int width, int height, bool tiny_mode)
 {
 	for (newmenu_item& item : source_items)
@@ -696,7 +696,7 @@ void nm_menu::frame()
 
 	if (done) //A choice was made
 	{
-		bool keep_open = choice_callback(choice, choice == -1 ? nullptr : &items[choice]);
+		bool keep_open = choice_callback(choice, items.size(), items.data());
 		if (keep_open)
 		{
 			if (choice == -1) //hit escape, but remaining open?

@@ -52,12 +52,12 @@ class nm_menu : public nm_window
 
 	//Callback executed when a choice is selected.
 	//Returns true if the menu should remain open, or false if it should close. 
-	bool (*choice_callback)(int choice, newmenu_item* item);
+	bool (*choice_callback)(int choice, int nitems, newmenu_item* item);
 	//Callback executed each frame, to update and redraw contents. 
 	void (*newmenu_callback)(int nitems, newmenu_item* items, int* last_key, int citem);
 public:
 	nm_menu(std::vector<newmenu_item>& source_items, const char* new_title, const char* new_subtitle,
-		void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, newmenu_item* item),
+		void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item),
 		int citem, const char* filename, int width, int height, bool tiny_mode);
 
 	void draw() override;

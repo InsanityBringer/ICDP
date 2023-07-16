@@ -394,12 +394,12 @@ int newmenu_do2(const char* title, const char* subtitle, int nitems, newmenu_ite
 }
 
 
-void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
+void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
 	nm_open_windows.push(std::make_unique<nm_menu>(items, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
 }
 
-void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_item* items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
+void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_item* items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
 	std::vector<newmenu_item> itemclone;
 	for (int i = 0; i < nitems; i++)
@@ -409,12 +409,12 @@ void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_i
 }
 
 //Simple callback for purely informative message boxes
-bool newmenu_messagebox_informative_callback(int choice, newmenu_item* item)
+bool newmenu_messagebox_informative_callback(int choice, int nitems, newmenu_item* item)
 {
 	return false; //never remain open. 
 }
 
-void nm_open_messagebox(const char* title, bool (*callback)(int choice, newmenu_item* item), int nchoices, ...)
+void nm_open_messagebox(const char* title, bool (*callback)(int choice, int nitems, newmenu_item* item), int nchoices, ...)
 {
 	va_list args;
 	char nm_text[MESSAGEBOX_TEXT_SIZE];
