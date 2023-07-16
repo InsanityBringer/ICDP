@@ -16,6 +16,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/types.h"
 #include "2d/gr.h"
 #include <vector>
+#include <string>
 
 #define NM_TYPE_MENU  		0		// A menu item... when enter is hit on this, newmenu_do returns this item number
 #define NM_TYPE_INPUT 		1		// An input box... fills the text field in, and you need to fill in text_len field.
@@ -42,6 +43,29 @@ struct newmenu_item
 	short right_offset;
 	uint8_t redraw;
 	char	saved_text[NM_MAX_TEXT_LEN + 1];
+};
+
+class nm_window
+{
+	bool closing = false;
+public:
+	//Closes the window, and cleans it up from the newmenu canvas. 
+	void close()
+	{
+		closing = true;
+		cleanup();
+	}
+
+	//Returns true if the window should be cleaned up and closed, false otherwise.
+	bool is_closing() const
+	{
+		return closing;
+	}
+
+	//Runs a single frame for this window.
+	virtual void frame() = 0;
+	//Cleans up this window from the newmenu canvas. 
+	virtual void cleanup() = 0;
 };
 
 void newmenu_init();
@@ -75,8 +99,14 @@ inline int newmenu_dotiny(const char* title, const char* subtitle, int nitems, n
 	return newmenu_do3(title, subtitle, nitems, item, subfunction, citem, nullptr, width, -1, true);
 }
 
-extern void newmenu_open2(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice), int citem, const char* filename);
+extern void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice), int citem = 0, const char* filename = nullptr);
 
+//Simple callback for purely informative message boxes.
+//This will be the default if you don't specify a callback. 
+bool newmenu_messagebox_informative_callback(int choice);
+
+//Opens a messagebox
+void nm_open_messagebox(const char* title, bool (*callback)(int choice), int nchoices, ...);
 
 // Sample Code:
 /*
@@ -115,6 +145,8 @@ void nm_restore_background(int x, int y, int w, int h);
 
 // Returns 0 if no file selected, else filename is filled with selected file.
 int newmenu_get_filename(const char* title, const char* filespec, char* filename, int allow_abort_flag);
+
+void newmenu_open_filepicker(const char* title, const char* filespec, int allow_abort_flag, void (*callback)(std::string& str, int num));
 
 //	in menu.c
 extern int Max_linear_depth_objects;

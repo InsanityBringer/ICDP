@@ -124,6 +124,11 @@ bool test_choice_func(int choice)
 	return true; //keep open
 }
 
+void test_string_func(std::string& str, int choice)
+{
+	mprintf((0, "got choice %s, number %d\n", str.c_str(), choice));
+}
+
 //[ISB] Okay, the trouble is that SDL redefines main. I don't want to include SDL here. Solution is to rip off doom
 //and add a separate main function
 int D_DescentMain(int argc, const char** argv)
@@ -218,7 +223,8 @@ int D_DescentMain(int argc, const char** argv)
 
 	if (Inferno_verbose) printf("\n%s", TXT_VERBOSE_3);
 	key_init();
-	if (!FindArg("-nomouse")) {
+	if (!FindArg("-nomouse")) 
+	{
 		if (Inferno_verbose) printf("\n%s", TXT_VERBOSE_4);
 		mouse_init(0);
 	}
@@ -370,14 +376,19 @@ int D_DescentMain(int argc, const char** argv)
 	set_detail_level_parameters(Detail_level);
 
 	//New newmenu testing garbage
-	char buffer[40] = {};
+	/*char buffer[40] = {};
 	std::vector<newmenu_item> test_items;
 	test_items.push_back({.type = NM_TYPE_MENU, .text = (char*)"varg"});
 	test_items.push_back({.type = NM_TYPE_TEXT, .text = (char*)"blargh"});
 	test_items.push_back({.type = NM_TYPE_SLIDER, .value = 0, .min_value = 0, .max_value = 6, .text = (char*)"value"});
 	test_items.push_back({ .type = NM_TYPE_INPUT, .text_len = sizeof(buffer) - 1, .text = buffer });
 
-	newmenu_open2("Test menu", "this is exciting", test_items, nullptr, test_choice_func, 0, nullptr);
+	newmenu_open2("Test menu", "this is exciting", test_items, nullptr, test_choice_func, 0, nullptr);*/
+
+	char localized_pilot_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	//get_platform_localized_query_string(localized_pilot_query, CHOCOLATE_PILOT_DIR, "*.nplt");
+	get_full_file_path(localized_pilot_query, "*.nplt", CHOCOLATE_PILOT_DIR); //Possibly a bad idea, but I need the search string relative to the basedir. 
+	newmenu_open_filepicker(TXT_SELECT_PILOT, localized_pilot_query, false, test_string_func);
 
 	while (1)
 	{
