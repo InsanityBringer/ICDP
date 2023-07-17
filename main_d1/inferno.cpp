@@ -450,7 +450,23 @@ int D_DescentMain(int argc, const char** argv)
 	{
 		if (Function_mode != Old_function_mode)
 		{
-			//Switching to a new state
+			//Switching to a new function mode
+			//Do any cleanup for the previous function mode
+			switch (Old_function_mode)
+			{
+			case FMODE_GAME:
+				game_end();
+				break;
+			}
+			newmenu_close_all(); //Clean all open windows
+
+			switch (Function_mode)
+			{
+			case FMODE_GAME:
+				game_start();
+				break;
+			}
+
 			Old_function_mode = Function_mode;
 		}
 		timer_mark_start();
@@ -465,6 +481,9 @@ int D_DescentMain(int argc, const char** argv)
 			//If the menu list is empty, show the main menu. 
 			if (newmenu_empty())
 				DoMenu(); 
+			break;
+		case FMODE_GAME:
+			game_frame();
 			break;
 		}
 

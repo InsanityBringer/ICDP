@@ -92,6 +92,9 @@ void game_start();
 //Runs a single frame of the game
 void game_frame();
 
+//Cleans up the game's state before switching to another game.  
+void game_end();
+
 void game(void);
 void close_game(void);
 

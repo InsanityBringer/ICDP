@@ -1923,107 +1923,103 @@ void game_start()
 	fix_object_segs();
 
 	game_flush_inputs();
+	set_events_enabled(true);
 }
 
-//	------------------------------------------------------------------------------------
-//this function is the game.  called when game mode selected.  runs until
-//editor mode or exit selected
-void game()
+void game_frame()
 {
-
-
-	if (setjmp(LeaveGame) == 0) 
+	if (setjmp(LeaveGame) == 0)
 	{
-		set_events_enabled(true);
-		while (1) 
+		// GAME LOOP!
+		Automap_flag = 0;
+		Config_menu_flag = 0;
+
+		//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
+		if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
 		{
-			// GAME LOOP!
-			Automap_flag = 0;
-			Config_menu_flag = 0;
-
-			//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
-			if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
-			{
-				game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
-				init_cockpit(); last_drawn_cockpit = -1;
-			}
-
-			startTime = timer_get_us();
-
-			Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
-
-			GameLoop(1, 1);		// Do game loop with rendering and reading controls.
-
-			if (Config_menu_flag) 
-			{
-				if (!(Game_mode & GM_MULTI)) palette_save();
-				do_options_menu();
-				if (!(Game_mode & GM_MULTI)) palette_restore();
-			}
-
-			if (Automap_flag) 
-			{
-				int save_w = Game_window_w, save_h = Game_window_h;
-				do_automap(0);
-				Screen_mode = -1; set_screen_mode(SCREEN_GAME);
-				Game_window_w = save_w; Game_window_h = save_h;
-				init_cockpit();
-				last_drawn_cockpit = -1;
-			}
-
-			if ((Function_mode != FMODE_GAME) && Auto_demo && (Newdemo_state != ND_STATE_NORMAL))
-			{
-				int choice, fmode;
-				fmode = Function_mode;
-				Function_mode = FMODE_GAME;
-				choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_AUTODEMO);
-				Function_mode = fmode;
-				if (choice == 0) {
-					Auto_demo = 0;
-					newdemo_stop_playback();
-					Function_mode = FMODE_MENU;
-				}
-				else 
-				{
-					Function_mode = FMODE_GAME;
-				}
-			}
-
-			if ((Function_mode != FMODE_GAME) && (Newdemo_state != ND_STATE_PLAYBACK) && (Function_mode != FMODE_EDITOR)) 
-			{
-				int choice, fmode;
-				fmode = Function_mode;
-				Function_mode = FMODE_GAME;
-				choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_GAME);
-				Function_mode = fmode;
-				if (choice != 0)
-					Function_mode = FMODE_GAME;
-			}
-
-			if (Function_mode != FMODE_GAME)
-				longjmp(LeaveGame, 0);
-
-			//[ISB] assumption is that anything calling without renderflag (basically network mode) will already be updating. 
-			plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
-			grs_canvas* cockpit_canvas = get_cockpit_canvas();
-			if (cockpit_canvas)
-				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-			cockpit_canvas = get_hud_canvas();
-			if (cockpit_canvas)
-				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-			plat_flip();
-			plat_do_events();
-			//waiting loop for polled fps mode
-			uint64_t numUS = 1000000 / FPSLimit;
-			//[ISB] Combine a sleep with the polling loop to try to spare CPU cycles
-			uint64_t diff = (startTime + numUS) - timer_get_us();
-			if (diff > 2000) //[ISB] Sleep only if there's sufficient time to do so, since the scheduler isn't precise enough
-				timer_delay_us(diff - 2000);
-			while (timer_get_us() < startTime + numUS);
+			game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
+			init_cockpit(); last_drawn_cockpit = -1;
 		}
-		set_events_enabled(false);
-	}
 
+		startTime = timer_get_us();
+
+		Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
+
+		GameLoop(1, 1);		// Do game loop with rendering and reading controls.
+
+		if (Config_menu_flag)
+		{
+			if (!(Game_mode & GM_MULTI)) palette_save();
+			do_options_menu();
+			if (!(Game_mode & GM_MULTI)) palette_restore();
+		}
+
+		if (Automap_flag)
+		{
+			int save_w = Game_window_w, save_h = Game_window_h;
+			do_automap(0);
+			Screen_mode = -1; set_screen_mode(SCREEN_GAME);
+			Game_window_w = save_w; Game_window_h = save_h;
+			init_cockpit();
+			last_drawn_cockpit = -1;
+		}
+
+		if ((Function_mode != FMODE_GAME) && Auto_demo && (Newdemo_state != ND_STATE_NORMAL))
+		{
+			int choice, fmode;
+			fmode = Function_mode;
+			Function_mode = FMODE_GAME;
+			choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_AUTODEMO);
+			Function_mode = fmode;
+			if (choice == 0) {
+				Auto_demo = 0;
+				newdemo_stop_playback();
+				Function_mode = FMODE_MENU;
+			}
+			else
+			{
+				Function_mode = FMODE_GAME;
+			}
+		}
+
+		if ((Function_mode != FMODE_GAME) && (Newdemo_state != ND_STATE_PLAYBACK) && (Function_mode != FMODE_EDITOR))
+		{
+			int choice, fmode;
+			fmode = Function_mode;
+			Function_mode = FMODE_GAME;
+			choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_GAME);
+			Function_mode = fmode;
+			if (choice != 0)
+				Function_mode = FMODE_GAME;
+		}
+
+		if (Function_mode != FMODE_GAME)
+			longjmp(LeaveGame, 0);
+
+		//[ISB] assumption is that anything calling without renderflag (basically network mode) will already be updating. 
+		plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
+		grs_canvas* cockpit_canvas = get_cockpit_canvas();
+		if (cockpit_canvas)
+			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+		cockpit_canvas = get_hud_canvas();
+		if (cockpit_canvas)
+			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+		/*
+		plat_flip();
+		plat_do_events();
+		//waiting loop for polled fps mode
+		uint64_t numUS = 1000000 / FPSLimit;
+		//[ISB] Combine a sleep with the polling loop to try to spare CPU cycles
+		uint64_t diff = (startTime + numUS) - timer_get_us();
+		if (diff > 2000) //[ISB] Sleep only if there's sufficient time to do so, since the scheduler isn't precise enough
+			timer_delay_us(diff - 2000);
+		while (timer_get_us() < startTime + numUS);*/
+	}
+}
+
+void game_end()
+{
+	set_events_enabled(false);
 	digi_stop_all();
 
 	if ((Newdemo_state == ND_STATE_RECORDING) || (Newdemo_state == ND_STATE_PAUSED))
@@ -2042,6 +2038,13 @@ void game()
 	clear_warn_func(game_show_warning);     //don't use this func anymore
 
 	game_disable_cheats();
+}
+
+//	------------------------------------------------------------------------------------
+//this function is the game.  called when game mode selected.  runs until
+//editor mode or exit selected
+void game()
+{
 }
 
 //called at the end of the program

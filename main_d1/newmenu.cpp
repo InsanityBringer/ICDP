@@ -493,6 +493,10 @@ void newmenu_close_all()
 
 		nm_open_windows.pop();
 	}
+	
+	gr_set_current_canvas(nm_canvas);
+	//Since we probably want to draw something else, clear the menu canvas to transparent
+	gr_clear_canvas(255);
 }
 
 int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, const char* filename, int width, int height, bool tiny_mode)
