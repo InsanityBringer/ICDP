@@ -1923,7 +1923,6 @@ void game_start()
 	fix_object_segs();
 
 	game_flush_inputs();
-	set_events_enabled(true);
 }
 
 void game_frame()
@@ -2019,7 +2018,6 @@ void game_frame()
 
 void game_end()
 {
-	set_events_enabled(false);
 	digi_stop_all();
 
 	if ((Newdemo_state == ND_STATE_RECORDING) || (Newdemo_state == ND_STATE_PAUSED))

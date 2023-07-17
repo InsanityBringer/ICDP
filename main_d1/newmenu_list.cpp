@@ -12,6 +12,7 @@
 #include "player.h"
 #include "platform/findfile.h"
 #include "platform/posixstub.h"
+#include "platform/event.h"
 
 constexpr int LB_ITEMS_ON_SCREEN = 8;
 
@@ -91,80 +92,90 @@ void nm_list::frame()
 
 	int ocitem = citem;
 	int ofirst_item = first_item;
-	int key = key_inkey();
+	int key = 0;
 
 	//if (listbox_callback) //never used
 	//	redraw = (*listbox_callback)(&citem, items.size(), items, &key);
 
-	if (key < -1)
+	/*if (key < -1)
 	{
 		citem = key;
 		key = -1;
 		done = true;
-	}
+	}*/
 
-	switch (key)
+	if (event_available())
 	{
-	case KEY_PRINT_SCREEN:
-		save_screen_shot(0);
-		break;
-	case KEY_HOME:
-	case KEY_PAD7:
-		citem = 0;
-		break;
-	case KEY_END:
-	case KEY_PAD1:
-		citem = items.size() - 1;
-		break;
-	case KEY_UP:
-	case KEY_PAD8:
-		citem--;
-		break;
-	case KEY_DOWN:
-	case KEY_PAD2:
-		citem++;
-		break;
-	case KEY_PAGEDOWN:
-	case KEY_PAD3:
-		citem += LB_ITEMS_ON_SCREEN;
-		break;
-	case KEY_PAGEUP:
-	case KEY_PAD9:
-		citem -= LB_ITEMS_ON_SCREEN;
-		break;
-	case KEY_ESC:
-		if (allow_abort_flag)
-		{
-			citem = -1;
-			done = true;
-		}
-		break;
-	case KEY_ENTER:
-	case KEY_PADENTER:
-		done = true;
-		break;
-	default:
-		if (key > 0)
-		{
-			int ascii = key_to_ascii(key);
-			if (ascii < 255)
-			{
-				int cc, cc1;
-				cc = cc1 = citem + 1;
-				if (cc1 < 0)  cc1 = 0;
-				if (cc1 >= items.size())  cc1 = 0;
-				while (1)
-				{
-					if (cc < 0) cc = 0;
-					if (cc >= items.size()) cc = 0;
-					if (citem == cc) break;
+		plat_event ev;
+		pop_event(ev);
 
-					if (toupper(items[cc][0]) == toupper(ascii))
+		if (ev.source == EventSource::Keyboard && ev.down)
+		{
+			key = ev.inputnum;
+			switch (key)
+			{
+			case KEY_PRINT_SCREEN:
+				save_screen_shot(0);
+				break;
+			case KEY_HOME:
+			case KEY_PAD7:
+				citem = 0;
+				break;
+			case KEY_END:
+			case KEY_PAD1:
+				citem = items.size() - 1;
+				break;
+			case KEY_UP:
+			case KEY_PAD8:
+				citem--;
+				break;
+			case KEY_DOWN:
+			case KEY_PAD2:
+				citem++;
+				break;
+			case KEY_PAGEDOWN:
+			case KEY_PAD3:
+				citem += LB_ITEMS_ON_SCREEN;
+				break;
+			case KEY_PAGEUP:
+			case KEY_PAD9:
+				citem -= LB_ITEMS_ON_SCREEN;
+				break;
+			case KEY_ESC:
+				if (allow_abort_flag)
+				{
+					citem = -1;
+					done = true;
+				}
+				break;
+			case KEY_ENTER:
+			case KEY_PADENTER:
+				done = true;
+				break;
+			default:
+				if (key > 0)
+				{
+					int ascii = key_to_ascii(key);
+					if (ascii < 255)
 					{
-						citem = cc;
-						break;
+						int cc, cc1;
+						cc = cc1 = citem + 1;
+						if (cc1 < 0)  cc1 = 0;
+						if (cc1 >= items.size())  cc1 = 0;
+						while (1)
+						{
+							if (cc < 0) cc = 0;
+							if (cc >= items.size()) cc = 0;
+							if (citem == cc) break;
+
+							if (toupper(items[cc][0]) == toupper(ascii))
+							{
+								citem = cc;
+								break;
+							}
+							cc++;
+						}
 					}
-					cc++;
 				}
 			}
 		}

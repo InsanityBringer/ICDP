@@ -87,6 +87,7 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 
 #include "vers_id.h"
 #include "platform/platform.h"
+#include "platform/event.h"
 
 int Function_mode = FMODE_MENU;		//game or editor?
 int Old_function_mode = FMODE_MENU;
@@ -446,6 +447,7 @@ int D_DescentMain(int argc, const char** argv)
 
 	build_mission_list(false);		// This also loads mission 0.
 
+	set_events_enabled(true);
 	while (Function_mode != FMODE_EXIT)
 	{
 		if (Function_mode != Old_function_mode)
@@ -460,8 +462,14 @@ int D_DescentMain(int argc, const char** argv)
 			}
 			newmenu_close_all(); //Clean all open windows
 
+			//Do initialization for the new function mode
 			switch (Function_mode)
 			{
+				//The first time into the menu from game start, this will already be playing
+				//But from another function mode, it needs to be started now. 
+			case FMODE_MENU:
+				songs_play_song(SONG_TITLE, 1);
+				break;
 			case FMODE_GAME:
 				game_start();
 				break;
@@ -472,6 +480,8 @@ int D_DescentMain(int argc, const char** argv)
 		timer_mark_start();
 		plat_clear_screen();
 		plat_do_events();
+
+		//Run newmenu frames before others. If a menu is open, this will consume events before the game. 
 		newmenu_frame();
 
 		//do game and editor frames here

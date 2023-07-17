@@ -12,6 +12,7 @@
 #include "player.h"
 #include "platform/findfile.h"
 #include "platform/posixstub.h"
+#include "platform/event.h"
 
 void newmenu_file_sort(std::span<newmenu_fileentry> entries)
 {
@@ -198,7 +199,6 @@ void nm_filelist::frame()
 	bool done = false;
 	int ocitem = citem;
 	int ofirst_item = first_item;
-	int key = key_inkey();
 	bool redraw = false;
 
 	gr_set_current_canvas(nm_canvas);
@@ -239,84 +239,93 @@ void nm_filelist::frame()
 		pending_delete = false;
 	}
 
-	switch (key)
+	while (event_available())
 	{
-	case KEY_PRINT_SCREEN: 		save_screen_shot(0); break;
-	case KEY_CTRLED + KEY_D:
-		if (((player_mode) && (citem > 0)) || ((demo_mode) && (citem >= 0)))
-		{
-			if (player_mode)
-			{
-				nm_open_messagebox(NULL, nm_delete_callback, 2, TXT_YES, TXT_NO, "%s %s?", TXT_DELETE_PILOT, files[citem].get_display_name());
-				pending_delete = true;
-				pending_delete_num = citem;
-			}
-			else if (demo_mode)
-			{
-				nm_open_messagebox(NULL, nm_delete_callback, 2, TXT_YES, TXT_NO, "%s %s?", TXT_DELETE_DEMO, files[citem].get_display_name());
-				pending_delete = true;
-				pending_delete_num = citem;
-			}
-		}
-		break;
-	case KEY_HOME:
-	case KEY_PAD7:
-		citem = 0;
-		break;
-	case KEY_END:
-	case KEY_PAD1:
-		citem = NumFiles - 1;
-		break;
-	case KEY_UP:
-	case KEY_PAD8:
-		citem--;
-		break;
-	case KEY_DOWN:
-	case KEY_PAD2:
-		citem++;
-		break;
-	case KEY_PAGEDOWN:
-	case KEY_PAD3:
-		citem += NumFiles_displayed;
-		break;
-	case KEY_PAGEUP:
-	case KEY_PAD9:
-		citem -= NumFiles_displayed;
-		break;
-	case KEY_ESC:
-		if (allow_abort_flag)
-		{
-			citem = -1;
-			done = true;
-		}
-		break;
-	case KEY_ENTER:
-	case KEY_PADENTER:
-		done = true;
-		break;
-	default:
-	{
-		int ascii = key_to_ascii(key);
-		if (ascii < 255)
-		{
-			int cc, cc1;
-			cc = cc1 = citem + 1;
-			if (cc1 < 0)  cc1 = 0;
-			if (cc1 >= NumFiles)  cc1 = 0;
-			while (1) {
-				if (cc < 0) cc = 0;
-				if (cc >= NumFiles) cc = 0;
-				if (citem == cc) break;
+		plat_event ev;
+		pop_event(ev);
 
-				if (toupper(files[cc].displayname[0]) == toupper(ascii))
+		if (ev.source == EventSource::Keyboard && ev.down == true)
+		{
+			switch (ev.inputnum)
+			{
+			case KEY_PRINT_SCREEN: 		save_screen_shot(0); break;
+			case KEY_CTRLED + KEY_D:
+				if (((player_mode) && (citem > 0)) || ((demo_mode) && (citem >= 0)))
 				{
-					citem = cc;
-					break;
+					if (player_mode)
+					{
+						nm_open_messagebox(NULL, nm_delete_callback, 2, TXT_YES, TXT_NO, "%s %s?", TXT_DELETE_PILOT, files[citem].get_display_name());
+						pending_delete = true;
+						pending_delete_num = citem;
+					}
+					else if (demo_mode)
+					{
+						nm_open_messagebox(NULL, nm_delete_callback, 2, TXT_YES, TXT_NO, "%s %s?", TXT_DELETE_DEMO, files[citem].get_display_name());
+						pending_delete = true;
+						pending_delete_num = citem;
+					}
 				}
-				cc++;
+				break;
+			case KEY_HOME:
+			case KEY_PAD7:
+				citem = 0;
+				break;
+			case KEY_END:
+			case KEY_PAD1:
+				citem = NumFiles - 1;
+				break;
+			case KEY_UP:
+			case KEY_PAD8:
+				citem--;
+				break;
+			case KEY_DOWN:
+			case KEY_PAD2:
+				citem++;
+				break;
+			case KEY_PAGEDOWN:
+			case KEY_PAD3:
+				citem += NumFiles_displayed;
+				break;
+			case KEY_PAGEUP:
+			case KEY_PAD9:
+				citem -= NumFiles_displayed;
+				break;
+			case KEY_ESC:
+				if (allow_abort_flag)
+				{
+					citem = -1;
+					done = true;
+				}
+				break;
+			case KEY_ENTER:
+			case KEY_PADENTER:
+				done = true;
+				break;
+			default:
+			{
+				int ascii = key_to_ascii(ev.inputnum);
+				if (ascii < 255)
+				{
+					int cc, cc1;
+					cc = cc1 = citem + 1;
+					if (cc1 < 0)  cc1 = 0;
+					if (cc1 >= NumFiles)  cc1 = 0;
+					while (1) {
+						if (cc < 0) cc = 0;
+						if (cc >= NumFiles) cc = 0;
+						if (citem == cc) break;
+
+						if (toupper(files[cc].displayname[0]) == toupper(ascii))
+						{
+							citem = cc;
+							break;
+						}
+						cc++;
+					}
+				}
+			}
 			}
 		}
-	}
 	}
 
 	if (done)

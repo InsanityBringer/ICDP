@@ -39,3 +39,7 @@ extern std::queue<plat_event> event_queue;
 bool are_events_enabled();
 void set_events_enabled(bool state);
 void flush_events();
+
+bool event_available();
+void pop_event(plat_event& ev);
+

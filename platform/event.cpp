@@ -26,3 +26,17 @@ void flush_events()
 	while (!event_queue.empty())
 		event_queue.pop();
 }
+
+bool event_available()
+{
+	return !event_queue.empty();
+}
+
+void pop_event(plat_event& ev)
+{
+	if (!event_queue.empty())
+	{
+		ev = event_queue.front();
+		event_queue.pop();
+	}
+}

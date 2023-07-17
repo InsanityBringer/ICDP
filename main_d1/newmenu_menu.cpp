@@ -20,6 +20,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "platform/key.h"
 #include "stringtable.h"
 #include "2d/palette.h"
+#include "platform/event.h"
 
 #define TITLE_FONT  	(Gamefonts[GFONT_BIG_1])
 
@@ -432,257 +433,271 @@ void nm_menu::draw()
 void nm_menu::frame()
 {
 	bool done = false;
-	int k = key_inkey();
+	int k = 0;
+
+	//Always run the callback at least once per frame. 
+	if (!event_available() && newmenu_callback)
+		(*newmenu_callback)(items.size(), items.data(), &k, choice);
 
 	gr_set_current_canvas(bg.menu_canvas);
 
-	if (newmenu_callback)
-		(*newmenu_callback)(items.size(), items.data(), &k, choice);
-
-	if (k < -1)
+	//Does this ever get executed
+	/*if (k < -1)
 	{
 		choice = k;
 		k = -1;
 		done = true;
-	}
+	}*/
 
 	old_choice = choice;
 
-	switch (k)
+	while (event_available())
 	{
-	case KEY_TAB + KEY_SHIFTED:
-	case KEY_UP:
-	case KEY_PAD8:
-		if (all_text) break;
-		do
+		plat_event ev;
+		pop_event(ev);
+		if (ev.source == EventSource::Keyboard && ev.down)
 		{
-			choice--;
-			if (choice < 0)
-				choice = items.size() - 1;
-			if (choice >= items.size()) 
-				choice = 0;
-		} while (items[choice].type == NM_TYPE_TEXT);
+			k = ev.inputnum;
+			if (newmenu_callback)
+				(*newmenu_callback)(items.size(), items.data(), &k, choice);
 
-		if ((items[choice].type == NM_TYPE_INPUT) && (choice != old_choice))
-			items[choice].value = -1;
-
-		if ((old_choice > -1) && (items[old_choice].type == NM_TYPE_INPUT_MENU) && (old_choice != choice))
-		{
-			items[old_choice].group = 0;
-			strcpy(items[old_choice].text, items[old_choice].saved_text);
-			items[old_choice].value = -1;
-		}
-		if (old_choice > -1)
-			items[old_choice].redraw = 1;
-		items[choice].redraw = 1;
-		break;
-	case KEY_TAB:
-	case KEY_DOWN:
-	case KEY_PAD2:
-		if (all_text) break;
-		do
-		{
-			choice++;
-			if (choice < 0) choice = items.size() - 1;
-			if (choice >= items.size()) choice = 0;
-		} while (items[choice].type == NM_TYPE_TEXT);
-		if ((items[choice].type == NM_TYPE_INPUT) && (choice != old_choice))
-			items[choice].value = -1;
-		if ((old_choice > -1) && (items[old_choice].type == NM_TYPE_INPUT_MENU) && (old_choice != choice))
-		{
-			items[old_choice].group = 0;
-			strcpy(items[old_choice].text, items[old_choice].saved_text);
-			items[old_choice].value = -1;
-		}
-		if (old_choice > -1)
-			items[old_choice].redraw = 1;
-		items[choice].redraw = 1;
-		break;
-	case KEY_SPACEBAR:
-		if (choice > -1)
-		{
-			switch (items[choice].type)
+			switch (k)
 			{
-			case NM_TYPE_MENU:
-			case NM_TYPE_INPUT:
-			case NM_TYPE_INPUT_MENU:
-				break;
-			case NM_TYPE_CHECK:
-				if (items[choice].value)
-					items[choice].value = 0;
-				else
-					items[choice].value = 1;
+			case KEY_TAB + KEY_SHIFTED:
+			case KEY_UP:
+			case KEY_PAD8:
+				if (all_text) break;
+				do
+				{
+					choice--;
+					if (choice < 0)
+						choice = items.size() - 1;
+					if (choice >= items.size())
+						choice = 0;
+				} while (items[choice].type == NM_TYPE_TEXT);
+
+				if ((items[choice].type == NM_TYPE_INPUT) && (choice != old_choice))
+					items[choice].value = -1;
+
+				if ((old_choice > -1) && (items[old_choice].type == NM_TYPE_INPUT_MENU) && (old_choice != choice))
+				{
+					items[old_choice].group = 0;
+					strcpy(items[old_choice].text, items[old_choice].saved_text);
+					items[old_choice].value = -1;
+				}
+				if (old_choice > -1)
+					items[old_choice].redraw = 1;
 				items[choice].redraw = 1;
 				break;
-			case NM_TYPE_RADIO:
-				for (int i = 0; i < items.size(); i++)
+			case KEY_TAB:
+			case KEY_DOWN:
+			case KEY_PAD2:
+				if (all_text) break;
+				do
 				{
-					if ((i != choice) && (items[i].type == NM_TYPE_RADIO) && (items[i].group == items[choice].group) && (items[i].value))
+					choice++;
+					if (choice < 0) choice = items.size() - 1;
+					if (choice >= items.size()) choice = 0;
+				} while (items[choice].type == NM_TYPE_TEXT);
+				if ((items[choice].type == NM_TYPE_INPUT) && (choice != old_choice))
+					items[choice].value = -1;
+				if ((old_choice > -1) && (items[old_choice].type == NM_TYPE_INPUT_MENU) && (old_choice != choice))
+				{
+					items[old_choice].group = 0;
+					strcpy(items[old_choice].text, items[old_choice].saved_text);
+					items[old_choice].value = -1;
+				}
+				if (old_choice > -1)
+					items[old_choice].redraw = 1;
+				items[choice].redraw = 1;
+				break;
+			case KEY_SPACEBAR:
+				if (choice > -1)
+				{
+					switch (items[choice].type)
 					{
-						items[i].value = 0;
-						items[i].redraw = 1;
+					case NM_TYPE_MENU:
+					case NM_TYPE_INPUT:
+					case NM_TYPE_INPUT_MENU:
+						break;
+					case NM_TYPE_CHECK:
+						if (items[choice].value)
+							items[choice].value = 0;
+						else
+							items[choice].value = 1;
+						items[choice].redraw = 1;
+						break;
+					case NM_TYPE_RADIO:
+						for (int i = 0; i < items.size(); i++)
+						{
+							if ((i != choice) && (items[i].type == NM_TYPE_RADIO) && (items[i].group == items[choice].group) && (items[i].value))
+							{
+								items[i].value = 0;
+								items[i].redraw = 1;
+							}
+						}
+						items[choice].value = 1;
+						items[choice].redraw = 1;
+						break;
 					}
 				}
-				items[choice].value = 1;
-				items[choice].redraw = 1;
 				break;
-			}
-		}
-		break;
 
-	case KEY_ENTER:
-	case KEY_PADENTER:
-		if ((choice > -1) && (items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 0))
-		{
-			items[choice].group = 1;
-			items[choice].redraw = 1;
-			if (!_strnicmp(items[choice].saved_text, TXT_EMPTY, strlen(TXT_EMPTY)))
-			{
-				items[choice].text[0] = 0;
-				items[choice].value = -1;
-			}
-			else
-			{
-				strip_end_whitespace(items[choice].text);
-			}
-		}
-		else
-			done = true;
-		break;
+			case KEY_ENTER:
+			case KEY_PADENTER:
+				if ((choice > -1) && (items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 0))
+				{
+					items[choice].group = 1;
+					items[choice].redraw = 1;
+					if (!_strnicmp(items[choice].saved_text, TXT_EMPTY, strlen(TXT_EMPTY)))
+					{
+						items[choice].text[0] = 0;
+						items[choice].value = -1;
+					}
+					else
+					{
+						strip_end_whitespace(items[choice].text);
+					}
+				}
+				else
+					done = true;
+				break;
 
-	case KEY_ESC:
-		if ((choice > -1) && (items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 1))
-		{
-			items[choice].group = 0;
-			strcpy(items[choice].text, items[choice].saved_text);
-			items[choice].redraw = 1;
-			items[choice].value = -1;
-		}
-		else
-		{
-			done = true;
-			choice = -1;
-		}
-		break;
+			case KEY_ESC:
+				if ((choice > -1) && (items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 1))
+				{
+					items[choice].group = 0;
+					strcpy(items[choice].text, items[choice].saved_text);
+					items[choice].redraw = 1;
+					items[choice].value = -1;
+				}
+				else
+				{
+					done = true;
+					choice = -1;
+				}
+				break;
 
-	case KEY_PRINT_SCREEN: 		save_screen_shot(0); break;
+			case KEY_PRINT_SCREEN: 		save_screen_shot(0); break;
 
 #ifndef NDEBUG
-	case KEY_BACKSP:
-		if ((choice > -1) && (items[choice].type != NM_TYPE_INPUT) && (items[choice].type != NM_TYPE_INPUT_MENU))
-			Int3();
-		break;
+			case KEY_BACKSP:
+				if ((choice > -1) && (items[choice].type != NM_TYPE_INPUT) && (items[choice].type != NM_TYPE_INPUT_MENU))
+					Int3();
+				break;
 #endif
 
-	}
-
-	if (choice > -1)
-	{
-		int ascii;
-
-		if (((items[choice].type == NM_TYPE_INPUT) || ((items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 1))) && (old_choice == choice))
-		{
-			if (k == KEY_LEFT || k == KEY_BACKSP || k == KEY_PAD4)
-			{
-				if (items[choice].value == -1) items[choice].value = strlen(items[choice].text);
-				if (items[choice].value > 0)
-					items[choice].value--;
-				items[choice].text[items[choice].value] = 0;
-				items[choice].redraw = 1;
 			}
-			else
+
+			if (choice > -1)
 			{
-				ascii = key_to_ascii(k);
-				if ((ascii < 255) && (items[choice].value < items[choice].text_len))
+				int ascii;
+
+				if (((items[choice].type == NM_TYPE_INPUT) || ((items[choice].type == NM_TYPE_INPUT_MENU) && (items[choice].group == 1))) && (old_choice == choice))
 				{
-					int allowed;
-
-					if (items[choice].value == -1)
+					if (k == KEY_LEFT || k == KEY_BACKSP || k == KEY_PAD4)
 					{
-						items[choice].value = 0;
-					}
-
-					allowed = char_allowed(ascii);
-
-					if (!allowed && ascii == ' ' && char_allowed('_'))
-					{
-						ascii = '_';
-						allowed = 1;
-					}
-
-					if (allowed)
-					{
-						items[choice].text[items[choice].value++] = ascii;
+						if (items[choice].value == -1) items[choice].value = strlen(items[choice].text);
+						if (items[choice].value > 0)
+							items[choice].value--;
 						items[choice].text[items[choice].value] = 0;
 						items[choice].redraw = 1;
 					}
-				}
-			}
-		}
-		else if ((items[choice].type != NM_TYPE_INPUT) && (items[choice].type != NM_TYPE_INPUT_MENU))
-		{
-			ascii = key_to_ascii(k);
-			if (ascii < 255)
-			{
-				int choice1 = choice;
-				ascii = toupper(ascii);
-				do
-				{
-					int i, ch;
-					choice1++;
-					if (choice1 >= items.size()) choice1 = 0;
-					for (i = 0; (ch = items[choice1].text[i]) != 0 && ch == ' '; i++);
-					if (((items[choice1].type == NM_TYPE_MENU) ||
-						(items[choice1].type == NM_TYPE_CHECK) ||
-						(items[choice1].type == NM_TYPE_RADIO) ||
-						(items[choice1].type == NM_TYPE_NUMBER) ||
-						(items[choice1].type == NM_TYPE_SLIDER))
-						&& (ascii == toupper(ch)))
+					else
 					{
-						k = 0;
-						choice = choice1;
-						if (old_choice > -1)
-							items[old_choice].redraw = 1;
-						items[choice].redraw = 1;
+						ascii = key_to_ascii(k);
+						if ((ascii < 255) && (items[choice].value < items[choice].text_len))
+						{
+							int allowed;
+
+							if (items[choice].value == -1)
+							{
+								items[choice].value = 0;
+							}
+
+							allowed = char_allowed(ascii);
+
+							if (!allowed && ascii == ' ' && char_allowed('_'))
+							{
+								ascii = '_';
+								allowed = 1;
+							}
+
+							if (allowed)
+							{
+								items[choice].text[items[choice].value++] = ascii;
+								items[choice].text[items[choice].value] = 0;
+								items[choice].redraw = 1;
+							}
+						}
 					}
-				} while (choice1 != choice);
+				}
+				else if ((items[choice].type != NM_TYPE_INPUT) && (items[choice].type != NM_TYPE_INPUT_MENU))
+				{
+					ascii = key_to_ascii(k);
+					if (ascii < 255)
+					{
+						int choice1 = choice;
+						ascii = toupper(ascii);
+						do
+						{
+							int i, ch;
+							choice1++;
+							if (choice1 >= items.size()) choice1 = 0;
+							for (i = 0; (ch = items[choice1].text[i]) != 0 && ch == ' '; i++);
+							if (((items[choice1].type == NM_TYPE_MENU) ||
+								(items[choice1].type == NM_TYPE_CHECK) ||
+								(items[choice1].type == NM_TYPE_RADIO) ||
+								(items[choice1].type == NM_TYPE_NUMBER) ||
+								(items[choice1].type == NM_TYPE_SLIDER))
+								&& (ascii == toupper(ch)))
+							{
+								k = 0;
+								choice = choice1;
+								if (old_choice > -1)
+									items[old_choice].redraw = 1;
+								items[choice].redraw = 1;
+							}
+						} while (choice1 != choice);
+					}
+				}
+
+				if ((items[choice].type == NM_TYPE_NUMBER) || (items[choice].type == NM_TYPE_SLIDER))
+				{
+					int ov = items[choice].value;
+					switch (k)
+					{
+					case KEY_PAD4:
+					case KEY_LEFT:
+					case KEY_MINUS:
+					case KEY_MINUS + KEY_SHIFTED:
+					case KEY_PADMINUS:
+						items[choice].value -= 1;
+						break;
+					case KEY_RIGHT:
+					case KEY_PAD6:
+					case KEY_EQUAL:
+					case KEY_EQUAL + KEY_SHIFTED:
+					case KEY_PADPLUS:
+						items[choice].value++;
+						break;
+					case KEY_PAGEUP:
+					case KEY_PAD9:
+					case KEY_SPACEBAR:
+						items[choice].value += 10;
+						break;
+					case KEY_PAGEDOWN:
+					case KEY_BACKSP:
+					case KEY_PAD3:
+						items[choice].value -= 10;
+						break;
+					}
+					if (ov != items[choice].value)
+						items[choice].redraw = 1;
+				}
+
 			}
 		}
-
-		if ((items[choice].type == NM_TYPE_NUMBER) || (items[choice].type == NM_TYPE_SLIDER))
-		{
-			int ov = items[choice].value;
-			switch (k)
-			{
-			case KEY_PAD4:
-			case KEY_LEFT:
-			case KEY_MINUS:
-			case KEY_MINUS + KEY_SHIFTED:
-			case KEY_PADMINUS:
-				items[choice].value -= 1;
-				break;
-			case KEY_RIGHT:
-			case KEY_PAD6:
-			case KEY_EQUAL:
-			case KEY_EQUAL + KEY_SHIFTED:
-			case KEY_PADPLUS:
-				items[choice].value++;
-				break;
-			case KEY_PAGEUP:
-			case KEY_PAD9:
-			case KEY_SPACEBAR:
-				items[choice].value += 10;
-				break;
-			case KEY_PAGEDOWN:
-			case KEY_BACKSP:
-			case KEY_PAD3:
-				items[choice].value -= 10;
-				break;
-			}
-			if (ov != items[choice].value)
-				items[choice].redraw = 1;
-		}
-
 	}
 
 	gr_set_current_canvas(bg.menu_canvas);

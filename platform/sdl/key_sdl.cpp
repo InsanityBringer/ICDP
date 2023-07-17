@@ -57,11 +57,16 @@ void I_KeyHandler(int sc, dbool down, bool repeat)
 		KeyReleased(scancode);
 
 	//generate an event
-	if (!repeat && are_events_enabled())
+	if (are_events_enabled())
 	{
 		plat_event ev = {};
 		ev.source = EventSource::Keyboard;
 		ev.inputnum = scancode;
+		if (repeat && down)
+		{
+			ev.down = false;
+			event_queue.push(ev);
+		}
 		ev.down = down;
 		event_queue.push(ev);
 	}
