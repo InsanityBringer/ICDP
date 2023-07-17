@@ -142,3 +142,25 @@ public:
 	void frame() override;
 	void cleanup() override;
 };
+
+class nm_list : public nm_window
+{
+	int wx;
+	int wy;
+	int width;
+	int height;
+	int citem;
+	int title_height;
+	bool allow_abort_flag;
+	std::vector<char*> items;
+	std::string title_str;
+	int first_item;
+	grs_bitmap* saved;
+	void (*selected)(int choice);
+public:
+	nm_list(const char* title, std::vector<char*>& items, bool allow_abort_flag, int num, void (*select_callback)(int choice));
+
+	void draw() override;
+	void frame() override;
+	void cleanup() override;
+};

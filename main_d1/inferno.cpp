@@ -89,6 +89,7 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 #include "platform/platform.h"
 
 int Function_mode = FMODE_MENU;		//game or editor?
+int Old_function_mode = FMODE_MENU;
 int Screen_mode = -1;					//game screen or editor screen?
 
 #ifdef EDITOR
@@ -447,6 +448,11 @@ int D_DescentMain(int argc, const char** argv)
 
 	while (Function_mode != FMODE_EXIT)
 	{
+		if (Function_mode != Old_function_mode)
+		{
+			//Switching to a new state
+			Old_function_mode = Function_mode;
+		}
 		timer_mark_start();
 		plat_clear_screen();
 		plat_do_events();

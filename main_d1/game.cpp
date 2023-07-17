@@ -1872,10 +1872,7 @@ void game_disable_cheats()
 	Physics_cheat_flag = false;
 }
 
-//	------------------------------------------------------------------------------------
-//this function is the game.  called when game mode selected.  runs until
-//editor mode or exit selected
-void game()
+void game_start()
 {
 	do_lunacy_on();		//	Copy values for insane into copy buffer in ai.c
 	do_lunacy_off();		//	Restore true insane mode.
@@ -1926,6 +1923,14 @@ void game()
 	fix_object_segs();
 
 	game_flush_inputs();
+}
+
+//	------------------------------------------------------------------------------------
+//this function is the game.  called when game mode selected.  runs until
+//editor mode or exit selected
+void game()
+{
+
 
 	if (setjmp(LeaveGame) == 0) 
 	{
@@ -2362,7 +2367,6 @@ void ReadControls()
 		case KEY_F1: 				do_show_help();			break;
 		case KEY_F2:				Config_menu_flag = 1;	break;
 		case KEY_F3:				toggle_cockpit();			break;
-		//case KEY_F4:				palette_save(); joydefs_calibrate(); palette_restore(); break;
 		case KEY_F5:
 			if (Newdemo_state == ND_STATE_RECORDING)
 				newdemo_stop_recording();
@@ -2646,9 +2650,6 @@ void ReadControls()
 	}
 }
 
-#ifndef	NDEBUG
-int	Debug_slowdown = 0;
-#endif
 
 #ifdef EDITOR
 extern void player_follow_path(object* objp);
@@ -2663,18 +2664,6 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 	//[ISB] Put the game in relative mouse mode, except if ReadControls isn't set
 	//as this prevents releasing mouse capture in the menus in multiplayer.
 	plat_set_mouse_relative_mode(ReadControlsFlag);
-#ifndef	NDEBUG
-	//	Used to slow down frame rate for testing things.
-//	RenderFlag = 1; // DEBUG
-	if (Debug_slowdown)
-	{
-		int	h, i, j = 0;
-
-		for (h = 0; h < Debug_slowdown; h++)
-			for (i = 0; i < 1000; i++)
-				j += i;
-	}
-#endif
 
 #ifndef RELEASE
 	if (FindArg("-invulnerability"))

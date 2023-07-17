@@ -483,6 +483,18 @@ bool newmenu_empty()
 	return nm_open_windows.empty();
 }
 
+void newmenu_close_all()
+{
+	while (!nm_open_windows.empty())
+	{
+		std::unique_ptr<nm_window>& top = nm_open_windows.top();
+		if (!top->is_closing())
+			top->close();
+
+		nm_open_windows.pop();
+	}
+}
+
 int newmenu_do3(const char* title, const char* subtitle, int nitems, newmenu_item* item, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
 	Int3();
@@ -551,27 +563,21 @@ int newmenu_get_filename(const char* title, const char* filespec, char* filename
 	return 0;
 }
 
+void newmenu_open_listbox(const char* title, int nitems, char* items[], bool allow_abort_flag, void (*callback)(int choice), int default_item)
+{
+	std::vector<char*> itemsclone;
+	for (int i = 0; i < nitems; i++)
+	{
+		itemsclone.push_back(items[i]);
+	}
 
-// Example listbox callback function...
-// int lb_callback( int * citem, int *nitems, char * items[], int *keypress )
-// {
-// 	int i;
-// 
-// 	if ( *keypress = KEY_CTRLED+KEY_D )	{
-// 		if ( *nitems > 1 )	{
-// 			unlink( items[*citem] );		// Delete the file
-// 			for (i=*citem; i<*nitems-1; i++ )	{
-// 				items[i] = items[i+1];
-// 			}
-// 			*nitems = *nitems - 1;
-// 			free( items[*nitems] );
-// 			items[*nitems] = NULL;
-// 			return 1;	// redraw;
-// 		}
-//			*keypress = 0;
-// 	}			
-// 	return 0;
-// }
+	nm_open_windows.push(std::make_unique<nm_list>(title, itemsclone, allow_abort_flag, default_item, callback));
+}
+
+void newmenu_open_listbox(const char* title, std::vector<char*> items, bool allow_abort_flag, void (*callback)(int choice), int default_item)
+{
+	nm_open_windows.push(std::make_unique<nm_list>(title, items, allow_abort_flag, default_item, callback));
+}
 
 #define LB_ITEMS_ON_SCREEN 8
 
@@ -582,6 +588,9 @@ int newmenu_listbox(const char* title, int nitems, char* items[], int allow_abor
 
 int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abort_flag, int default_item, int (*listbox_callback)(int* citem, int* nitems, char* items[], int* keypress))
 {
+	Int3();
+	return 0;
+#if 0
 	int redraw;
 	int old_keyd_repeat = keyd_repeat;
 	int title_height;
@@ -803,38 +812,5 @@ int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abo
 	gr_free_canvas(menu_canvas);
 
 	return citem;
-}
-
-int newmenu_filelist(const char* title, const char* filespec, char* filename)
-{
-	char* Filenames[MAX_FILES];
-	char FilenameText[MAX_FILES][14];
-	FILEFINDSTRUCT find;
-
-	int NumFiles = 0;
-	if (!FileFindFirst(filespec, &find)) 
-	{
-		do 
-		{
-			if (NumFiles < MAX_FILES) 
-			{
-				strncpy(FilenameText[NumFiles], find.name, FILENAME_LEN);
-				Filenames[NumFiles] = FilenameText[NumFiles];
-				NumFiles++;
-			}
-			else 
-			{
-				break;
-			}
-		} while (!FileFindNext(&find));
-		FileFindClose();
-	}
-
-	int i = newmenu_listbox(title, NumFiles, Filenames, 1, NULL);
-	if (i > -1) 
-	{
-		strcpy(filename, Filenames[i]);
-		return 1;
-	}
-	return 0;
+#endif
 }

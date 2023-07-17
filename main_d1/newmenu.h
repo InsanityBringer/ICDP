@@ -102,6 +102,9 @@ void newmenu_present();
 //Checks if there are no windows open
 bool newmenu_empty();
 
+//Closes all open windows. 
+void newmenu_close_all();
+
 // Pass an array of newmenu_items and it processes the menu. It will
 // return a -1 if Esc is pressed, otherwise, it returns the index of 
 // the item that was current when Enter was was selected.
@@ -210,7 +213,8 @@ extern char* Newmenu_allowed_chars;
 extern int newmenu_listbox(const char* title, int nitems, char* items[], int allow_abort_flag, int (*listbox_callback)(int* citem, int* nitems, char* items[], int* keypress));
 extern int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abort_flag, int default_item, int (*listbox_callback)(int* citem, int* nitems, char* items[], int* keypress));
 
-extern int newmenu_filelist(const char* title, const char* filespace, char* filename);
+void newmenu_open_listbox(const char* title, int nitems, char* items[], bool allow_abort_flag, void (*callback)(int choice), int default_item = 0);
+void newmenu_open_listbox(const char* title, std::vector<char*>& items, bool allow_abort_flag, void (*callback)(int choice), int default_item = 0);
 
 //Gets the currently visible canvas for the menu system, or nullptr if no menu is active. 
 extern grs_canvas* nm_get_top_canvas();

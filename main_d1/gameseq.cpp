@@ -659,37 +659,6 @@ void LoadLevel(int level_num)
 	char* level_name;
 	player save_player;
 
-#ifdef REQUIRE_CD
-	{
-		FILE* fp;
-		int i;
-		char fname[128];
-		strcpy(fname, destsat_cdpath);
-#ifdef DEST_SAT
-		strcat(fname, "saturn.hog");
-#else
-		strcat(fname, "descent.hog");
-#endif
-		do {
-			descent_critical_error = 0;
-			fp = fopen(fname, "rb");
-			if (fp == NULL || descent_critical_error) {
-				if (fp) {
-					fclose(fp);
-					fp = NULL;
-				}
-				gr_set_current_canvas(NULL);
-				gr_clear_canvas(gr_find_closest_color_current(0, 0, 0));
-				gr_palette_load(gr_palette);
-				i = nm_messagebox("Insert CD", 2, "Retry", "Exit", "Please put the\nDescent CD\nin your CD-ROM drive!\n");
-				if (i == 1)
-					exit(0);
-			}
-		} while (fp == NULL);
-		fclose(fp);
-	}
-#endif
-
 	save_player = Players[Player_num];
 
 	Assert(level_num <= Last_level && level_num >= Last_secret_level && level_num != 0);

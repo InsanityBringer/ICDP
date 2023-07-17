@@ -405,6 +405,7 @@ int load_mission(int mission_num)
 						if ((v = get_value(msn_line)) != NULL)
 						{
 							strncpy(trimmed_line, v, strlen(v));
+							trimmed_line[sizeof(trimmed_line) - 1] = '\0';
 						}
 						else
 						{

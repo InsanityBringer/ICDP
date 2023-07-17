@@ -85,6 +85,13 @@ extern int FPSLimit; //[ISB] timer controls
 //from game.c
 
 void init_game(void);
+
+//Performs all the initialization needed to start a game. 
+void game_start();
+
+//Runs a single frame of the game
+void game_frame();
+
 void game(void);
 void close_game(void);
 

@@ -363,32 +363,6 @@ void do_option(int select)
 
 }
 
-int do_difficulty_menu()
-{
-	int s;
-	newmenu_item m[5];
-
-	m[0].type = NM_TYPE_MENU; m[0].text = MENU_DIFFICULTY_TEXT(0);
-	m[1].type = NM_TYPE_MENU; m[1].text = MENU_DIFFICULTY_TEXT(1);
-	m[2].type = NM_TYPE_MENU; m[2].text = MENU_DIFFICULTY_TEXT(2);
-	m[3].type = NM_TYPE_MENU; m[3].text = MENU_DIFFICULTY_TEXT(3);
-	m[4].type = NM_TYPE_MENU; m[4].text = MENU_DIFFICULTY_TEXT(4);
-
-	s = newmenu_do1(NULL, TXT_DIFFICULTY_LEVEL, NDL, m, NULL, Difficulty_level);
-
-	if (s > -1) 
-	{
-		if (s != Difficulty_level)
-		{
-			Player_default_difficulty = s;
-			write_player_file();
-		}
-		Difficulty_level = s;
-		mprintf((0, "%s %s %i\n", TXT_DIFFICULTY_LEVEL, TXT_SET_TO, Difficulty_level));
-		return 1;
-	}
-	return 0;
-}
 
 int	Max_debris_objects, Max_objects_onscreen_detailed;
 int	Max_linear_depth_objects;
@@ -555,12 +529,119 @@ void do_detail_level_menu_custom(void)
 	m[6].type = NM_TYPE_TEXT;
 	m[6].text = TXT_LO_HI;
 
-	newmenu_open(NULL, TXT_DETAIL_CUSTOM, 7, m, do_detail_level_menu_custom_menuset, custom_detail_level_menu_callback);
+	newmenu_open(nullptr, TXT_DETAIL_CUSTOM, 7, m, do_detail_level_menu_custom_menuset, custom_detail_level_menu_callback);
 }
 
-void do_new_game_menu()
+static int new_level_num;
+static int player_highest_level;
+
+bool difficulty_callback(int choice, int nitems, newmenu_item* items)
 {
-#ifndef SHAREWARE
+	if (choice > -1)
+	{
+		if (choice != Difficulty_level)
+		{
+			Player_default_difficulty = choice;
+			write_player_file();
+		}
+		Difficulty_level = choice;
+		mprintf((0, "%s %s %i\n", TXT_DIFFICULTY_LEVEL, TXT_SET_TO, Difficulty_level));
+
+		//gr_palette_fade_out(gr_palette, 32, 0);
+
+		StartNewGame(new_level_num);
+	}
+	return false; //this never stays up
+}
+
+void do_difficulty_menu()
+{
+	int s;
+	newmenu_item m[5];
+
+	m[0].type = NM_TYPE_MENU; m[0].text = MENU_DIFFICULTY_TEXT(0);
+	m[1].type = NM_TYPE_MENU; m[1].text = MENU_DIFFICULTY_TEXT(1);
+	m[2].type = NM_TYPE_MENU; m[2].text = MENU_DIFFICULTY_TEXT(2);
+	m[3].type = NM_TYPE_MENU; m[3].text = MENU_DIFFICULTY_TEXT(3);
+	m[4].type = NM_TYPE_MENU; m[4].text = MENU_DIFFICULTY_TEXT(4);
+
+	newmenu_open(nullptr, TXT_DIFFICULTY_LEVEL, NDL, m, nullptr, difficulty_callback, Difficulty_level);
+}
+
+static void do_difficulty_selection()
+{
+	Difficulty_level = Player_default_difficulty;
+
+	do_difficulty_menu();
+}
+
+bool initial_level_callback(int choice, int nitems, newmenu_item* items)
+{
+	if (choice == -1)
+		return false;
+	if (items[1].text[0] == 0)
+		return true;
+
+	new_level_num = atoi(items[1].text);
+
+	if (!(new_level_num > 0 && new_level_num <= player_highest_level))
+	{
+		items[0].text = TXT_ENTER_TO_CONT;
+		nm_open_messagebox(nullptr, nullptr, 1, TXT_OK, TXT_INVALID_LEVEL);
+		return true;
+	}
+
+	do_difficulty_selection();
+	return false; //Got a good level, so close. 
+}
+
+static void do_initial_level()
+{
+	player_highest_level = get_highest_level();
+
+	if (player_highest_level > Last_level)
+		player_highest_level = Last_level;
+
+	if (player_highest_level > 1)
+	{
+		newmenu_item m[2];
+		static char info_text[80];
+		static char num_text[11];
+
+		sprintf(info_text, "%s %d", TXT_START_ANY_LEVEL, player_highest_level);
+
+		m[0].type = NM_TYPE_TEXT; m[0].text = info_text;
+		m[1].type = NM_TYPE_INPUT; m[1].text_len = 10; m[1].text = num_text;
+
+		strcpy(num_text, "1");
+
+		newmenu_open(nullptr, TXT_SELECT_START_LEV, 2, &m[0], nullptr, initial_level_callback);
+	}
+	else
+	{
+		do_difficulty_selection();
+	}
+}
+
+void mission_list_callback(int choice)
+{
+	if (choice == -1) return; //backed out
+
+	int new_mission_num = choice;
+
+	strcpy(config_last_mission, Mission_list[new_mission_num].mission_name);
+
+	if (!load_mission(new_mission_num))
+	{
+		nm_open_messagebox(nullptr, nullptr, 1, TXT_OK, "Error in Mission file"); 
+		return;
+	}
+
+	do_initial_level();
+}
+
+static void do_new_game_menu()
+{
 	int n_missions = build_mission_list(false);
 
 	if (n_missions > 1)
@@ -577,79 +658,15 @@ void do_new_game_menu()
 				default_mission = i;
 		}
 
-		int new_mission_num = newmenu_listbox1("New Game\n\nSelect mission", n_missions, m, 1, default_mission, NULL);
+		newmenu_open_listbox("New Game\n\nSelect mission", n_missions, m, true, mission_list_callback);
 
-		free(m);
-
-		if (new_mission_num == -1)
-			return;		//abort!
-
-		strcpy(config_last_mission, Mission_list[new_mission_num].mission_name);
-
-		if (!load_mission(new_mission_num)) 
-		{
-			nm_messagebox(NULL, 1, TXT_OK, "Error in Mission file");
-			return;
-		}
+		free(m); //Safe to free now since the menu code copied it
 	}
-#endif
-
-	int new_level_num = 1;
-
-	int player_highest_level = get_highest_level();
-
-	if (player_highest_level > Last_level)
-		player_highest_level = Last_level;
-
-	if (player_highest_level > 1) 
+	else
 	{
-		newmenu_item m[2];
-		char info_text[80];
-		char num_text[11];
-		int choice;
-
-	try_again:
-		sprintf(info_text, "%s %d", TXT_START_ANY_LEVEL, player_highest_level);
-
-		m[0].type = NM_TYPE_TEXT; m[0].text = info_text;
-		m[1].type = NM_TYPE_INPUT; m[1].text_len = 10; m[1].text = num_text;
-
-		strcpy(num_text, "1");
-
-		choice = newmenu_do(NULL, TXT_SELECT_START_LEV, 2, &m[0], NULL);
-
-		if (choice == -1 || m[1].text[0] == 0)
-			return;
-
-		new_level_num = atoi(m[1].text);
-
-		if (!(new_level_num > 0 && new_level_num <= player_highest_level))
-		{
-			m[0].text = TXT_ENTER_TO_CONT;
-			nm_messagebox(NULL, 1, TXT_OK, TXT_INVALID_LEVEL);
-			goto try_again;
-		}
+		//Go straight to highest level if needed
+		do_initial_level();
 	}
-
-	Difficulty_level = Player_default_difficulty;
-
-	if (!do_difficulty_menu())
-		return;
-
-	gr_palette_fade_out(gr_palette, 32, 0);
-
-#ifdef PSX_BUILD_TOOLS
-	{
-		int i;
-		for (i = Last_secret_level; i <= Last_level; i++) {
-			if (i != 0)
-				StartNewGame(i);
-		}
-	}
-#endif
-
-	StartNewGame(new_level_num);
-
 }
 
 extern void GameLoop(int, int);
