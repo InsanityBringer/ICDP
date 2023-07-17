@@ -62,11 +62,21 @@ void I_KeyHandler(int sc, dbool down, bool repeat)
 		plat_event ev = {};
 		ev.source = EventSource::Keyboard;
 		ev.inputnum = scancode;
-		if (repeat && down)
-		{
-			ev.down = false;
-			event_queue.push(ev);
-		}
+
+		if (keyd_pressed[KEY_LSHIFT] || keyd_pressed[KEY_RSHIFT])
+			ev.flags |= EV_FLAG_SHIFTED;
+		if (keyd_pressed[KEY_LCTRL] || keyd_pressed[KEY_RCTRL])
+			ev.flags |= EV_FLAG_CTRLED;
+		if (keyd_pressed[KEY_LALT] || keyd_pressed[KEY_RALT])
+			ev.flags |= EV_FLAG_ALTED;
+#ifndef NDEBUG
+		if (keyd_pressed[KEY_LAPOSTRO])
+			ev.flags |= EV_FLAG_DEBUGGED;
+#endif
+
+		if (repeat)
+			ev.flags |= EV_FLAG_REPEAT; 
+
 		ev.down = down;
 		event_queue.push(ev);
 	}

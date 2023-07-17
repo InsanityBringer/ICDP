@@ -1313,29 +1313,32 @@ bool kc_check_mouse_event(plat_event& ev, CtrlType& control)
 
 void kconfig_process_events()
 {
-	while (!event_queue.empty())
+}
+
+void control_read_event(plat_event& ev)
+{
+	bool found = false;
+	CtrlType control = CtrlType::PitchForward;
+
+	switch (ev.source)
 	{
-		plat_event ev = event_queue.front(); event_queue.pop();
+	case EventSource::Keyboard:
+		found = kc_check_keyboard_event(ev, control);
+		break;
+	case EventSource::Joystick:
+		found = kc_check_joystick_event(ev, control);
+		break;
+	case EventSource::Mouse:
+		found = kc_check_mouse_event(ev, control);
+		break;
+	}
 
-		bool found = false;
-		CtrlType control = CtrlType::PitchForward;
-
-		switch (ev.source)
+	if (found)
+	{
+		if (ev.down)
 		{
-		case EventSource::Keyboard:
-			found = kc_check_keyboard_event(ev, control);
-			break;
-		case EventSource::Joystick:
-			found = kc_check_joystick_event(ev, control);
-			break;
-		case EventSource::Mouse:
-			found = kc_check_mouse_event(ev, control);
-			break;
-		}
-
-		if (found)
-		{
-			if (ev.down)
+			//Filter out repeat events
+			if (!(ev.flags & EV_FLAG_REPEAT))
 			{
 				//For key ramping, if this is the first time the key was down, record the time
 				if (control_down_count[(int)control].num_inputs_down == 0)
@@ -1344,15 +1347,15 @@ void kconfig_process_events()
 				control_down_count[(int)control].num_inputs_down++;
 				control_down_count[(int)control].down_count++;
 			}
-			else
-			{
-				control_down_count[(int)control].num_inputs_down--;
+		}
+		else
+		{
+			control_down_count[(int)control].num_inputs_down--;
 
-				//Clamp the decrement. This can occasionally go negative if you hold a button, enter the menu, close it, and then release it
-				//since the controls were flushed during this time.
-				if (control_down_count[(int)control].num_inputs_down < 0)
-					control_down_count[(int)control].num_inputs_down = 0;
-			}
+			//Clamp the decrement. This can occasionally go negative if you hold a button, enter the menu, close it, and then release it
+			//since the controls were flushed during this time.
+			if (control_down_count[(int)control].num_inputs_down < 0)
+				control_down_count[(int)control].num_inputs_down = 0;
 		}
 	}
 }
@@ -1522,8 +1525,8 @@ void controls_read_all()
 
 	ctime = timer_get_fixed_seconds();
 
-	kconfig_clear_down_counts();
-	kconfig_process_events();
+	//kconfig_clear_down_counts();
+	//kconfig_process_events();
 
 	//------------- Read slide_on -------------
 	slide_on = control_down_count[(int)CtrlType::SlideOn].num_inputs_down > 0;

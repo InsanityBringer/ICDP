@@ -457,7 +457,7 @@ void nm_menu::frame()
 		pop_event(ev);
 		if (ev.source == EventSource::Keyboard && ev.down)
 		{
-			k = ev.inputnum;
+			k = event_to_keycode(ev);
 			if (newmenu_callback)
 				(*newmenu_callback)(items.size(), items.data(), &k, choice);
 

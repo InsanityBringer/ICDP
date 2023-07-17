@@ -246,7 +246,8 @@ void nm_filelist::frame()
 
 		if (ev.source == EventSource::Keyboard && ev.down == true)
 		{
-			switch (ev.inputnum)
+			int key = event_to_keycode(ev);
+			switch (key)
 			{
 			case KEY_PRINT_SCREEN: 		save_screen_shot(0); break;
 			case KEY_CTRLED + KEY_D:
@@ -303,7 +304,7 @@ void nm_filelist::frame()
 				break;
 			default:
 			{
-				int ascii = key_to_ascii(ev.inputnum);
+				int ascii = key_to_ascii(key);
 				if (ascii < 255)
 				{
 					int cc, cc1;

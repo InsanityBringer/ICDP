@@ -23,6 +23,16 @@ constexpr int EV_FLAG_HAT = 1;
 //This event is an axis event.
 //Axises can create a button-like event when their value crosses a threshold.
 constexpr int EV_FLAG_AXIS = 2;
+//Keyboard events only: This key was shifted
+constexpr int EV_FLAG_SHIFTED = 4;
+//Keyboard events only: This key was ctrled
+constexpr int EV_FLAG_CTRLED = 8;
+//Keyboard events only: This key was alted
+constexpr int EV_FLAG_ALTED = 16;
+//Keyboard events only: This key was debugged
+constexpr int EV_FLAG_DEBUGGED = 32;
+//This event is a repeat event
+constexpr int EV_FLAG_REPEAT = 64;
 
 struct plat_event
 {
@@ -42,4 +52,6 @@ void flush_events();
 
 bool event_available();
 void pop_event(plat_event& ev);
+
+int event_to_keycode(plat_event& ev);
 

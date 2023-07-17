@@ -111,7 +111,7 @@ void nm_list::frame()
 
 		if (ev.source == EventSource::Keyboard && ev.down)
 		{
-			key = ev.inputnum;
+			key = event_to_keycode(ev);
 			switch (key)
 			{
 			case KEY_PRINT_SCREEN:

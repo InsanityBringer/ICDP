@@ -485,16 +485,19 @@ int D_DescentMain(int argc, const char** argv)
 		newmenu_frame();
 
 		//do game and editor frames here
-		switch (Function_mode)
+		if (Function_mode == Old_function_mode) //In case newmenu_frame changed the function mode
 		{
-		case FMODE_MENU:
-			//If the menu list is empty, show the main menu. 
-			if (newmenu_empty())
-				DoMenu(); 
-			break;
-		case FMODE_GAME:
-			game_frame();
-			break;
+			switch (Function_mode)
+			{
+			case FMODE_MENU:
+				//If the menu list is empty, show the main menu. 
+				if (newmenu_empty())
+					DoMenu();
+				break;
+			case FMODE_GAME:
+				game_frame();
+				break;
+			}
 		}
 
 		newmenu_present();

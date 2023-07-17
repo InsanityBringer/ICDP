@@ -21,6 +21,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <string.h>
 #include <stdarg.h>
 #include <algorithm>
+#include <queue>
 #include "gameinfo/gameinfo.h"
 #include "misc/rand.h"
 #include "inferno.h"
@@ -2086,10 +2087,11 @@ extern void dump_used_textures_all();
 int create_special_path(void);
 #endif
 
+std::queue<int> game_key_queue;
+
 void ReadControls()
 {
 	int key;
-	fix key_time;
 	static fix newdemo_single_frame_time;
 
 	Player_fired_laser_this_frame = -1;
@@ -2098,6 +2100,24 @@ void ReadControls()
 	if (speedtest_on)
 		speedtest_frame();
 #endif
+
+	kconfig_clear_down_counts();
+
+	//This could be improved, sometimes the game key queue will be leaky. 
+	while (!game_key_queue.empty())
+		game_key_queue.pop();
+
+	//Read events and check if they're used by the game controls
+	while (event_available())
+	{
+		plat_event ev;
+		pop_event(ev);
+
+		control_read_event(ev);
+
+		//Add the legacy keycode for the original handler.
+		game_key_queue.push(event_to_keycode(ev));
+	}
 
 	if (!Endlevel_sequence && !Player_is_dead) 
 	{
@@ -2187,8 +2207,11 @@ void ReadControls()
 			Newdemo_vcr_state = ND_STATE_PLAYBACK;
 	}
 
-	while ((key = key_inkey_time(&key_time)) != 0) 
+	//while ((key = key_inkey_time(&key_time)) != 0) 
+	while (!game_key_queue.empty())
 	{
+		key = game_key_queue.front(); game_key_queue.pop();
+
 		//cleaned up cheat handling done here. 
 		do_cheat_key(key);
 
