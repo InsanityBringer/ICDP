@@ -979,7 +979,7 @@ bool show_briefing_screen(int screen_num, int allow_keys)
 
 
 //	-----------------------------------------------------------------------------
-void do_briefing_screens(int level_num)
+bool do_briefing_screens(int level_num)
 {
 	bool abort_briefing_screens = false;
 	int	cur_briefing_screen = 0;
@@ -987,13 +987,17 @@ void do_briefing_screens(int level_num)
 	if (Skip_briefing_screens) 
 	{
 		mprintf((0, "Skipping all briefing screens.\n"));
-		return;
+		return false;
 	}
 
 	if (!Briefing_text_filename[0])		//no filename?
-		return;
+		return false;
 
-	briefing_canvas = gr_create_canvas(320, 200);
+	if (!briefing_canvas)
+		briefing_canvas = gr_create_canvas(320, 200);
+
+	if (Briefing_text)
+		free(Briefing_text);
 
 	songs_play_song(SONG_BRIEFING, 1);
 
@@ -1004,7 +1008,7 @@ void do_briefing_screens(int level_num)
 
 	load_screen_text(Briefing_text_filename, &Briefing_text);
 
-	if (level_num == 1) 
+	/*if (level_num == 1) 
 	{
 		while ((!abort_briefing_screens) && (Briefing_screens[cur_briefing_screen].level_num == 0)) 
 		{
@@ -1019,13 +1023,23 @@ void do_briefing_screens(int level_num)
 			if (Briefing_screens[cur_briefing_screen].level_num == level_num)
 				if (show_briefing_screen(cur_briefing_screen, 0))
 					break;
-	}
+	}*/
 
 
-	free(Briefing_text);
-	gr_free_canvas(briefing_canvas);
+	//free(Briefing_text);
+	//gr_free_canvas(briefing_canvas);
 
 	key_flush();
+	return true; //Text ready to go 
+}
+
+void briefing_frame()
+{
+}
+
+bool briefing_finished()
+{
+	return true;
 }
 
 #ifndef SHAREWARE

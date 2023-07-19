@@ -1921,48 +1921,84 @@ void game_start()
 	}
 #endif
 
-	fix_object_segs();
+	//fix_object_segs(); //Why's this done here? It's done in LoadLevel
 
 	game_flush_inputs();
+
+	//The game should have been started with a pending mode, so get that going. 
+	StartPendingMode();
 }
 
 void game_frame()
 {
 	if (setjmp(LeaveGame) == 0)
 	{
-		// GAME LOOP!
-		Automap_flag = 0;
-		Config_menu_flag = 0;
-
-		//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
-		if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
+		bool finished;
+		do
 		{
-			game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
-			init_cockpit(); last_drawn_cockpit = -1;
-		}
+			finished = false;
+			if (Game_sub_mode == SUB_GAME)
+			{
+				if (Pending_sub_mode != SUB_INDETERMINATE) //Switch if the game wishes to change for any reason
+					finished = true;
+				else
+				{
+					// GAME LOOP!
+					Automap_flag = 0;
+					Config_menu_flag = 0;
 
-		startTime = timer_get_us();
+					//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
+					if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
+					{
+						game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
+						init_cockpit(); last_drawn_cockpit = -1;
+					}
 
-		Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
+					startTime = timer_get_us();
 
-		GameLoop(1, 1);		// Do game loop with rendering and reading controls.
+					Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
 
-		if (Config_menu_flag)
-		{
-			if (!(Game_mode & GM_MULTI)) palette_save();
-			do_options_menu();
-			if (!(Game_mode & GM_MULTI)) palette_restore();
-		}
+					GameLoop(1, 1);		// Do game loop with rendering and reading controls.
 
-		if (Automap_flag)
-		{
-			int save_w = Game_window_w, save_h = Game_window_h;
-			do_automap(0);
-			Screen_mode = -1; set_screen_mode(SCREEN_GAME);
-			Game_window_w = save_w; Game_window_h = save_h;
-			init_cockpit();
-			last_drawn_cockpit = -1;
-		}
+					if (Config_menu_flag)
+					{
+						//if (!(Game_mode & GM_MULTI)) palette_save();
+						do_options_menu();
+						//if (!(Game_mode & GM_MULTI)) palette_restore();
+					}
+
+					if (Automap_flag)
+					{
+						/*int save_w = Game_window_w, save_h = Game_window_h;
+						do_automap(0);
+						Screen_mode = -1; set_screen_mode(SCREEN_GAME);
+						Game_window_w = save_w; Game_window_h = save_h;
+						init_cockpit();
+						last_drawn_cockpit = -1;*/
+					}
+				}
+			}
+			else if (Game_sub_mode == SUB_BRIEFING)
+			{
+				finished = briefing_finished();
+				if (!finished)
+					briefing_frame();
+			}
+			else if (Game_sub_mode == SUB_INTERMISSION)
+			{
+				finished = IntermissionFinished();
+				if (!finished)
+					IntermissionFrame();
+			}
+			else if (Game_sub_mode == SUB_INDETERMINATE)
+			{
+				Int3(); //Hey, how'd I get here?
+			}
+
+			if (finished)
+				StartPendingMode();
+		} while (finished);
+
 
 		if ((Function_mode != FMODE_GAME) && Auto_demo && (Newdemo_state != ND_STATE_NORMAL))
 		{
@@ -1971,7 +2007,8 @@ void game_frame()
 			Function_mode = FMODE_GAME;
 			choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_AUTODEMO);
 			Function_mode = fmode;
-			if (choice == 0) {
+			if (choice == 0) 
+			{
 				Auto_demo = 0;
 				newdemo_stop_playback();
 				Function_mode = FMODE_MENU;
@@ -1996,24 +2033,17 @@ void game_frame()
 		if (Function_mode != FMODE_GAME)
 			longjmp(LeaveGame, 0);
 
-		//[ISB] assumption is that anything calling without renderflag (basically network mode) will already be updating. 
-		plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
-		grs_canvas* cockpit_canvas = get_cockpit_canvas();
-		if (cockpit_canvas)
-			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-		cockpit_canvas = get_hud_canvas();
-		if (cockpit_canvas)
-			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-		/*
-		plat_flip();
-		plat_do_events();
-		//waiting loop for polled fps mode
-		uint64_t numUS = 1000000 / FPSLimit;
-		//[ISB] Combine a sleep with the polling loop to try to spare CPU cycles
-		uint64_t diff = (startTime + numUS) - timer_get_us();
-		if (diff > 2000) //[ISB] Sleep only if there's sufficient time to do so, since the scheduler isn't precise enough
-			timer_delay_us(diff - 2000);
-		while (timer_get_us() < startTime + numUS);*/
+		if (Game_sub_mode == SUB_GAME)
+		{
+			plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
+			grs_canvas* cockpit_canvas = get_cockpit_canvas();
+			if (cockpit_canvas)
+				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+			cockpit_canvas = get_hud_canvas();
+			if (cockpit_canvas)
+				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+		}
+
 	}
 }
 
@@ -2745,6 +2775,7 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 
 	if (Endlevel_sequence)
 	{
+		newmenu_close_all();
 		do_endlevel_frame();
 		powerup_grab_cheat_all();
 		do_special_effects();

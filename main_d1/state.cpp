@@ -309,6 +309,9 @@ int state_save_all_sub(char* filename, char* desc, int between_levels)
 	char temp_buffer[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char* separator_pos;
 
+	if (between_levels)
+		Int3(); //how did you do this?
+
 	if (Game_mode & GM_MULTI) 
 	{
 #ifdef MULTI_SAVE
@@ -659,7 +662,8 @@ int state_restore_all_sub(char* filename, int multi)
 
 	if (between_levels) 
 	{
-		int saved_offset;
+		Int3(); //TODO: Real error handling
+		/*int saved_offset;
 		//fread(&Players[Player_num], sizeof(player), 1, fp);
 		read_player_file(&Players[Player_num], fp);
 		saved_offset = ftell(fp);
@@ -667,7 +671,7 @@ int state_restore_all_sub(char* filename, int multi)
 		do_briefing_screens(next_level);
 		fp = fopen(filename, "rb");
 		fseek(fp, saved_offset, SEEK_SET);
-		StartNewLevelSub(next_level, 0);
+		StartNewLevelSub(next_level, 0);*/
 	}
 	else 
 	{

@@ -70,7 +70,7 @@ void I_KeyHandler(int sc, dbool down, bool repeat)
 		if (keyd_pressed[KEY_LALT] || keyd_pressed[KEY_RALT])
 			ev.flags |= EV_FLAG_ALTED;
 #ifndef NDEBUG
-		if (keyd_pressed[KEY_LAPOSTRO])
+		if (keyd_pressed[KEY_DELETE])
 			ev.flags |= EV_FLAG_DEBUGGED;
 #endif
 

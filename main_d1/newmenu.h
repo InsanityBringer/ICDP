@@ -61,7 +61,6 @@ public:
 	void close()
 	{
 		closing = true;
-		cleanup();
 	}
 
 	//Returns true if the window should be cleaned up and closed, false otherwise.

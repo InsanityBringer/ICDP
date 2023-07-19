@@ -85,6 +85,10 @@ std::stack<grs_canvas*> menu_canvas_stack;
 //The menu on top will be the one that gets all input, but prior menus will remain in order to return to the previous window.
 std::stack <std::unique_ptr<nm_window>> nm_open_windows;
 
+//Queue of windows that are going to be opening.
+//This is done so that I can clean up all closed windows on top of the stack, and then add and draw new menus
+std::queue<std::unique_ptr<nm_window>> nm_queued_windows;
+
 grs_canvas* nm_get_top_canvas()
 {
 	return nm_canvas;
@@ -396,7 +400,7 @@ int newmenu_do2(const char* title, const char* subtitle, int nitems, newmenu_ite
 
 void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
-	nm_open_windows.push(std::make_unique<nm_menu>(items, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
+	nm_queued_windows.push(std::make_unique<nm_menu>(items, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
 }
 
 void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_item* items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
@@ -405,7 +409,7 @@ void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_i
 	for (int i = 0; i < nitems; i++)
 		itemclone.push_back(items[i]);
 
-	nm_open_windows.push(std::make_unique<nm_menu>(itemclone, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
+	nm_queued_windows.push(std::make_unique<nm_menu>(itemclone, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
 }
 
 //Simple callback for purely informative message boxes
@@ -448,28 +452,46 @@ void nm_open_messagebox(const char* title, bool (*callback)(int choice, int nite
 
 void newmenu_open_filepicker(const char* title, const char* filespec, int allow_abort_flag, void (*callback)(std::string& str, int num))
 {
-	nm_open_windows.push(std::make_unique<nm_filelist>(title, filespec, callback, allow_abort_flag));
+	nm_queued_windows.push(std::make_unique<nm_filelist>(title, filespec, callback, allow_abort_flag));
 }
 
 void newmenu_frame()
 {
 	bool did_frame = false;
-	while (!nm_open_windows.empty() && !did_frame)
+	//Cleanup and pop any closed windows from the stack
+	bool cleanup = true;
+	while (!nm_open_windows.empty() && cleanup)
 	{
 		std::unique_ptr<nm_window>& top = nm_open_windows.top();
 		if (top->is_closing()) //Has the window closed?
 		{
+			top->cleanup();
 			nm_open_windows.pop(); //kill it, and then loop to check the next window.
 		}
 		else
 		{
-			//Drawing should be delayed, otherwise opening a window while closing the current won't work right
-			if (top->must_draw())
-				top->draw();
-
-			top->frame(); //Run the window frame. 
-			did_frame = true;
+			cleanup = false; //done cleaning for now. 
 		}
+	}
+
+	//Add queued windows to the stack
+	while (!nm_queued_windows.empty())
+	{
+		std::unique_ptr<nm_window>& front = nm_queued_windows.front();
+		nm_open_windows.push(std::move(front));
+		nm_queued_windows.pop();
+	}
+
+	while (!nm_open_windows.empty() && !did_frame)
+	{
+		std::unique_ptr<nm_window>& top = nm_open_windows.top();
+		
+		//Drawing should be delayed, otherwise opening a window while closing the current won't work right
+		if (top->must_draw())
+			top->draw();
+
+		top->frame(); //Run the window frame. 
+		did_frame = true;
 	}
 }
 
@@ -480,7 +502,7 @@ void newmenu_present()
 
 bool newmenu_empty()
 {
-	return nm_open_windows.empty();
+	return nm_open_windows.empty() && nm_queued_windows.empty();
 }
 
 void newmenu_close_all()
@@ -492,6 +514,11 @@ void newmenu_close_all()
 			top->close();
 
 		nm_open_windows.pop();
+	}
+
+	while (!nm_queued_windows.empty())
+	{
+		nm_queued_windows.pop(); //Queued windows shouldn't have drawn yet. 
 	}
 	
 	gr_set_current_canvas(nm_canvas);
@@ -575,12 +602,12 @@ void newmenu_open_listbox(const char* title, int nitems, char* items[], bool all
 		itemsclone.push_back(items[i]);
 	}
 
-	nm_open_windows.push(std::make_unique<nm_list>(title, itemsclone, allow_abort_flag, default_item, callback));
+	nm_queued_windows.push(std::make_unique<nm_list>(title, itemsclone, allow_abort_flag, default_item, callback));
 }
 
 void newmenu_open_listbox(const char* title, std::vector<char*> items, bool allow_abort_flag, void (*callback)(int choice), int default_item)
 {
-	nm_open_windows.push(std::make_unique<nm_list>(title, items, allow_abort_flag, default_item, callback));
+	nm_queued_windows.push(std::make_unique<nm_list>(title, items, allow_abort_flag, default_item, callback));
 }
 
 #define LB_ITEMS_ON_SCREEN 8
@@ -594,227 +621,4 @@ int newmenu_listbox1(const char* title, int nitems, char* items[], int allow_abo
 {
 	Int3();
 	return 0;
-#if 0
-	int redraw;
-	int old_keyd_repeat = keyd_repeat;
-	int title_height;
-	keyd_repeat = 1;
-
-	grs_canvas* menu_canvas = gr_create_canvas(320, 200);
-	menu_canvas_stack.push(menu_canvas);
-
-	set_screen_mode(SCREEN_MENU);
-	gr_set_current_canvas(menu_canvas);
-	grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_3];
-
-	int width = 0;
-	for (int i = 0; i < nitems; i++) 
-	{
-		int w, h, aw;
-		gr_get_string_size(items[i], &w, &h, &aw);
-		if (w > width)
-			width = w;
-	}
-	int height = 12 * LB_ITEMS_ON_SCREEN;
-
-	{
-		int w, h, aw;
-		gr_get_string_size(title, &w, &h, &aw);
-		if (w > width)
-			width = w;
-		title_height = h + 5;
-	}
-
-	width += 10;
-	if (width > 320 - 30)
-		width = 320 - 30;
-
-	int wx = (grd_curcanv->cv_bitmap.bm_w - width) / 2;
-	int wy = (grd_curcanv->cv_bitmap.bm_h - (height + title_height)) / 2 + title_height;
-	if (wy < title_height)
-		wy = title_height;
-
-	gr_bm_bitblt(320, 200, 0, 0, 0, 0, &(grd_curcanv->cv_bitmap), &(VR_offscreen_buffer->cv_bitmap));
-	nm_draw_background(wx - 15, wy - title_height - 15, wx + width + 15, wy + height + 15);
-
-	gr_string(0x8000, wy - title_height, title);
-
-	bool done = false;
-	int citem = default_item;
-	if (citem < 0) citem = 0;
-	if (citem >= nitems) citem = 0;
-
-	int first_item = -1;
-
-	while (!done) 
-	{
-		timer_mark_start();
-		plat_do_events();
-		int ocitem = citem;
-		int ofirst_item = first_item;
-		int key = key_inkey();
-
-		if (listbox_callback)
-			redraw = (*listbox_callback)(&citem, &nitems, items, &key);
-		else
-			redraw = 0;
-
-		if (key < -1) 
-		{
-			citem = key;
-			key = -1;
-			done = true;
-		}
-
-		switch (key) 
-		{
-		case KEY_PRINT_SCREEN:
-			save_screen_shot(0);
-			break;
-		case KEY_HOME:
-		case KEY_PAD7:
-			citem = 0;
-			break;
-		case KEY_END:
-		case KEY_PAD1:
-			citem = nitems - 1;
-			break;
-		case KEY_UP:
-		case KEY_PAD8:
-			citem--;
-			break;
-		case KEY_DOWN:
-		case KEY_PAD2:
-			citem++;
-			break;
-		case KEY_PAGEDOWN:
-		case KEY_PAD3:
-			citem += LB_ITEMS_ON_SCREEN;
-			break;
-		case KEY_PAGEUP:
-		case KEY_PAD9:
-			citem -= LB_ITEMS_ON_SCREEN;
-			break;
-		case KEY_ESC:
-			if (allow_abort_flag) 
-			{
-				citem = -1;
-				done = true;
-			}
-			break;
-		case KEY_ENTER:
-		case KEY_PADENTER:
-			done = true;
-			break;
-		default:
-			if (key > 0) 
-			{
-				int ascii = key_to_ascii(key);
-				if (ascii < 255) 
-				{
-					int cc, cc1;
-					cc = cc1 = citem + 1;
-					if (cc1 < 0)  cc1 = 0;
-					if (cc1 >= nitems)  cc1 = 0;
-					while (1) 
-					{
-						if (cc < 0) cc = 0;
-						if (cc >= nitems) cc = 0;
-						if (citem == cc) break;
-
-						if (toupper(items[cc][0]) == toupper(ascii)) 
-						{
-							citem = cc;
-							break;
-						}
-						cc++;
-					}
-				}
-			}
-		}
-		if (done) break;
-
-		if (citem < 0)
-			citem = 0;
-
-		if (citem >= nitems)
-			citem = nitems - 1;
-
-		if (citem < first_item)
-			first_item = citem;
-
-		if (citem >= (first_item + LB_ITEMS_ON_SCREEN))
-			first_item = citem - LB_ITEMS_ON_SCREEN + 1;
-
-		if (nitems <= LB_ITEMS_ON_SCREEN)
-			first_item = 0;
-
-		if (first_item > nitems - LB_ITEMS_ON_SCREEN)
-			first_item = nitems - LB_ITEMS_ON_SCREEN;
-		if (first_item < 0) first_item = 0;
-
-		if ((ofirst_item != first_item) || redraw) 
-		{
-			gr_setcolor(BM_XRGB(0, 0, 0));
-			for (int i = first_item; i < first_item + LB_ITEMS_ON_SCREEN; i++) 
-			{
-				int w, h, aw, y;
-				y = (i - first_item) * 12 + wy;
-				if (i >= nitems) {
-					gr_setcolor(BM_XRGB(0, 0, 0));
-					gr_rect(wx, y - 1, wx + width - 1, y + 11);
-				}
-				else 
-				{
-					if (i == citem)
-						grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
-					else
-						grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
-					gr_get_string_size(items[i], &w, &h, &aw);
-					gr_rect(wx, y - 1, wx + width - 1, y + 11);
-					gr_string(wx + 5, y, items[i]);
-				}
-			}
-		}
-		else if (citem != ocitem) 
-		{
-			int w, h, aw, y;
-
-			int i = ocitem;
-			if ((i >= 0) && (i < nitems))
-			{
-				y = (i - first_item) * 12 + wy;
-				if (i == citem)
-					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
-				else
-					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
-				gr_get_string_size(items[i], &w, &h, &aw);
-				gr_rect(wx, y - 1, wx + width - 1, y + 11);
-				gr_string(wx + 5, y, items[i]);
-			}
-			i = citem;
-			if ((i >= 0) && (i < nitems))
-			{
-				y = (i - first_item) * 12 + wy;
-				if (i == citem)
-					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
-				else
-					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
-				gr_get_string_size(items[i], &w, &h, &aw);
-				gr_rect(wx, y - 1, wx + width - 1, y + 11);
-				gr_string(wx + 5, y, items[i]);
-			}
-		}
-		plat_present_canvas(*menu_canvas, 3.f/4.f);
-		timer_mark_end(US_70FPS);
-	}
-	keyd_repeat = old_keyd_repeat;
-
-	gr_bm_bitblt(320, 200, 0, 0, 0, 0, &(VR_offscreen_buffer->cv_bitmap), &(grd_curcanv->cv_bitmap));
-
-	menu_canvas_stack.pop();
-	gr_free_canvas(menu_canvas);
-
-	return citem;
-#endif
 }

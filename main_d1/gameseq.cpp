@@ -123,6 +123,12 @@ extern int Last_level_path_created;
 
 void HUD_clear_messages(); // From hud.c
 
+int Game_sub_mode;
+int Pending_sub_mode;
+
+//Level the game wants to load when briefings or intermissions are done. 
+int Pending_level; 
+
 void verify_console_object()
 {
 	Assert(Player_num > -1);
@@ -421,8 +427,8 @@ void DoEndLevelScoreGlitzPoll(int nitems, newmenu_item* menus, int* key, int cit
 
 void DoGameOver()
 {
-	time_out_value = timer_get_approx_seconds() + i2f(60 * 5);
-	nm_messagebox1(TXT_GAME_OVER, DoEndLevelScoreGlitzPoll, 1, TXT_OK, "");
+	//time_out_value = timer_get_approx_seconds() + i2f(60 * 5);
+	//nm_messagebox1(TXT_GAME_OVER, DoEndLevelScoreGlitzPoll, 1, TXT_OK, "");
 
 	if (Current_mission_num == 0)
 		scores_maybe_add_player(0);
@@ -435,9 +441,6 @@ void DoGameOver()
 //update various information about the player
 void update_player_stats()
 {
-	// I took out this 'if' because it was causing the reactor invul time to be
-	// off for players that sit in the death screen. -JS jul 6,95
-	//	if (!Player_exploded) {
 	Players[Player_num].time_level += FrameTime;	//the never-ending march of time...
 	if (Players[Player_num].time_level > i2f(3600)) 
 	{
@@ -451,23 +454,6 @@ void update_player_stats()
 		Players[Player_num].time_total -= i2f(3600);
 		Players[Player_num].hours_total++;
 	}
-	//	}
-
-	//	Players[Player_num].energy += FrameTime*Energy_regen_ratio;	//slowly regenerate energy
-
-	//MK1015:	//slowly reduces player's energy & shields if over max
-	//MK1015:
-	//MK1015:	if (Players[Player_num].energy > MAX_ENERGY) {
-	//MK1015:		Players[Player_num].energy -= FrameTime/8;
-	//MK1015:		if (Players[Player_num].energy < MAX_ENERGY)
-	//MK1015:			Players[Player_num].energy = MAX_ENERGY;
-	//MK1015:	}
-	//MK1015:
-	//MK1015:	if (Players[Player_num].shields > MAX_SHIELDS) {
-	//MK1015:		Players[Player_num].shields -= FrameTime/8;
-	//MK1015:		if (Players[Player_num].shields < MAX_SHIELDS)
-	//MK1015:			Players[Player_num].shields = MAX_SHIELDS;
-	//MK1015:	}
 }
 
 //go through this level and start any eclip sounds
@@ -744,25 +730,16 @@ void StartNewGame(int start_level)
 	game_disable_cheats();
 }
 
-//starts a resumed game loaded from disk
-void ResumeSavedGame(int start_level)
-{
-	Game_mode = GM_NORMAL;
-	Function_mode = FMODE_GAME;
-
-	N_players = 1;
-#ifdef NETWORK
-	Network_new_game = 0;
-#endif
-
-	InitPlayerObject();				//make sure player's object set up
-	StartNewLevel(start_level);
-	game_disable_cheats();
-}
-
 #ifdef NETWORK
 extern void network_endlevel_poll2(int nitems, newmenu_item* menus, int* key, int citem); // network.c
 #endif
+
+static bool IntermissionStarted = false;
+
+bool EndLevelHandler(int choice, int nitems, newmenu_item* items)
+{
+	return false;
+}
 
 
 //	-----------------------------------------------------------------------------
@@ -776,11 +753,13 @@ void DoEndLevelScoreGlitz(int network)
 	char	all_hostage_text[64];
 	char	endgame_text[64];
 #define N_GLITZITEMS 9
-	char				m_str[N_GLITZITEMS][30];
+	static char		m_str[N_GLITZITEMS][30]; //TODO: I need to make menu items copy their text
 	newmenu_item	m[9];
 	int				i, c;
 	char				title[128];
 	int				is_last_level;
+
+	IntermissionStarted = true;
 
 	level_points = Players[Player_num].score - Players[Player_num].last_score;
 
@@ -854,23 +833,20 @@ void DoEndLevelScoreGlitz(int network)
 
 	Assert(c <= N_GLITZITEMS);
 
-	gr_palette_fade_out(gr_palette, 32, 0);
+	//gr_palette_fade_out(gr_palette, 32, 0);
 
 	time_out_value = timer_get_approx_seconds() + i2f(60 * 5);
 
 #ifdef NETWORK
 	if (network && (Game_mode & GM_NETWORK))
-		newmenu_do2(NULL, title, c, m, network_endlevel_poll2, 0, "MENU.PCX");
+		newmenu_open(NULL, title, c, m, network_endlevel_poll2, EndLevelHandler, 0, "MENU.PCX");
 	else
 #endif	// Note link!
-		newmenu_do2(NULL, title, c, m, DoEndLevelScoreGlitzPoll, 0, "MENU.PCX");
+		newmenu_open(NULL, title, c, m, DoEndLevelScoreGlitzPoll, EndLevelHandler, 0, "MENU.PCX");
 }
 
-//give the player the opportunity to save his game
-void DoEndlevelMenu()
-{
-	//No between level saves......!!!	state_save_all(1);
-}
+//True if the intermission is for a secret level, and should show the message. 
+static bool Inter_secret_flag; 
 
 int AdvanceLevel(int secret_flag); //[ISB] this probably has killed a million kitties at this point tbh
 
@@ -880,9 +856,26 @@ void PlayerFinishedLevel(int secret_flag)
 	int	rval;
 	int 	was_multi = 0;
 
+	Inter_secret_flag = !!secret_flag;
+	Pending_sub_mode = SUB_INTERMISSION;
+	newmenu_close_all();
+
 	//credit the player for hostages
 	Players[Player_num].hostages_rescued_total += Players[Player_num].hostages_on_board;
 
+	if (Game_mode & GM_NETWORK)
+		if (secret_flag)
+			Players[Player_num].connected = 4; // Finished and went to secret level
+		else
+			Players[Player_num].connected = 2; // Finished but did not die
+
+	last_drawn_cockpit = -1;
+
+	/*if (Current_level_num == Last_level)
+	{
+	}*/
+
+	/*
 	if (!(Game_mode & GM_MULTI) && (secret_flag)) 
 	{
 		newmenu_item	m[1];
@@ -892,8 +885,6 @@ void PlayerFinishedLevel(int secret_flag)
 
 		newmenu_do2(NULL, TXT_SECRET_EXIT, 1, m, NULL, 0, "MENU.PCX");
 	}
-
-	// -- mk mk mk -- used to be here -- mk mk mk --
 
 	if (Game_mode & GM_NETWORK)
 		if (secret_flag)
@@ -930,13 +921,15 @@ void PlayerFinishedLevel(int secret_flag)
 		rval = AdvanceLevel(secret_flag);				//now go on to the next one (if one)
 	}
 
-	if (!was_multi && rval) {
+	if (!was_multi && rval) 
+	{
 		if (Current_mission_num == 0)
 			scores_maybe_add_player(0);
 		longjmp(LeaveGame, 0);		// Exit out of game loop
 	}
 	else if (rval)
 		longjmp(LeaveGame, 0);
+	*/
 }
 
 
@@ -955,7 +948,9 @@ int AdvanceLevel(int secret_flag)
 	if (Current_level_num == 0)
 		return 0;		//not a real level
 #endif
-
+	
+	//TODO: This needs to be done elsewhere. 
+	/*
 #ifdef NETWORK
 	int result;
 	if (Game_mode & GM_MULTI)
@@ -964,7 +959,7 @@ int AdvanceLevel(int secret_flag)
 		if (result) // failed to sync
 			return (Current_level_num == Last_level);
 	}
-#endif
+#endif*/
 
 	if (Current_level_num == Last_level) //player has finished the game!
 	{
@@ -1000,9 +995,6 @@ int AdvanceLevel(int secret_flag)
 
 			Next_level_num = Secret_level_table[(-Current_level_num) - 1] + 1;
 		}
-
-		if (!(Game_mode & GM_MULTI))
-			DoEndlevelMenu(); // Let use save their game
 
 		StartNewLevel(Next_level_num);
 	}
@@ -1133,6 +1125,7 @@ void init_cockpit();
 //called when the player is starting a new level for normal game mode and restore state
 void StartNewLevelSub(int level_num, int page_in_textures)
 {
+	newmenu_close_all();
 	if (!(Game_mode & GM_MULTI)) 
 	{
 		last_drawn_cockpit = -1;
@@ -1251,11 +1244,17 @@ void StartNewLevelSub(int level_num, int page_in_textures)
 //called when the player is starting a new level for normal game model
 void StartNewLevel(int level_num)
 {
+	Pending_level = level_num;
 	if (!(Game_mode & GM_MULTI)) 
 	{
-		do_briefing_screens(level_num);
+		if (do_briefing_screens(level_num))
+		{
+			Pending_sub_mode = SUB_BRIEFING;
+			return;
+		}
 	}
-	StartNewLevelSub(level_num, 1);
+	Pending_sub_mode = SUB_GAME;
+	//StartNewLevelSub(level_num, 1);
 }
 
 //initialize the player object position & orientation (at start of game, or new ship)
@@ -1404,4 +1403,78 @@ void StartLevel(int random)
 	Fusion_charge = 0;
 
 	Robot_firing_enabled = true;
+}
+
+void StartIntermission();
+void FinishIntermission();
+
+void StartPendingMode()
+{
+	//Do any cleanup that needs to be done.
+	switch (Game_sub_mode)
+	{
+	case SUB_INTERMISSION:
+		FinishIntermission();
+		break;
+	}
+	Game_sub_mode = Pending_sub_mode;
+	Pending_sub_mode = SUB_INDETERMINATE;
+
+	switch (Game_sub_mode)
+	{
+	case SUB_BRIEFING:
+		//Set pending mode based on whether or not the player has won the game.
+		Pending_sub_mode = SUB_GAME;
+		break;
+	case SUB_INTERMISSION:
+		StartIntermission();
+		break;
+	case SUB_GAME:
+		//When switching to SUB_GAME, load a level alongside it
+		if (Pending_level != 0) //if 0 is pending, Level is loaded from editor. Or bug. 
+			StartNewLevelSub(Pending_level, 1);
+		break;
+	}
+}
+
+bool SecretLevelDialogCallback(int choice, int nitems, newmenu_item* item)
+{
+	DoEndLevelScoreGlitz(0);
+	return false;
+}
+
+void StartIntermission()
+{
+	if (!(Game_mode & GM_MULTI) && Inter_secret_flag)
+	{
+		newmenu_item	m[1];
+
+		m[0].type = NM_TYPE_TEXT;
+		m[0].text = (char*)" ";			//TXT_SECRET_EXIT;
+
+		newmenu_open(nullptr, TXT_SECRET_EXIT, 1, m, nullptr, SecretLevelDialogCallback, 0, "MENU.PCX");
+	}
+	else //If you did go to the secret level, the callback will start the intermission screen
+	{
+		DoEndLevelScoreGlitz(0);
+	}
+}
+
+bool IntermissionFinished()
+{
+	if (IntermissionStarted) //this hack may not be needed anymore, new solution implemented
+		return newmenu_empty();
+
+	return false;
+}
+
+void IntermissionFrame()
+{
+}
+
+void FinishIntermission()
+{
+	IntermissionStarted = false;
+	//Now it's safe to advance the level
+	AdvanceLevel(Inter_secret_flag);
 }
