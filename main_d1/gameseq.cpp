@@ -1431,8 +1431,11 @@ void StartPendingMode()
 		break;
 	case SUB_GAME:
 		//When switching to SUB_GAME, load a level alongside it
-		if (Pending_level != 0) //if 0 is pending, Level is loaded from editor. Or bug. 
+		if (Pending_level != 0) //if 0 is pending, Level is already loaded from savegame or editor. Or bug. 
+		{
 			StartNewLevelSub(Pending_level, 1);
+			Pending_level = 0;
+		}
 		break;
 	}
 }

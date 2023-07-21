@@ -757,13 +757,6 @@ int set_screen_mode(int sm)
 	switch (Screen_mode) 
 	{
 	case SCREEN_MENU:
-		plat_set_mouse_relative_mode(0); //[ISB] doesn't work rip
-		/*if (grd_curscreen->sc_mode != SM_320x200C) 
-		{
-			if (gr_set_mode(SM_320x200C)) Error("Cannot set screen mode for game!");
-			gr_palette_load(gr_palette);
-		}*/
-
 		gr_palette_load(gr_palette);
 		
 		VR_screen_buffer = gr_create_canvas(320, 200);
@@ -1543,31 +1536,12 @@ void palette_restore(void)
 extern void dead_player_frame(void);
 
 #ifndef RELEASE
-void do_cheat_menu()
+
+bool cheat_menu_callback(int choice, int nitems, newmenu_item* mm)
 {
-	int mmn;
-	newmenu_item mm[16];
-	char score_text[21];
-
-	sprintf(score_text, "%d", Players[Player_num].score);
-
-	mm[0].type = NM_TYPE_CHECK; mm[0].value = Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE; mm[0].text = (char*)"Invulnerability";
-	mm[1].type = NM_TYPE_CHECK; mm[1].value = Players[Player_num].flags & PLAYER_FLAGS_IMMATERIAL; mm[1].text = (char*)"Immaterial";
-	mm[2].type = NM_TYPE_CHECK; mm[2].value = 0; mm[2].text = (char*)"All keys";
-	mm[3].type = NM_TYPE_NUMBER; mm[3].value = f2i(Players[Player_num].energy); mm[3].text = (char*)"% Energy"; mm[3].min_value = 0; mm[3].max_value = 200;
-	mm[4].type = NM_TYPE_NUMBER; mm[4].value = f2i(Players[Player_num].shields); mm[4].text = (char*)"% Shields"; mm[4].min_value = 0; mm[4].max_value = 200;
-	mm[5].type = NM_TYPE_TEXT; mm[5].text = (char*)"Score:";
-	mm[6].type = NM_TYPE_INPUT; mm[6].text_len = 10; mm[6].text = score_text;
-	mm[7].type = NM_TYPE_RADIO; mm[7].value = (Players[Player_num].laser_level == 0); mm[7].group = 0; mm[7].text = (char*)"Laser level 1";
-	mm[8].type = NM_TYPE_RADIO; mm[8].value = (Players[Player_num].laser_level == 1); mm[8].group = 0; mm[8].text = (char*)"Laser level 2";
-	mm[9].type = NM_TYPE_RADIO; mm[9].value = (Players[Player_num].laser_level == 2); mm[9].group = 0; mm[9].text = (char*)"Laser level 3";
-	mm[10].type = NM_TYPE_RADIO; mm[10].value = (Players[Player_num].laser_level == 3); mm[10].group = 0; mm[10].text = (char*)"Laser level 4";
-	mm[11].type = NM_TYPE_NUMBER; mm[11].value = Players[Player_num].secondary_ammo[CONCUSSION_INDEX]; mm[11].text = (char*)"Missiles"; mm[11].min_value = 0; mm[11].max_value = 200;
-
-	mmn = newmenu_do("Wimp Menu", NULL, 12, mm, NULL);
-
-	if (mmn > -1) {
-		if (mm[0].value) 
+	if (choice > -1)
+	{
+		if (mm[0].value)
 		{
 			Players[Player_num].flags |= PLAYER_FLAGS_INVULNERABLE;
 			Players[Player_num].invulnerable_time = GameTime + i2f(1000);
@@ -1589,6 +1563,31 @@ void do_cheat_menu()
 		Players[Player_num].secondary_ammo[CONCUSSION_INDEX] = mm[11].value;
 		init_gauges();
 	}
+	return false;
+}
+
+void do_cheat_menu()
+{
+	int mmn;
+	newmenu_item mm[16];
+	static char score_text[21];
+
+	sprintf(score_text, "%d", Players[Player_num].score);
+
+	mm[0].type = NM_TYPE_CHECK; mm[0].value = Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE; mm[0].text = (char*)"Invulnerability";
+	mm[1].type = NM_TYPE_CHECK; mm[1].value = Players[Player_num].flags & PLAYER_FLAGS_IMMATERIAL; mm[1].text = (char*)"Immaterial";
+	mm[2].type = NM_TYPE_CHECK; mm[2].value = 0; mm[2].text = (char*)"All keys";
+	mm[3].type = NM_TYPE_NUMBER; mm[3].value = f2i(Players[Player_num].energy); mm[3].text = (char*)"% Energy"; mm[3].min_value = 0; mm[3].max_value = 200;
+	mm[4].type = NM_TYPE_NUMBER; mm[4].value = f2i(Players[Player_num].shields); mm[4].text = (char*)"% Shields"; mm[4].min_value = 0; mm[4].max_value = 200;
+	mm[5].type = NM_TYPE_TEXT; mm[5].text = (char*)"Score:";
+	mm[6].type = NM_TYPE_INPUT; mm[6].text_len = 10; mm[6].text = score_text;
+	mm[7].type = NM_TYPE_RADIO; mm[7].value = (Players[Player_num].laser_level == 0); mm[7].group = 0; mm[7].text = (char*)"Laser level 1";
+	mm[8].type = NM_TYPE_RADIO; mm[8].value = (Players[Player_num].laser_level == 1); mm[8].group = 0; mm[8].text = (char*)"Laser level 2";
+	mm[9].type = NM_TYPE_RADIO; mm[9].value = (Players[Player_num].laser_level == 2); mm[9].group = 0; mm[9].text = (char*)"Laser level 3";
+	mm[10].type = NM_TYPE_RADIO; mm[10].value = (Players[Player_num].laser_level == 3); mm[10].group = 0; mm[10].text = (char*)"Laser level 4";
+	mm[11].type = NM_TYPE_NUMBER; mm[11].value = Players[Player_num].secondary_ammo[CONCUSSION_INDEX]; mm[11].text = (char*)"Missiles"; mm[11].min_value = 0; mm[11].max_value = 200;
+
+	newmenu_open("Wimp Menu", nullptr, 12, mm, nullptr, cheat_menu_callback);
 }
 #endif
 
@@ -1958,7 +1957,8 @@ void game_frame()
 
 					Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
 
-					GameLoop(1, 1);		// Do game loop with rendering and reading controls.
+					bool doInput = newmenu_empty();
+					GameLoop(1, doInput);		// Do game loop with rendering and reading controls.
 
 					if (Config_menu_flag)
 					{
@@ -2000,7 +2000,7 @@ void game_frame()
 		} while (finished);
 
 
-		if ((Function_mode != FMODE_GAME) && Auto_demo && (Newdemo_state != ND_STATE_NORMAL))
+		/*if ((Function_mode != FMODE_GAME) && Auto_demo && (Newdemo_state != ND_STATE_NORMAL))
 		{
 			int choice, fmode;
 			fmode = Function_mode;
@@ -2017,9 +2017,9 @@ void game_frame()
 			{
 				Function_mode = FMODE_GAME;
 			}
-		}
+		}*/
 
-		if ((Function_mode != FMODE_GAME) && (Newdemo_state != ND_STATE_PLAYBACK) && (Function_mode != FMODE_EDITOR))
+		/*if ((Function_mode != FMODE_GAME) && (Newdemo_state != ND_STATE_PLAYBACK) && (Function_mode != FMODE_EDITOR))
 		{
 			int choice, fmode;
 			fmode = Function_mode;
@@ -2028,10 +2028,10 @@ void game_frame()
 			Function_mode = fmode;
 			if (choice != 0)
 				Function_mode = FMODE_GAME;
-		}
+		}*/
 
-		if (Function_mode != FMODE_GAME)
-			longjmp(LeaveGame, 0);
+		//if (Function_mode != FMODE_GAME)
+		//	longjmp(LeaveGame, 0);
 
 		if (Game_sub_mode == SUB_GAME)
 		{
@@ -2061,8 +2061,8 @@ void game_end()
 	if (Newdemo_state == ND_STATE_PLAYBACK)
 		newdemo_stop_playback();
 
-	if (Function_mode != FMODE_EDITOR)
-		gr_palette_fade_out(gr_palette, 32, 0);			// Fade out before going to menu
+	//if (Function_mode != FMODE_EDITOR) //TODO fade
+	//	gr_palette_fade_out(gr_palette, 32, 0);			// Fade out before going to menu
 
 	clear_warn_func(game_show_warning);     //don't use this func anymore
 
@@ -2118,6 +2118,16 @@ int create_special_path(void);
 #endif
 
 std::queue<int> game_key_queue;
+
+bool AbortGameCallback(int choice, int nitems, newmenu_item* items)
+{
+	if (choice == 0)
+	{
+		Game_aborted = true;
+		Function_mode = FMODE_MENU;
+	}
+	return false;
+}
 
 void ReadControls()
 {
@@ -2362,7 +2372,8 @@ void ReadControls()
 				Int3();
 				break;
 			case KEY_ESC:
-				Function_mode = FMODE_MENU;
+				nm_open_messagebox(nullptr, AbortGameCallback, 2, TXT_YES, TXT_NO, TXT_ABORT_GAME);
+				//Function_mode = FMODE_MENU;
 				break;
 			case KEY_UP:
 				Newdemo_vcr_state = ND_STATE_PLAYBACK;
@@ -2415,8 +2426,7 @@ void ReadControls()
 			case KEY_SHIFTED+KEY_A:	toggle_afterburner_status();	break;
 #endif
 		case KEY_ESC:
-			Game_aborted = 1;
-			Function_mode = FMODE_MENU;
+			nm_open_messagebox(nullptr, AbortGameCallback, 2, TXT_YES, TXT_NO, TXT_ABORT_GAME);
 			break;
 		case KEY_F1: 				do_show_help();			break;
 		case KEY_F2:				Config_menu_flag = 1;	break;
@@ -2570,7 +2580,8 @@ void ReadControls()
 		case KEY_DEBUGGED + KEY_H:
 			//					if (!(Game_mode & GM_MULTI) )	{
 			Players[Player_num].flags ^= PLAYER_FLAGS_CLOAKED;
-			if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) {
+			if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) 
+			{
 #ifdef NETWORK
 				if (Game_mode & GM_MULTI)
 					multi_send_cloak();
@@ -2644,7 +2655,6 @@ void ReadControls()
 			break;
 
 		case KEY_DEBUGGED + KEY_C:
-
 			do_cheat_menu();
 			break;
 		case KEY_DEBUGGED + KEY_SHIFTED + KEY_A:
@@ -2767,7 +2777,11 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 	if (ReadControlsFlag)
 		ReadControls();
 	else
+	{
+		//For safetly, also dump kconfig state
+		kconfig_flush_inputs();
 		memset(&Controls, 0, sizeof(Controls));
+	}
 
 	GameTime += FrameTime;
 
@@ -2905,9 +2919,6 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 
 		if (Global_laser_firing_count)
 		{
-			//	Don't cap here, gets capped in Laser_create_new and is based on whether in multiplayer mode, MK, 3/27/95
-			// if (Fusion_charge > F1_0*2)
-			// 	Fusion_charge = F1_0*2;
 			Global_laser_firing_count -= do_laser_firing_player();	//do_laser_firing(Players[Player_num].objnum, Primary_weapon);
 		}
 

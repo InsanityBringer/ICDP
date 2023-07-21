@@ -24,5 +24,5 @@ int state_restore_all_sub(char* filename, int multi);
 
 extern uint32_t state_game_id;
 
-int state_get_save_file(char* fname, char* dsc, int multi);
-int state_get_restore_file(char* fname, int multi);
+int state_get_save_file(int multi);
+void state_get_restore_file(char* fname, int multi);

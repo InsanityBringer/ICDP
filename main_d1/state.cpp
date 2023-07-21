@@ -124,14 +124,41 @@ void rpad_string(char* string, int max_chars)
 	*string = 0;		// NULL terminate
 }
 
-int state_get_save_file(char* fname, char* dsc, int multi)
+static char state_savegame_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
+static char save_desc[NUM_SAVES][DESC_LENGTH + 16];
+
+int state_save_all_sub(char* filename, char* desc, int between_levels);
+
+bool get_save_file_callback(int choice, int nitems, newmenu_item* item)
+{
+	char temp_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	for (int i = 0; i < NUM_SAVES; i++)
+	{
+		if (sc_bmp[i])
+			gr_free_bitmap(sc_bmp[i]);
+	}
+
+	if (choice > -1)
+	{
+		snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.sg%d", Players[Player_num].callsign, choice);
+		get_game_full_file_path(state_savegame_filename, temp_filename, CHOCOLATE_SAVE_DIR);
+		
+		stop_time();
+		state_save_all_sub(state_savegame_filename, save_desc[choice], 0);
+		state_default_item = choice;
+	}
+
+	return false;
+}
+
+int state_get_save_file(int multi)
 {
 	FILE* fp;
 	int i, choice, version;
 	newmenu_item m[NUM_SAVES + 1];
 	char filename[NUM_SAVES][CHOCOLATE_MAX_FILE_PATH_SIZE], temp_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	//char filename[NUM_SAVES][20];
-	char desc[NUM_SAVES][DESC_LENGTH + 16];
+	
 	char id[5];
 	int valid = 0;
 
@@ -161,7 +188,7 @@ int state_get_save_file(char* fname, char* dsc, int multi)
 				if (version >= STATE_COMPATIBLE_VERSION) 
 				{
 					// Read description
-					fread(desc[i], sizeof(char) * DESC_LENGTH, 1, fp);
+					fread(save_desc[i], sizeof(char) * DESC_LENGTH, 1, fp);
 					valid = 1;
 				}
 			}
@@ -169,116 +196,19 @@ int state_get_save_file(char* fname, char* dsc, int multi)
 		}
 		if (!valid)
 		{
-			strcpy(desc[i], TXT_EMPTY);
+			strcpy(save_desc[i], TXT_EMPTY);
 		}
-		m[i].type = NM_TYPE_INPUT_MENU; m[i].text = desc[i]; m[i].text_len = DESC_LENGTH - 1;
+		m[i].type = NM_TYPE_INPUT_MENU; m[i].text = save_desc[i]; m[i].text_len = DESC_LENGTH - 1;
 	}
 
 	sc_last_item = -1;
-	choice = newmenu_do1(NULL, "Save Game", NUM_SAVES, m, NULL, state_default_item);
+	newmenu_open(nullptr, "Save Game", NUM_SAVES, m, nullptr, get_save_file_callback, state_default_item);
 
-	for (i = 0; i < NUM_SAVES; i++) 
-	{
-		if (sc_bmp[i])
-			gr_free_bitmap(sc_bmp[i]);
-	}
-
-	if (choice > -1) 
-	{
-		strcpy(fname, filename[choice]);
-		strcpy(dsc, desc[choice]);
-		state_default_item = choice;
-		return choice + 1;
-	}
 	return 0;
 }
-
-int state_get_restore_file(char* fname, int multi)
-{
-	newmenu_item m[NUM_SAVES + 1];
-	char filename[NUM_SAVES][CHOCOLATE_MAX_FILE_PATH_SIZE], temp_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	//char filename[NUM_SAVES][20];
-	char desc[NUM_SAVES][DESC_LENGTH + 16];
-	char id[5];
-
-	int nsaves = 0;
-	m[0].type = NM_TYPE_TEXT; m[0].text = (char*)"\n\n\n\n";
-	for (int i = 0; i < NUM_SAVES; i++) 
-	{
-		sc_bmp[i] = NULL;
-		if (!multi)
-			snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.sg%d", Players[Player_num].callsign, i);
-		else
-			snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.mg%d", Players[Player_num].callsign, i);
-		get_game_full_file_path(filename[i], temp_filename, CHOCOLATE_SAVE_DIR);
-		//if (!multi)
-		//	sprintf(filename[i], "%s.sg%d", Players[Player_num].callsign, i);
-		//else
-		//	sprintf(filename[i], "%s.mg%d", Players[Player_num].callsign, i);
-
-		bool valid = false;
-		FILE* fp = fopen(filename[i], "rb");
-		if (fp) 
-		{
-			//Read id
-			fread(id, sizeof(char) * 4, 1, fp);
-			if (!memcmp(id, dgss_id, 4)) 
-			{
-				//Read version
-				int version = file_read_int(fp);
-				if (version >= STATE_COMPATIBLE_VERSION) 
-				{
-					// Read description
-					fread(desc[i], sizeof(char) * DESC_LENGTH, 1, fp);
-					//rpad_string( desc[i], DESC_LENGTH-1 );
-					m[i + 1].type = NM_TYPE_MENU; m[i + 1].text = desc[i];;
-					// Read thumbnail
-					sc_bmp[i] = gr_create_bitmap(THUMBNAIL_W, THUMBNAIL_H);
-					fread(sc_bmp[i]->bm_data, THUMBNAIL_W * THUMBNAIL_H, 1, fp);
-					nsaves++;
-					valid = true;
-				}
-			}
-			fclose(fp);
-		}
-		if (!valid) 
-		{
-			strcpy(desc[i], TXT_EMPTY);
-			//rpad_string( desc[i], DESC_LENGTH-1 );
-			m[i + 1].type = NM_TYPE_TEXT; m[i + 1].text = desc[i];
-		}
-	}
-
-	if (nsaves < 1) 
-	{
-		nm_messagebox(NULL, 1, "Ok", "No saved games were found!");
-		return 0;
-	}
-
-	sc_last_item = -1;
-	int choice = newmenu_do3(NULL, "Select Game to Restore", NUM_SAVES + 1, m, state_callback, state_default_item + 1, NULL, 190, -1);
-
-	for (int i = 0; i < NUM_SAVES; i++) 
-	{
-		if (sc_bmp[i])
-			gr_free_bitmap(sc_bmp[i]);
-	}
-
-	if (choice > 0) 
-	{
-		strcpy(fname, filename[choice - 1]);
-		state_default_item = choice - 1;
-		return choice;
-	}
-	return 0;
-}
-
-int state_save_all_sub(char* filename, char* desc, int between_levels);
 
 int state_save_all(int between_levels)
 {
-	char filename[128], desc[DESC_LENGTH + 1];
-
 	if (Game_mode & GM_MULTI) 
 	{
 #ifdef MULTI_SAVE
@@ -292,15 +222,12 @@ int state_save_all(int between_levels)
 
 	mprintf((0, "CL=%d, NL=%d\n", Current_level_num, Next_level_num));
 
-	stop_time();
+	//stop_time();
 
-	if (!state_get_save_file(filename, desc, 0)) 
-	{
-		start_time();
-		return 0;
-	}
+	state_get_save_file(0);
 
-	return state_save_all_sub(filename, desc, between_levels);
+	return 1;
+	//return state_save_all_sub(filename, desc, between_levels);
 }
 
 int state_save_all_sub(char* filename, char* desc, int between_levels)
@@ -532,9 +459,115 @@ int state_save_all_sub(char* filename, char* desc, int between_levels)
 
 int state_restore_all_sub(char* filename, int multi);
 
+
+static bool loadgame_in_game;
+
+bool get_restore_file_dialog_callback(int choice, int nitems, newmenu_item* items)
+{
+	if (choice == 0)
+		state_restore_all_sub(state_savegame_filename, 0);
+
+	return false;
+}
+
+bool get_restore_file_callback(int choice, int nitems, newmenu_item* items)
+{
+	char temp_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	for (int i = 0; i < NUM_SAVES; i++)
+	{
+		if (sc_bmp[i])
+			gr_free_bitmap(sc_bmp[i]);
+	}
+
+	if (choice > 0)
+	{
+		//Generate the savegame name
+		snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.sg%d", Players[Player_num].callsign, choice - 1);
+		get_game_full_file_path(state_savegame_filename, temp_filename, CHOCOLATE_SAVE_DIR);
+		//strcpy(fname, filename[choice - 1]);
+		state_default_item = choice - 1;
+
+		if (loadgame_in_game)
+			nm_open_messagebox(nullptr, get_restore_file_dialog_callback, 2, "Yes", "No", "Restore Game?");
+		else
+			state_restore_all_sub(state_savegame_filename, 0);
+	}
+
+	return false;
+}
+
+void state_get_restore_file(char* fname, int multi)
+{
+	newmenu_item m[NUM_SAVES + 1];
+	char filename[NUM_SAVES][CHOCOLATE_MAX_FILE_PATH_SIZE], temp_filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	//char filename[NUM_SAVES][20];
+	static char desc[NUM_SAVES][DESC_LENGTH + 16];
+	char id[5];
+
+	int nsaves = 0;
+	m[0].type = NM_TYPE_TEXT; m[0].text = (char*)"\n\n\n\n";
+	for (int i = 0; i < NUM_SAVES; i++)
+	{
+		sc_bmp[i] = NULL;
+		if (!multi)
+			snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.sg%d", Players[Player_num].callsign, i);
+		else
+			snprintf(temp_filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.mg%d", Players[Player_num].callsign, i);
+		get_game_full_file_path(filename[i], temp_filename, CHOCOLATE_SAVE_DIR);
+		//if (!multi)
+		//	sprintf(filename[i], "%s.sg%d", Players[Player_num].callsign, i);
+		//else
+		//	sprintf(filename[i], "%s.mg%d", Players[Player_num].callsign, i);
+
+		bool valid = false;
+		FILE* fp = fopen(filename[i], "rb");
+		if (fp)
+		{
+			//Read id
+			fread(id, sizeof(char) * 4, 1, fp);
+			if (!memcmp(id, dgss_id, 4))
+			{
+				//Read version
+				int version = file_read_int(fp);
+				if (version >= STATE_COMPATIBLE_VERSION)
+				{
+					// Read description
+					fread(desc[i], sizeof(char) * DESC_LENGTH, 1, fp);
+					//rpad_string( desc[i], DESC_LENGTH-1 );
+					m[i + 1].type = NM_TYPE_MENU; m[i + 1].text = desc[i];;
+					// Read thumbnail
+					sc_bmp[i] = gr_create_bitmap(THUMBNAIL_W, THUMBNAIL_H);
+					fread(sc_bmp[i]->bm_data, THUMBNAIL_W * THUMBNAIL_H, 1, fp);
+					nsaves++;
+					valid = true;
+				}
+			}
+			fclose(fp);
+		}
+		if (!valid)
+		{
+			strcpy(desc[i], TXT_EMPTY);
+			//rpad_string( desc[i], DESC_LENGTH-1 );
+			m[i + 1].type = NM_TYPE_TEXT; m[i + 1].text = desc[i];
+		}
+	}
+
+	if (nsaves < 1)
+	{
+		nm_open_messagebox(nullptr, nullptr, 1, "Ok", "No saved games were found!");
+		return;
+	}
+
+	sc_last_item = -1;
+	newmenu_open(nullptr, "Select Game to Restore", NUM_SAVES + 1, m, state_callback, get_restore_file_callback, state_default_item + 1, nullptr, 190, -1);
+}
+
+
 int state_restore_all(int in_game)
 {
 	char filename[128];
+
+	loadgame_in_game = !!in_game;
 
 	if (Game_mode & GM_MULTI) 
 	{
@@ -553,14 +586,14 @@ int state_restore_all(int in_game)
 	if (Newdemo_state != ND_STATE_NORMAL)
 		return 0;
 
-	stop_time();
-	if (!state_get_restore_file(filename, 0)) 
-	{
+	//stop_time();
+	state_get_restore_file(filename, 0);
+	/*{
 		start_time();
 		return 0;
-	}
+	}*/
 
-	if (in_game) 
+	/*if (in_game) 
 	{
 		int choice;
 		choice = nm_messagebox(NULL, 2, "Yes", "No", "Restore Game?");
@@ -573,7 +606,8 @@ int state_restore_all(int in_game)
 
 	start_time();
 
-	return state_restore_all_sub(filename, 0);
+	return state_restore_all_sub(filename, 0);*/
+	return 1;
 }
 
 int state_restore_all_sub(char* filename, int multi)
@@ -676,6 +710,7 @@ int state_restore_all_sub(char* filename, int multi)
 	else 
 	{
 		StartNewLevelSub(current_level, 0);
+		Pending_sub_mode = SUB_GAME; //Get the game ready to go
 		//fread(&Players[Player_num], sizeof(player), 1, fp);
 		read_player_file(&Players[Player_num], fp);
 	}
@@ -863,10 +898,10 @@ int state_restore_all_sub(char* filename, int multi)
 	if (version >= 7) 
 	{
 		state_game_id = file_read_int(fp);
-		Laser_rapid_fire = !!file_read_int(fp);
-		Ugly_robot_cheat = !!file_read_int(fp);
+		Laser_rapid_fire = file_read_int(fp) == 0xBADA55;
+		Ugly_robot_cheat = file_read_int(fp) == 0xBADA55;
 		Ugly_robot_texture = file_read_int(fp);
-		Physics_cheat_flag = !!file_read_int(fp);
+		Physics_cheat_flag = file_read_int(fp) == 0xBADA55;
 		int tmp_Lunacy = file_read_int(fp);
 		if (tmp_Lunacy)
 			do_lunacy_on();

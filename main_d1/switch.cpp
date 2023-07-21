@@ -151,7 +151,7 @@ bool check_trigger_sub(int trigger_num, int pnum)
 			if (Game_mode & GM_NETWORK)
 				network_do_frame(1, 1);
 #endif
-			gr_palette_fade_out(gr_palette, 32, 0);
+			//gr_palette_fade_out(gr_palette, 32, 0); TODO FADE
 			PlayerFinishedLevel(1);		//1 means go to secret level
 			return true;
 		}

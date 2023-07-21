@@ -52,6 +52,10 @@ struct newmenu_item
 	char	saved_text[NM_MAX_TEXT_LEN + 1];
 };
 
+//Honestly, I should have a private header for newmenu. 
+extern grs_canvas* nm_canvas;
+extern grs_bitmap nm_background;
+
 class nm_window
 {
 	bool drawn = false;
@@ -77,6 +81,7 @@ public:
 	//Draws the window, and marks it as drawn
 	virtual void draw()
 	{
+		gr_set_current_canvas(nm_canvas);
 		drawn = true;
 	}
 
@@ -85,10 +90,6 @@ public:
 	//Cleans up this window from the newmenu canvas. 
 	virtual void cleanup() = 0;
 };
-
-//Honestly, I should have a private header for newmenu. 
-extern grs_canvas* nm_canvas;
-extern grs_bitmap nm_background;
 
 void newmenu_init();
 
