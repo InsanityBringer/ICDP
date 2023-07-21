@@ -148,6 +148,7 @@ int force_cockpit_redraw = 0;
 bool framerate_on = false;
 
 int PaletteRedAdd, PaletteGreenAdd, PaletteBlueAdd;
+bool Game_paused; 
 
 #ifdef EDITOR
 //flag for whether initial fade-in has been done
@@ -190,8 +191,6 @@ extern void newdemo_strip_frames(char*, int);
 
 //[ISB] FPS limit for the current session, defaults to 30 FPS
 int FPSLimit = 30;
-//[ISB] Start time for the polled FPS loop
-uint64_t startTime = 0;
 
 //	==============================================================================================
 
@@ -853,48 +852,29 @@ static int timer_paused = 0;
 
 void stop_time()
 {
-	if (timer_paused == 0) {
+	if (timer_paused == 0) 
+	{
 		fix time;
 		time = timer_get_fixed_seconds();
 		last_timer_value = time - last_timer_value;
-		if (last_timer_value < 0) {
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-			Int3();		//get Matt!!!!
-#endif
+		if (last_timer_value < 0) 
+		{
 			last_timer_value = 0;
 		}
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-		time_stopped = time;
-#endif
 	}
 	timer_paused++;
-
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	stop_count++;
-#endif
 }
 
 void start_time()
 {
 	timer_paused--;
 	Assert(timer_paused >= 0);
-	if (timer_paused == 0) {
+	if (timer_paused == 0) 
+	{
 		fix time;
 		time = timer_get_fixed_seconds();
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-		if (last_timer_value < 0)
-			Int3();		//get Matt!!!!
+		last_timer_value = time - last_timer_value;
 	}
-#endif
-	last_timer_value = time - last_timer_value;
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	time_started = time;
-#endif
-}
-
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-start_count++;
-#endif
 }
 
 void game_flush_inputs()
@@ -918,27 +898,16 @@ void calc_frame_time()
 {
 	fix timer_value, last_frametime = FrameTime;
 
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	_last_frametime = last_frametime;
-#endif
-
 	timer_value = timer_get_fixed_seconds();
 	FrameTime = timer_value - last_timer_value;
 
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	_timer_value = timer_value;
-#endif
-
 #ifndef NDEBUG
-	if (!(((FrameTime > 0) && (FrameTime <= F1_0)) || (Function_mode == FMODE_EDITOR) || (Newdemo_state == ND_STATE_PLAYBACK))) {
+	if (!(((FrameTime > 0) && (FrameTime <= F1_0)) || (Function_mode == FMODE_EDITOR) || (Newdemo_state == ND_STATE_PLAYBACK))) 
+	{
 		mprintf((1, "Bad FrameTime - value = %x\n", FrameTime));
 		if (FrameTime == 0)
 			Int3();	//	Call Mike or Matt or John!  Your interrupts are probably trashed!
 	}
-#endif
-
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	actual_last_timer_value = last_timer_value;
 #endif
 
 	if (Game_turbo_mode)
@@ -979,10 +948,6 @@ void calc_frame_time()
 	}
 #endif
 
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	stop_count = start_count = 0;
-#endif
-
 	//	Set value to determine whether homing missile can see target.
 	//	The lower frametime is, the more likely that it can see its target.
 	if (FrameTime <= F1_0 / 16)
@@ -991,7 +956,6 @@ void calc_frame_time()
 		Min_trackable_dot = fixmul(F1_0 - MIN_TRACKABLE_DOT, F1_0 - 4 * FrameTime) + MIN_TRACKABLE_DOT;
 	else
 		Min_trackable_dot = MIN_TRACKABLE_DOT;
-
 }
 
 //--unused-- int Auto_flythrough=0;  //if set, start flythough automatically
@@ -1642,21 +1606,20 @@ struct game_bkg
 
 game_bkg bg = { 0,0,0,0,NULL };
 
-//show a message in a nice little box
-void show_boxed_message(char* msg)
+void show_boxed_message_on(char* msg, grs_canvas* canv)
 {
 	int w, h, aw;
 	int x, y;
 
-	gr_set_current_canvas(VR_screen_buffer);
+	gr_set_current_canvas(canv);
 	gr_set_curfont(HELP_FONT);
 
 	gr_get_string_size(msg, &w, &h, &aw);
 
-	x = (VR_screen_buffer->cv_w - w) / 2;
-	y = (VR_screen_buffer->cv_h - h) / 2;
+	x = (canv->cv_w - w) / 2;
+	y = (canv->cv_h - h) / 2;
 
-	if (bg.bmp) 
+	if (bg.bmp)
 	{
 		gr_free_bitmap(bg.bmp);
 		bg.bmp = NULL;
@@ -1666,13 +1629,18 @@ void show_boxed_message(char* msg)
 	bg.x = x; bg.y = y; bg.w = w; bg.h = h;
 
 	bg.bmp = gr_create_bitmap(w + 30, h + 30);
-	gr_bm_ubitblt(w + 30, h + 30, 0, 0, x - 15, y - 15, &(VR_screen_buffer->cv_bitmap), bg.bmp);
+	gr_bm_ubitblt(w + 30, h + 30, 0, 0, x - 15, y - 15, &(canv->cv_bitmap), bg.bmp);
 
 	nm_draw_background(x - 15, y - 15, x + w + 15 - 1, y + h + 15 - 1);
 
 	gr_set_fontcolor(gr_getcolor(31, 31, 31), -1);
 	gr_ustring(0x8000, y, msg);
+}
 
+//show a message in a nice little box
+void show_boxed_message(char* msg)
+{
+	show_boxed_message_on(msg, VR_screen_buffer);
 }
 
 void clear_boxed_message()
@@ -1687,10 +1655,54 @@ void clear_boxed_message()
 
 extern int Death_sequence_aborted;
 
+void game_pause(bool paused)
+{
+	if (Game_mode & GM_MULTI)
+	{
+		HUD_init_message(TXT_CANT_PAUSE);
+		return;
+	}
+
+	if (paused)
+	{
+		if (!Game_paused) //Don't stop time multiple times
+		{
+			digi_pause_all();
+			stop_time();
+			palette_save();
+			reset_palette_add();
+
+			game_flush_inputs();
+
+			Game_paused = true;
+			grs_canvas* canv = get_hud_canvas();
+			show_boxed_message_on(TXT_PAUSE, canv);
+		}
+	}
+	else
+	{
+		if (Game_paused)
+		{
+			game_flush_inputs();
+
+			palette_restore();
+
+			start_time();
+			digi_resume_all();
+
+			Game_paused = false;
+			grs_canvas* canv = get_hud_canvas();
+			clear_boxed_message();
+		}
+	}
+}
+
 //Process selected keys until game unpaused. returns key that left pause (p or esc)
 int do_game_pause(int allow_menu)
 {
-	int paused;
+	Int3();
+	return 0;
+	/*int paused;
 	int key;
 
 	if (Game_mode & GM_MULTI)
@@ -1764,7 +1776,7 @@ int do_game_pause(int allow_menu)
 	start_time();
 	digi_resume_all();
 
-	return key;
+	return key;*/
 }
 
 
@@ -1888,6 +1900,8 @@ void game_start()
 
 	set_warn_func(game_show_warning);
 
+	game_pause(false);
+
 	init_cockpit();
 	init_gauges();
 	//digi_init_sounds();
@@ -1928,6 +1942,24 @@ void game_start()
 	StartPendingMode();
 }
 
+//Handler run when the game is paused
+void game_paused_frame()
+{
+	//Read events
+	while (event_available())
+	{
+		plat_event ev;
+		pop_event(ev);
+
+		control_read_event(ev);
+
+		if (ev.down)
+		{
+			game_pause(false);
+		}
+	}
+}
+
 void game_frame()
 {
 	if (setjmp(LeaveGame) == 0)
@@ -1942,39 +1974,46 @@ void game_frame()
 					finished = true;
 				else
 				{
-					// GAME LOOP!
-					Automap_flag = 0;
-					Config_menu_flag = 0;
-
-					//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
-					if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
+					if (Game_paused)
 					{
-						game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
-						init_cockpit(); last_drawn_cockpit = -1;
+						game_paused_frame();
 					}
 
-					startTime = timer_get_us();
-
-					Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
-
-					bool doInput = newmenu_empty();
-					GameLoop(1, doInput);		// Do game loop with rendering and reading controls.
-
-					if (Config_menu_flag)
+					//It's a little silly for this to not be an else, but this allows the game to be unpaused quickly. 
+					if (!Game_paused)
 					{
-						//if (!(Game_mode & GM_MULTI)) palette_save();
-						do_options_menu();
-						//if (!(Game_mode & GM_MULTI)) palette_restore();
-					}
+						// GAME LOOP!
+						Automap_flag = 0;
+						Config_menu_flag = 0;
 
-					if (Automap_flag)
-					{
-						/*int save_w = Game_window_w, save_h = Game_window_h;
-						do_automap(0);
-						Screen_mode = -1; set_screen_mode(SCREEN_GAME);
-						Game_window_w = save_w; Game_window_h = save_h;
-						init_cockpit();
-						last_drawn_cockpit = -1;*/
+						//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
+						if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
+						{
+							game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
+							init_cockpit(); last_drawn_cockpit = -1;
+						}
+
+						Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
+
+						bool doInput = newmenu_empty();
+						GameLoop(1, doInput);		// Do game loop with rendering and reading controls.
+
+						if (Config_menu_flag)
+						{
+							//if (!(Game_mode & GM_MULTI)) palette_save();
+							do_options_menu();
+							//if (!(Game_mode & GM_MULTI)) palette_restore();
+						}
+
+						if (Automap_flag)
+						{
+							/*int save_w = Game_window_w, save_h = Game_window_h;
+							do_automap(0);
+							Screen_mode = -1; set_screen_mode(SCREEN_GAME);
+							Game_window_w = save_w; Game_window_h = save_h;
+							init_cockpit();
+							last_drawn_cockpit = -1;*/
+						}
 					}
 				}
 			}
@@ -2067,13 +2106,6 @@ void game_end()
 	clear_warn_func(game_show_warning);     //don't use this func anymore
 
 	game_disable_cheats();
-}
-
-//	------------------------------------------------------------------------------------
-//this function is the game.  called when game mode selected.  runs until
-//editor mode or exit selected
-void game()
-{
 }
 
 //called at the end of the program
@@ -2279,7 +2311,8 @@ void ReadControls()
 				save_screen_shot(0);
 
 			if (key == KEY_PAUSE)
-				key = do_game_pause(0);		//so esc from pause will end level
+				game_pause(true);
+				//key = do_game_pause(0);		//so esc from pause will end level
 
 			if (key == KEY_ESC) 
 			{
@@ -2301,8 +2334,9 @@ void ReadControls()
 
 			if (key == KEY_PAUSE) 
 			{
-				key = do_game_pause(0);		//so esc from pause will end level
-				Death_sequence_aborted = 0;		// Clear because code above sets this for any key.
+				game_pause(true);
+				//key = do_game_pause(0);		//so esc from pause will end level
+				//Death_sequence_aborted = 0;		// Clear because code above sets this for any key.
 			}
 
 			if (key == KEY_ESC) 
@@ -2396,7 +2430,7 @@ void ReadControls()
 				newdemo_goto_beginning();
 				break;
 			case KEY_PAUSE:
-				do_game_pause(0);
+				game_pause(true);
 				break;
 			case KEY_PRINT_SCREEN: 
 			{
@@ -2493,8 +2527,12 @@ void ReadControls()
 #endif
 			break;		// redefine taunt macros
 
-		case KEY_PAUSE:			do_game_pause(1); 		break;
-		case KEY_PRINT_SCREEN: 	save_screen_shot(0);		break;
+		case KEY_PAUSE:			
+			game_pause(true);
+			break;
+		case KEY_PRINT_SCREEN: 	
+			save_screen_shot(0);		
+			break;
 
 			//	Select primary or secondary weapon.
 		case KEY_1:

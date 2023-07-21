@@ -400,6 +400,9 @@ int newmenu_do2(const char* title, const char* subtitle, int nitems, newmenu_ite
 
 void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
+	//TODO: Centralize this
+	if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
+		game_pause(true);
 	nm_queued_windows.push(std::make_unique<nm_menu>(items, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
 }
 
@@ -409,6 +412,9 @@ void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_i
 	for (int i = 0; i < nitems; i++)
 		itemclone.push_back(items[i]);
 
+	//TODO: Centralize this
+	if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
+		game_pause(true);
 	nm_queued_windows.push(std::make_unique<nm_menu>(itemclone, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
 }
 
@@ -453,6 +459,9 @@ void nm_open_messagebox(const char* title, bool (*callback)(int choice, int nite
 void newmenu_open_filepicker(const char* title, const char* filespec, int allow_abort_flag, void (*callback)(std::string& str, int num))
 {
 	nm_queued_windows.push(std::make_unique<nm_filelist>(title, filespec, callback, allow_abort_flag));
+	//TODO: Centralize this
+	if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
+		game_pause(true);
 }
 
 void newmenu_frame()
@@ -460,6 +469,9 @@ void newmenu_frame()
 	bool did_frame = false;
 	//Cleanup and pop any closed windows from the stack
 	bool cleanup = true;
+
+	bool was_open = false;
+
 	while (!nm_open_windows.empty() && cleanup)
 	{
 		std::unique_ptr<nm_window>& top = nm_open_windows.top();
@@ -467,6 +479,7 @@ void newmenu_frame()
 		{
 			top->cleanup();
 			nm_open_windows.pop(); //kill it, and then loop to check the next window.
+			was_open = true; 
 		}
 		else
 		{
@@ -493,6 +506,11 @@ void newmenu_frame()
 		top->frame(); //Run the window frame. 
 		did_frame = true;
 	}
+
+	//If any windows were killed this frame, check if the game should be unpaused. 
+	if (was_open && nm_queued_windows.empty() && nm_open_windows.empty())
+		if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
+			game_pause(false);
 }
 
 void newmenu_present()
@@ -520,6 +538,9 @@ void newmenu_close_all()
 	{
 		nm_queued_windows.pop(); //Queued windows shouldn't have drawn yet. 
 	}
+
+	if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
+		game_pause(false);
 	
 	gr_set_current_canvas(nm_canvas);
 	//Since we probably want to draw something else, clear the menu canvas to transparent

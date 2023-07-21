@@ -61,7 +61,7 @@ extern float Game_render_aspect;
 
 extern int Game_mode;
 
-extern int Game_paused;
+extern bool Game_paused;
 extern int gauge_message_on;
 
 extern grs_bitmap background_bitmap; //Used by gauges to draw the background
@@ -95,7 +95,6 @@ void game_frame();
 //Cleans up the game's state before switching to another game.  
 void game_end();
 
-void game(void);
 void close_game(void);
 
 void calc_frame_time(void);
@@ -151,6 +150,8 @@ extern char faded_in;
 extern void stop_time(void);
 extern void start_time(void);
 extern void reset_time(void);		//called when starting level
+
+void game_pause(bool paused);
 
 //	If automap_flag == 1, then call automap routine to write message.
 extern void save_screen_shot(int automap_flag);
