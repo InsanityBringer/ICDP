@@ -31,6 +31,8 @@ extern bool do_briefing_screens(int level_num);
 extern void briefing_frame();
 //Returns true if the briefing is finished and the game should progress.
 extern bool briefing_finished();
+//Presents the briefing canvas to the screen
+extern void briefing_present();
 
 extern void do_end_game(void);
 extern char* get_briefing_screen(int level_num);

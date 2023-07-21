@@ -1671,6 +1671,7 @@ void game_pause(bool paused)
 			stop_time();
 			palette_save();
 			reset_palette_add();
+			gr_palette_load(gr_palette);
 
 			game_flush_inputs();
 
@@ -2082,7 +2083,8 @@ void game_frame()
 			if (cockpit_canvas)
 				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
 		}
-
+		else if (Game_sub_mode == SUB_BRIEFING)
+			briefing_present();
 	}
 }
 
