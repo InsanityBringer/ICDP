@@ -1480,4 +1480,6 @@ void FinishIntermission()
 	IntermissionStarted = false;
 	//Now it's safe to advance the level
 	AdvanceLevel(Inter_secret_flag);
+
+	newmenu_close_all(); //Close the window that serves as the intermission screen. 
 }

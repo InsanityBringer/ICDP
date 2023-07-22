@@ -161,9 +161,6 @@ fix fixed_frametime = 0;          //if non-zero, set frametime to this
 
 int Game_suspended = 0;           //if non-zero, nothing moves but player
 
-int svr_black = 0x00;
-int svr_white = 0xFF;
-
 fix 	RealFrameTime;
 fix	Auto_fire_fusion_cannon_time = 0;
 fix	Fusion_charge = 0;
@@ -1964,6 +1961,13 @@ void game_paused_frame()
 
 void game_frame()
 {
+	if (Game_aborted)
+	{
+		if (inferno_is_screen_faded())
+			Function_mode = FMODE_MENU; 
+		return;
+	}
+
 	if (setjmp(LeaveGame) == 0)
 	{
 		bool finished;
@@ -2156,12 +2160,15 @@ std::queue<int> game_key_queue;
 
 bool AbortGameCallback(int choice, int nitems, newmenu_item* items)
 {
-	if (choice == 0)
+	if (!Game_aborted)
 	{
-		Game_aborted = true;
-		Function_mode = FMODE_MENU;
+		if (choice == 0)
+		{
+			Game_aborted = true;
+			inferno_request_fade_out();
+		}
 	}
-	return false;
+	return true; //This stays on screen so it's visible during the fadeout. The function mode change will kill it. 
 }
 
 void ReadControls()

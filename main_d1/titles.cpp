@@ -1012,7 +1012,6 @@ void init_briefing()
 	Briefing_newpage = false;
 	Briefing_sceneend = false;
 	Briefing_finished = false;
-	newmenu_close_all();
 }
 
 //	-----------------------------------------------------------------------------

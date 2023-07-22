@@ -479,6 +479,7 @@ int D_DescentMain(int argc, const char** argv)
 	build_mission_list(false);		// This also loads mission 0.
 
 	set_events_enabled(true);
+
 	while (Function_mode != FMODE_EXIT)
 	{
 		timer_mark_start();
@@ -506,6 +507,10 @@ int D_DescentMain(int argc, const char** argv)
 					//But from another function mode, it needs to be started now. 
 				case FMODE_MENU:
 					songs_play_song(SONG_TITLE, 1);
+					//Start the main menu
+					if (inferno_is_screen_faded())
+						inferno_request_fade_in(gr_palette);
+					DoMenu();
 					break;
 				case FMODE_GAME:
 					game_start();
@@ -523,13 +528,12 @@ int D_DescentMain(int argc, const char** argv)
 			{
 				switch (Function_mode)
 				{
-				case FMODE_MENU:
-					//If the menu list is empty, show the main menu. 
-					if (newmenu_empty())
-						DoMenu();
-					break;
 				case FMODE_GAME:
 					game_frame();
+					break;
+				case FMODE_MENU:
+					if (newmenu_empty())
+						DoMenu(); //If the menu list is empty, show the main menu
 					break;
 				}
 			}
