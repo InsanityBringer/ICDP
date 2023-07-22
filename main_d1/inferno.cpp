@@ -117,38 +117,96 @@ extern int Network_allow_socket_changes;
 
 extern void multi_test_packet_serialization();
 
-bool open_new_menu = false;
-bool test_choice_func(int choice, int nitems, newmenu_item* item)
+//Transition system
+enum class transition_state
 {
-	mprintf((0, "got choice %d\n", choice));
-	if (choice == -1)
-		return false; //kill if pressed esc
+	no, //A transition is not occurring. 
+	fadeout, //Screen is fading out.
+	frame, //Screen is completely faded. Run a frame to prep the canvases.
+	fadein //Screen is fading in.
+};
 
-	if (choice == 0)
+constexpr int FADE_TIME = 32;
+
+static bool fade_started;
+static bool fade_stopped_time;
+static bool fade_present; //true if a fade has happened. 
+static int fade_timer;
+static transition_state fade_state;
+static uint8_t fade_palette[768], fade_temp[768], fade_dest_palette[768];
+extern uint8_t gr_current_pal[256 * 3];
+
+void inferno_request_fade_out()
+{
+	if (!fade_started)
 	{
-		//open another window and then close this window to test delayed draw
-		nm_open_messagebox("varg", nullptr, 1, TXT_OK, "you smell of poo poo pee pee");
-		return false;
+		fade_timer = FADE_TIME;
+		fade_started = true;
+		fade_state = transition_state::fadeout;
+		memcpy(fade_palette, gr_current_pal, sizeof(fade_palette));
 	}
-
-	return true; //keep open
 }
 
-void test_string_func(std::string& str, int choice)
+void inferno_request_fade_in(uint8_t* dest_palette)
 {
-	mprintf((0, "got choice %s, number %d\n", str.c_str(), choice));
+	if (!fade_started && fade_present)
+	{
+		fade_timer = FADE_TIME;
+		fade_started = true;
+		fade_state = transition_state::fadein;
+		memcpy(fade_dest_palette, dest_palette, sizeof(fade_dest_palette));
 
-	static char buffer[40] = {};
-	std::vector<newmenu_item> test_items;
-	test_items.push_back({ .type = NM_TYPE_MENU, .text = (char*)"varg" });
-	test_items.push_back({ .type = NM_TYPE_TEXT, .text = (char*)"blargh" });
-	test_items.push_back({ .type = NM_TYPE_SLIDER, .value = 0, .min_value = 0, .max_value = 6, .text = (char*)"value" });
-	test_items.push_back({ .type = NM_TYPE_INPUT, .text_len = sizeof(buffer) - 1, .text = buffer });
-	strncpy(buffer, str.c_str(), sizeof(buffer));
-	buffer[sizeof(buffer) - 1] = '\0';
+		if (Function_mode == FMODE_GAME)
+		{
+			stop_time();
+			fade_stopped_time = true;
+		}
+	}
+}
 
-	newmenu_open("Test menu", "this is exciting", test_items, nullptr, test_choice_func, 0, nullptr);
-	open_new_menu = false;
+bool inferno_is_screen_faded()
+{
+	return fade_present;
+}
+
+void inferno_fade_frame()
+{
+	if (fade_state == transition_state::fadeout)
+	{
+		fade_timer--;
+		if (fade_timer == 0)
+		{
+			fade_started = false;
+			fade_present = true;
+		}
+
+		for (int i = 0; i < 768; i++)
+		{
+			fade_temp[i] = fade_palette[i] * fade_timer / FADE_TIME;
+		}
+		gr_palette_load(fade_temp);
+	}
+
+	else if (fade_state == transition_state::fadein)
+	{
+		fade_timer--;
+		if (fade_timer == 0)
+		{
+			fade_started = false;
+			fade_present = false;
+			if (fade_stopped_time)
+			{
+				start_time();
+				fade_stopped_time = false;
+			}
+		}
+
+		for (int i = 0; i < 768; i++)
+		{
+			fade_temp[i] = fade_dest_palette[i] * (FADE_TIME-fade_timer) / FADE_TIME;
+		}
+		gr_palette_load(fade_temp);
+	}
 }
 
 //[ISB] Okay, the trouble is that SDL redefines main. I don't want to include SDL here. Solution is to rip off doom
@@ -423,52 +481,71 @@ int D_DescentMain(int argc, const char** argv)
 	set_events_enabled(true);
 	while (Function_mode != FMODE_EXIT)
 	{
-		if (Function_mode != Old_function_mode)
-		{
-			//Switching to a new function mode
-			//Do any cleanup for the previous function mode
-			switch (Old_function_mode)
-			{
-			case FMODE_GAME:
-				game_end();
-				break;
-			}
-			newmenu_close_all(); //Clean all open windows
-
-			//Do initialization for the new function mode
-			switch (Function_mode)
-			{
-				//The first time into the menu from game start, this will already be playing
-				//But from another function mode, it needs to be started now. 
-			case FMODE_MENU:
-				songs_play_song(SONG_TITLE, 1);
-				break;
-			case FMODE_GAME:
-				game_start();
-				break;
-			}
-
-			Old_function_mode = Function_mode;
-		}
 		timer_mark_start();
 		plat_clear_screen();
 		plat_do_events();
 
-		//Run newmenu frames before others. If a menu is open, this will consume events before the game. 
-		newmenu_frame();
+		if (!fade_started)
+		{
+			if (Function_mode != Old_function_mode)
+			{
+				//Switching to a new function mode
+				//Do any cleanup for the previous function mode
+				switch (Old_function_mode)
+				{
+				case FMODE_GAME:
+					game_end();
+					break;
+				}
+				newmenu_close_all(); //Clean all open windows
 
-		//do game and editor frames here
+				//Do initialization for the new function mode
+				switch (Function_mode)
+				{
+					//The first time into the menu from game start, this will already be playing
+					//But from another function mode, it needs to be started now. 
+				case FMODE_MENU:
+					songs_play_song(SONG_TITLE, 1);
+					break;
+				case FMODE_GAME:
+					game_start();
+					break;
+				}
+
+				Old_function_mode = Function_mode;
+			}
+
+			//Run newmenu frames before others. If a menu is open, this will consume events before the game. 
+			newmenu_frame();
+
+			//do game and editor frames here
+			if (Function_mode == Old_function_mode) //In case newmenu_frame changed the function mode
+			{
+				switch (Function_mode)
+				{
+				case FMODE_MENU:
+					//If the menu list is empty, show the main menu. 
+					if (newmenu_empty())
+						DoMenu();
+					break;
+				case FMODE_GAME:
+					game_frame();
+					break;
+				}
+			}
+		}
+
+		//run a frame of the fade system
+		if (fade_started)
+			inferno_fade_frame();
+
+		//do present for function mode
 		if (Function_mode == Old_function_mode) //In case newmenu_frame changed the function mode
 		{
 			switch (Function_mode)
 			{
-			case FMODE_MENU:
-				//If the menu list is empty, show the main menu. 
-				if (newmenu_empty())
-					DoMenu();
-				break;
 			case FMODE_GAME:
-				game_frame();
+				game_present();
 				break;
 			}
 		}

@@ -1049,14 +1049,15 @@ bool do_briefing_screens(int level_num)
 
 	Current_screen_num = -1;
 	//Get the initial pointer for the current level. If there isn't one, abort.
-	Current_screen_num = get_next_screen();
-	message_ptr = get_briefing_message(Briefing_screens[Current_screen_num].message_num);
+	int screen_num = get_next_screen();
+	message_ptr = get_briefing_message(Briefing_screens[screen_num].message_num);
 	
 	if (!message_ptr)
 		return false;
 
 	init_briefing();
-	start_screen(Current_screen_num);
+	//start_screen(Current_screen_num);
+	Pending_screen = screen_num;
 
 	Briefing_finished = false;
 
@@ -1114,8 +1115,8 @@ void start_screen(int screen_num)
 	}
 
 	gr_palette_clear();
+	gr_palette_load(New_pal); //TODO: Have to load the palette to find the colors..
 	gr_bitmap(0, 0, &briefing_bm);
-	gr_palette_load(New_pal); //TODO FADE
 
 	Briefing_cursor = false;
 	Briefing_tab_stop = 0;
@@ -1130,6 +1131,8 @@ void start_screen(int screen_num)
 	Briefing_background_colors[1] = gr_find_closest_color_current(14, 14, 14);
 
 	Erase_color = gr_find_closest_color_current(0, 0, 0);
+
+	inferno_request_fade_in(New_pal);
 
 	Briefing_sceneend = false;
 
@@ -1149,189 +1152,191 @@ void briefing_frame()
 		start_screen(Pending_screen);
 		Pending_screen = -1;
 	}
-
-	//If there's still text to draw, draw one character
-	if (!Briefing_newpage && !Briefing_sceneend)
+	else //Need to delay this for one frame for the transition. 
 	{
-		//Need to run a loop in case the player is skipping the text. 
-		//Frame will be set to true when it's time to present a frame. 
-		bool frame = false;
-		while (!frame)
+		//If there's still text to draw, draw one character
+		if (!Briefing_newpage && !Briefing_sceneend)
 		{
-			int ch = *message_ptr++;
-			int prev_ch = -1;
-			if (ch == '$')
+			//Need to run a loop in case the player is skipping the text. 
+			//Frame will be set to true when it's time to present a frame. 
+			bool frame = false;
+			while (!frame)
 			{
-				ch = *message_ptr++;
-				if (ch == 'C')
+				int ch = *message_ptr++;
+				int prev_ch = -1;
+				if (ch == '$')
 				{
-					Current_color = get_message_num(&message_ptr) - 1;
-					prev_ch = 10;
+					ch = *message_ptr++;
+					if (ch == 'C')
+					{
+						Current_color = get_message_num(&message_ptr) - 1;
+						prev_ch = 10;
+					}
+					else if (ch == 'F') //	toggle flashing cursor
+					{
+						Briefing_cursor = !Briefing_cursor;
+						prev_ch = 10;
+						while (*message_ptr++ != 10)
+							;
+					}
+					else if (ch == 'T')
+					{
+						Briefing_tab_stop = get_message_num(&message_ptr);
+						prev_ch = 10;							//	read to eoln
+					}
+					else if (ch == 'R')
+					{
+						if (Robot_canv != NULL)
+						{
+							free(Robot_canv); Robot_canv = NULL;
+						}
+
+						init_spinning_robot();
+						Briefing_robot_num = get_message_num(&message_ptr);
+						prev_ch = 10;							//	read to eoln
+					}
+					else if (ch == 'N')
+					{
+						//--grs_bitmap	*bitmap_ptr;
+						if (Robot_canv != NULL)
+						{
+							free(Robot_canv); Robot_canv = NULL;
+						}
+
+						get_message_name(&message_ptr, Bitmap_name);
+						strcat(Bitmap_name, "#0");
+						Animating_bitmap_type = 0;
+						prev_ch = 10;
+					}
+					else if (ch == 'O')
+					{
+						if (Robot_canv != NULL)
+						{
+							free(Robot_canv); Robot_canv = NULL;
+						}
+
+						get_message_name(&message_ptr, Bitmap_name);
+						strcat(Bitmap_name, "#0");
+						Animating_bitmap_type = 1;
+						prev_ch = 10;
+					}
+					else if (ch == 'B')
+					{
+						char			bitmap_name[32];
+						grs_bitmap	guy_bitmap;
+						uint8_t			temp_palette[768];
+						int			iff_error;
+
+						if (Robot_canv != NULL)
+						{
+							free(Robot_canv); Robot_canv = NULL;
+						}
+
+						get_message_name(&message_ptr, bitmap_name);
+						strcat(bitmap_name, ".bbm");
+						guy_bitmap.bm_data = NULL;
+						iff_error = iff_read_bitmap(bitmap_name, &guy_bitmap, BM_LINEAR, temp_palette);
+						Assert(iff_error == IFF_NO_ERROR);
+
+						show_briefing_bitmap(&guy_bitmap);
+						free(guy_bitmap.bm_data);
+						prev_ch = 10;
+					}
+					else if (ch == 'S')
+					{
+						Briefing_sceneend = true;
+						frame = true;
+						/*int	keypress;
+						fix	start_time;
+						fix 	time_out_value;
+
+						start_time = timer_get_fixed_seconds();
+						start_time = timer_get_approx_seconds();
+						time_out_value = start_time + i2f(60 * 5);		// Wait 1 minute...
+
+						while ((keypress = local_key_inkey()) == 0) //	Wait for a key
+						{
+							if (timer_get_approx_seconds() > time_out_value)
+							{
+								keypress = 0;
+								break;					// Time out after 1 minute..
+							}
+							while (timer_get_fixed_seconds() < start_time + KEY_DELAY_DEFAULT / 2)
+							{
+								plat_present_canvas(*briefing_canvas, ASPECT_4_3);
+								plat_do_events();
+							};
+							flash_cursor(flashing_cursor);
+							show_spinning_robot_frame(robot_num);
+							show_bitmap_frame();
+							start_time += KEY_DELAY_DEFAULT / 2;
+						}
+
+		#ifndef NDEBUG
+						if (keypress == KEY_BACKSP)
+							Int3();
+		#endif
+						if (keypress == KEY_ESC)
+							rval = true;
+
+						flashing_cursor = 0;
+						done = true;*/
+					}
+					else if (ch == 'P') //	New page.
+					{
+						Briefing_newpage = true;
+						while (*message_ptr != 10)
+						{
+							message_ptr++;	//	drop carriage return after special escape sequence
+						}
+						message_ptr++;
+						prev_ch = 10;
+						frame = true;
+					}
 				}
-				else if (ch == 'F') //	toggle flashing cursor
+				else if (ch == '\t') //	Tab
 				{
-					Briefing_cursor = !Briefing_cursor;
-					prev_ch = 10;
+					if (Briefing_text_x - Briefing_bsp->text_ulx < Briefing_tab_stop)
+						Briefing_text_x = Briefing_bsp->text_ulx + Briefing_tab_stop;
+				}
+				else if ((ch == ';') && (prev_ch == 10))
+				{
 					while (*message_ptr++ != 10)
 						;
-				}
-				else if (ch == 'T')
-				{
-					Briefing_tab_stop = get_message_num(&message_ptr);
-					prev_ch = 10;							//	read to eoln
-				}
-				else if (ch == 'R')
-				{
-					if (Robot_canv != NULL)
-					{
-						free(Robot_canv); Robot_canv = NULL;
-					}
-
-					init_spinning_robot();
-					Briefing_robot_num = get_message_num(&message_ptr);
-					prev_ch = 10;							//	read to eoln
-				}
-				else if (ch == 'N')
-				{
-					//--grs_bitmap	*bitmap_ptr;
-					if (Robot_canv != NULL)
-					{
-						free(Robot_canv); Robot_canv = NULL;
-					}
-
-					get_message_name(&message_ptr, Bitmap_name);
-					strcat(Bitmap_name, "#0");
-					Animating_bitmap_type = 0;
 					prev_ch = 10;
 				}
-				else if (ch == 'O')
-				{
-					if (Robot_canv != NULL)
-					{
-						free(Robot_canv); Robot_canv = NULL;
-					}
-
-					get_message_name(&message_ptr, Bitmap_name);
-					strcat(Bitmap_name, "#0");
-					Animating_bitmap_type = 1;
-					prev_ch = 10;
-				}
-				else if (ch == 'B')
-				{
-					char			bitmap_name[32];
-					grs_bitmap	guy_bitmap;
-					uint8_t			temp_palette[768];
-					int			iff_error;
-
-					if (Robot_canv != NULL)
-					{
-						free(Robot_canv); Robot_canv = NULL;
-					}
-
-					get_message_name(&message_ptr, bitmap_name);
-					strcat(bitmap_name, ".bbm");
-					guy_bitmap.bm_data = NULL;
-					iff_error = iff_read_bitmap(bitmap_name, &guy_bitmap, BM_LINEAR, temp_palette);
-					Assert(iff_error == IFF_NO_ERROR);
-
-					show_briefing_bitmap(&guy_bitmap);
-					free(guy_bitmap.bm_data);
-					prev_ch = 10;
-				}
-				else if (ch == 'S')
-				{
-					Briefing_sceneend = true;
-					frame = true;
-					/*int	keypress;
-					fix	start_time;
-					fix 	time_out_value;
-
-					start_time = timer_get_fixed_seconds();
-					start_time = timer_get_approx_seconds();
-					time_out_value = start_time + i2f(60 * 5);		// Wait 1 minute...
-
-					while ((keypress = local_key_inkey()) == 0) //	Wait for a key
-					{
-						if (timer_get_approx_seconds() > time_out_value)
-						{
-							keypress = 0;
-							break;					// Time out after 1 minute..
-						}
-						while (timer_get_fixed_seconds() < start_time + KEY_DELAY_DEFAULT / 2)
-						{
-							plat_present_canvas(*briefing_canvas, ASPECT_4_3);
-							plat_do_events();
-						};
-						flash_cursor(flashing_cursor);
-						show_spinning_robot_frame(robot_num);
-						show_bitmap_frame();
-						start_time += KEY_DELAY_DEFAULT / 2;
-					}
-
-	#ifndef NDEBUG
-					if (keypress == KEY_BACKSP)
-						Int3();
-	#endif
-					if (keypress == KEY_ESC)
-						rval = true;
-
-					flashing_cursor = 0;
-					done = true;*/
-				}
-				else if (ch == 'P') //	New page.
-				{
-					Briefing_newpage = true;
-					while (*message_ptr != 10)
-					{
-						message_ptr++;	//	drop carriage return after special escape sequence
-					}
-					message_ptr++;
-					prev_ch = 10;
-					frame = true;
-				}
-			}
-			else if (ch == '\t') //	Tab
-			{
-				if (Briefing_text_x - Briefing_bsp->text_ulx < Briefing_tab_stop)
-					Briefing_text_x = Briefing_bsp->text_ulx + Briefing_tab_stop;
-			}
-			else if ((ch == ';') && (prev_ch == 10))
-			{
-				while (*message_ptr++ != 10)
-					;
-				prev_ch = 10;
-			}
-			else if (ch == '\\')
-			{
-				prev_ch = ch;
-			}
-			else if (ch == 10)
-			{
-				if (prev_ch != '\\')
+				else if (ch == '\\')
 				{
 					prev_ch = ch;
-					Briefing_text_y += 8;
-					Briefing_text_x = Briefing_bsp->text_ulx;
-					if (Briefing_text_y > Briefing_bsp->text_uly + Briefing_bsp->text_height)
+				}
+				else if (ch == 10)
+				{
+					if (prev_ch != '\\')
 					{
-						load_briefing_screen(Current_screen_num);
+						prev_ch = ch;
+						Briefing_text_y += 8;
 						Briefing_text_x = Briefing_bsp->text_ulx;
-						Briefing_text_y = Briefing_bsp->text_uly;
+						if (Briefing_text_y > Briefing_bsp->text_uly + Briefing_bsp->text_height)
+						{
+							load_briefing_screen(Current_screen_num);
+							Briefing_text_x = Briefing_bsp->text_ulx;
+							Briefing_text_y = Briefing_bsp->text_uly;
+						}
+					}
+					else
+					{
+						if (ch == 13)
+							Int3();
+						prev_ch = ch;
 					}
 				}
 				else
 				{
-					if (ch == 13)
-						Int3();
 					prev_ch = ch;
+					Briefing_text_x += show_char_delay(ch, Briefing_delay_count, Briefing_robot_num, Briefing_cursor);
+					if (Briefing_delay_count != 0)
+						frame = true;
 				}
-			}
-			else
-			{
-				prev_ch = ch;
-				Briefing_text_x += show_char_delay(ch, Briefing_delay_count, Briefing_robot_num, Briefing_cursor);
-				if (Briefing_delay_count != 0)
-					frame = true;
 			}
 		}
 	}
@@ -1369,6 +1374,7 @@ void briefing_frame()
 						Briefing_finished = true; //There wasn't any text for this scene.. should add a user facing error if this happens. 
 				}
 
+				inferno_request_fade_out(); //Start transition. This will happen even if the briefing is finished
 				Pending_screen = screen_num;
 			}
 		}

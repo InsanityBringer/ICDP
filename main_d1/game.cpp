@@ -1267,9 +1267,9 @@ void game_render_frame()
 	game_render_frame_mono();
 
 	// Make sure palette is faded in
-	stop_time();
-	gr_palette_fade_in(gr_palette, 32, 0);
-	start_time();
+
+	if (inferno_is_screen_faded())
+		inferno_request_fade_in(gr_palette);
 
 }
 
@@ -1940,6 +1940,7 @@ void game_start()
 	game_flush_inputs();
 
 	//The game should have been started with a pending mode, so get that going. 
+	Game_sub_mode = SUB_INDETERMINATE;
 	StartPendingMode();
 }
 
@@ -2072,20 +2073,23 @@ void game_frame()
 
 		//if (Function_mode != FMODE_GAME)
 		//	longjmp(LeaveGame, 0);
-
-		if (Game_sub_mode == SUB_GAME)
-		{
-			plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
-			grs_canvas* cockpit_canvas = get_cockpit_canvas();
-			if (cockpit_canvas)
-				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-			cockpit_canvas = get_hud_canvas();
-			if (cockpit_canvas)
-				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-		}
-		else if (Game_sub_mode == SUB_BRIEFING)
-			briefing_present();
 	}
+}
+
+void game_present()
+{
+	if (Game_sub_mode == SUB_GAME)
+	{
+		plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
+		grs_canvas* cockpit_canvas = get_cockpit_canvas();
+		if (cockpit_canvas)
+			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+		cockpit_canvas = get_hud_canvas();
+		if (cockpit_canvas)
+			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+	}
+	else if (Game_sub_mode == SUB_BRIEFING)
+		briefing_present();
 }
 
 void game_end()
@@ -2101,9 +2105,6 @@ void game_end()
 
 	if (Newdemo_state == ND_STATE_PLAYBACK)
 		newdemo_stop_playback();
-
-	//if (Function_mode != FMODE_EDITOR) //TODO fade
-	//	gr_palette_fade_out(gr_palette, 32, 0);			// Fade out before going to menu
 
 	clear_warn_func(game_show_warning);     //don't use this func anymore
 

@@ -549,6 +549,7 @@ bool difficulty_callback(int choice, int nitems, newmenu_item* items)
 
 		//gr_palette_fade_out(gr_palette, 32, 0);
 
+		inferno_request_fade_out();
 		StartNewGame(new_level_num);
 	}
 	return false; //this never stays up
@@ -619,6 +620,7 @@ static void do_initial_level()
 	}
 	else
 	{
+		new_level_num = 1;
 		do_difficulty_selection();
 	}
 }
