@@ -36,3 +36,6 @@ void inferno_request_fade_in(uint8_t* dest_palette);
 
 //Returns true if the screen has been faded out
 bool inferno_is_screen_faded();
+
+//Returns true if the screen is currently transitioning
+bool inferno_transitioning();

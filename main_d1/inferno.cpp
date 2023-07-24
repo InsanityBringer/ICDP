@@ -169,6 +169,11 @@ bool inferno_is_screen_faded()
 	return fade_present;
 }
 
+bool inferno_transitioning()
+{
+	return fade_started;
+}
+
 void inferno_fade_frame()
 {
 	if (fade_state == transition_state::fadeout)
@@ -556,7 +561,7 @@ int D_DescentMain(int argc, const char** argv)
 
 		newmenu_present();
 		plat_flip();
-		timer_mark_end(US_60FPS);
+		timer_mark_end(game_fps_limit_time());
 	}
 
 #if 0

@@ -101,6 +101,9 @@ void close_game(void);
 
 void calc_frame_time(void);
 
+//Returns the amount of microseconds to spend between frames.
+uint64_t game_fps_limit_time();
+
 #ifdef EDITOR
 void do_flythrough(object* obj, int first_time);
 void init_cockpit();

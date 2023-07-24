@@ -1473,6 +1473,8 @@ bool IntermissionFinished()
 
 void IntermissionFrame()
 {
+	if (inferno_is_screen_faded())
+		inferno_request_fade_in(gr_palette);
 }
 
 void FinishIntermission()

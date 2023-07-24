@@ -1371,27 +1371,33 @@ void briefing_frame()
 					message_ptr = get_briefing_message(Briefing_screens[screen_num].message_num);
 					if (!message_ptr)
 						Briefing_finished = true; //There wasn't any text for this scene.. should add a user facing error if this happens. 
+					else
+						inferno_request_fade_out(); //Start transition.
 				}
 
-				inferno_request_fade_out(); //Start transition. This will happen even if the briefing is finished
 				Pending_screen = screen_num;
 			}
 		}
 	}
 
-	//If waiting, limit the framerate, otherwise show_char_delay will
-	if (Briefing_newpage || Briefing_sceneend)
+	if (Briefing_finished)
+		inferno_request_fade_out(); //Done with the briefing, start transition
+	else
 	{
-		//Update any animating elements
-		flash_cursor(Briefing_cursor);
-		show_spinning_robot_frame(Briefing_robot_num);
-		show_bitmap_frame();
-
-		fix start_time = timer_get_fixed_seconds();
-		//This should try to sleep if possible. 
-		while (timer_get_fixed_seconds() < start_time + KEY_DELAY_DEFAULT / 2)
+		//If waiting, limit the framerate, otherwise show_char_delay will
+		if (Briefing_newpage || Briefing_sceneend)
 		{
-		};
+			//Update any animating elements
+			flash_cursor(Briefing_cursor);
+			show_spinning_robot_frame(Briefing_robot_num);
+			show_bitmap_frame();
+
+			fix start_time = timer_get_fixed_seconds();
+			//This should try to sleep if possible. 
+			while (timer_get_fixed_seconds() < start_time + KEY_DELAY_DEFAULT / 2)
+			{
+			};
+		}
 	}
 }
 

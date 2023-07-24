@@ -955,6 +955,17 @@ void calc_frame_time()
 		Min_trackable_dot = MIN_TRACKABLE_DOT;
 }
 
+uint64_t game_fps_limit_time()
+{
+	if (inferno_transitioning())
+		return US_70FPS;
+
+	else if (Function_mode == FMODE_GAME && Game_sub_mode == SUB_GAME)
+		return 1000000 / FPSLimit;
+
+	return US_60FPS;
+}
+
 //--unused-- int Auto_flythrough=0;  //if set, start flythough automatically
 
 void move_player_2_segment(segment* seg, int side)

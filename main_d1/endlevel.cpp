@@ -222,6 +222,7 @@ void start_endlevel_sequence()
 #endif
 
 		//gr_palette_fade_out(gr_palette, 32, 0);
+		inferno_request_fade_out();
 
 		PlayerFinishedLevel(0);		//don't do special sequence
 		return;
@@ -393,6 +394,7 @@ void stop_endlevel_sequence()
 {
 	g3_set_interpolation_mode(0);
 	//gr_palette_fade_out(gr_palette, 32, 0);
+	inferno_request_fade_out();
 	select_cockpit(cockpit_mode_save);
 	Endlevel_sequence = EL_OFF;
 	PlayerFinishedLevel(0);
