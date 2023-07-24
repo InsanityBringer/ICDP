@@ -245,7 +245,9 @@ void start_endlevel_sequence()
 			tunnel_length++;
 		} while (segnum >= 0);
 
-		if (segnum != -2) {
+		if (segnum != -2) 
+		{
+			inferno_request_fade_out();
 			PlayerFinishedLevel(0);		//don't do special sequence
 			return;
 		}

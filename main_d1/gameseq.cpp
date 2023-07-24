@@ -848,6 +848,8 @@ void DoEndLevelScoreGlitz(int network)
 //True if the intermission is for a secret level, and should show the message. 
 static bool Inter_secret_flag; 
 
+static bool Inter_died_in_mine;
+
 int AdvanceLevel(int secret_flag); //[ISB] this probably has killed a million kitties at this point tbh
 
 //called when the player has finished a level
@@ -1001,25 +1003,25 @@ int AdvanceLevel(int secret_flag)
 	return 0;
 }
 
+bool died_in_mine_handler(int choice, int nitems, newmenu_item* items)
+{
+	DoEndLevelScoreGlitz(0);
+	return false;
+}
+
 void died_in_mine_message(void)
 {
 	// Tell the player he died in the mine, explain why
-	int old_fmode, pcx_error;
+	int pcx_error;
 
 	if (Game_mode & GM_MULTI)
 		return;
 
-	gr_palette_fade_out(gr_palette, 32, 0);
-
-	gr_set_current_canvas(VR_screen_buffer);
+	gr_set_current_canvas(nm_canvas);
 
 	pcx_error = pcx_read_bitmap("STARS.PCX", &grd_curcanv->cv_bitmap, grd_curcanv->cv_bitmap.bm_type, NULL);
 	Assert(pcx_error == PCX_ERROR_NONE);
-
-	old_fmode = Function_mode;
-	Function_mode = FMODE_MENU;
-	nm_messagebox(NULL, 1, TXT_OK, TXT_DIED_IN_MINE);
-	Function_mode = old_fmode;
+	nm_open_messagebox(nullptr, died_in_mine_handler, 1, TXT_OK, TXT_DIED_IN_MINE);
 }
 
 //called when the player has died
@@ -1067,13 +1069,23 @@ void DoPlayerDead()
 	{
 		int	rval;
 
+		Inter_secret_flag = false;
+		Inter_died_in_mine = true;
+		Pending_sub_mode = SUB_INTERMISSION;
+		newmenu_close_all();
+
 		//clear out stuff so no bonus
 		Players[Player_num].hostages_on_board = 0;
 		Players[Player_num].energy = 0;
 		Players[Player_num].shields = 0;
 		Players[Player_num].connected = 3;
 
-		died_in_mine_message(); // Give them some indication of what happened
+		//init_player_stats_new_ship();
+		last_drawn_cockpit = -1;
+
+		inferno_request_fade_out(); //will be faded in by intermission code
+
+		/*died_in_mine_message(); // Give them some indication of what happened
 
 		if (Current_level_num == Last_level) 
 		{
@@ -1110,7 +1122,7 @@ void DoPlayerDead()
 			if (Current_mission_num == 0)
 				scores_maybe_add_player(0);
 			longjmp(LeaveGame, 0);		// Exit out of game loop
-		}
+		}*/
 	}
 	else 
 	{
@@ -1457,7 +1469,11 @@ void StartIntermission()
 
 		newmenu_open(nullptr, TXT_SECRET_EXIT, 1, m, nullptr, SecretLevelDialogCallback, 0, "MENU.PCX");
 	}
-	else //If you did go to the secret level, the callback will start the intermission screen
+	else if (!(Game_mode & GM_MULTI) && Inter_died_in_mine)
+	{
+		died_in_mine_message();
+	}
+	else //If you did go to the secret level or died, the callback will start the intermission screen
 	{
 		DoEndLevelScoreGlitz(0);
 	}
@@ -1482,6 +1498,12 @@ void FinishIntermission()
 	IntermissionStarted = false;
 	//Now it's safe to advance the level
 	AdvanceLevel(Inter_secret_flag);
+
+	if (Inter_died_in_mine)
+	{
+		init_player_stats_new_ship();
+		Inter_died_in_mine = false;
+	}
 
 	newmenu_close_all(); //Close the window that serves as the intermission screen. 
 }

@@ -139,8 +139,6 @@ int cfg_render_width = 320, cfg_render_height = 200;
 int cfg_aspect_ratio = GAMEASPECT_AUTO;
 int Game_aspect_mode = GAMEASPECT_AUTO;
 
-int Debug_pause = 0;				//John's debugging pause system
-
 int Cockpit_mode = CM_FULL_COCKPIT;		//set game.h for values
 int old_cockpit_mode = -1;
 int force_cockpit_redraw = 0;
@@ -924,27 +922,6 @@ void calc_frame_time()
 	if (fixed_frametime) FrameTime = fixed_frametime;
 #endif
 
-#ifndef NDEBUG
-	// Pause here!!!
-	if (Debug_pause)
-	{
-		int c;
-		c = 0;
-		while (c == 0)
-		{
-			plat_do_events();
-			c = key_peekkey();
-		}
-
-		if (c == KEY_P) 
-		{
-			Debug_pause = 0;
-			c = key_inkey();
-		}
-		last_timer_value = timer_get_fixed_seconds();
-	}
-#endif
-
 	//	Set value to determine whether homing missile can see target.
 	//	The lower frametime is, the more likely that it can see its target.
 	if (FrameTime <= F1_0 / 16)
@@ -1008,7 +985,8 @@ void draw_window_label()
 		default:					viewer_name = "Unknown"; break;
 		}
 
-		switch (Viewer->control_type) {
+		switch (Viewer->control_type) 
+		{
 		case CT_NONE:			control_name = "Stopped"; break;
 		case CT_AI:				control_name = "AI"; break;
 		case CT_FLYING:		control_name = "Flying"; break;
@@ -1113,15 +1091,6 @@ void game_draw_hud_stuff()
 	grs_canvas* save = grd_curcanv;
 	gr_set_current_canvas(get_hud_render_canvas());
 	gr_clear_canvas(255); //HUD is now on its own canvas, so it needs to be cleared before drawing
-
-#ifndef NDEBUG
-	if (Debug_pause)
-	{
-		gr_set_curfont(HELP_FONT);
-		gr_set_fontcolor(gr_getcolor(31, 31, 31), -1); // gr_getcolor(31,0,0));
-		gr_ustring(0x8000, 85 / 2, "Debug Pause - Press P to exit");
-	}
-#endif
 
 #ifdef RESTORE_REPAIRCENTER
  	if (RepairObj) 
@@ -2745,8 +2714,6 @@ void ReadControls()
 		case KEY_DEBUGGED + KEY_COMMA: Render_zoom = fixmul(Render_zoom, 62259); break;
 		case KEY_DEBUGGED + KEY_PERIOD: Render_zoom = fixmul(Render_zoom, 68985); break;
 
-		case KEY_DEBUGGED + KEY_P + KEY_SHIFTED: Debug_pause = 1; break;
-
 #ifndef NDEBUG
 		case KEY_DEBUGGED + KEY_F8: speedtest_init(); Speedtest_count = 1;	break;
 		case KEY_DEBUGGED + KEY_F9: speedtest_init(); Speedtest_count = 10;	break;
@@ -2884,6 +2851,15 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 	{ // Note the link to above!
 
 		Players[Player_num].homing_object_dist = -1;		//	Assume not being tracked.  Laser_do_weapon_sequence modifies this.
+
+		//If we're about to start the intermission, don't complete running the frame.
+		//This is to resolve some serious spaghetti with the death sequence. dead_player_frame() above will kick off the intermission sequence.
+		//But unlike the original, where this would stall the game loop until the next level starts, this lets the rest of the loop run.
+		//But object_move_all() will simply rekill the player in this case..
+
+		//Please fix me. 
+		if (Pending_sub_mode != SUB_INDETERMINATE)
+			return;
 
 		object_move_all();
 		powerup_grab_cheat_all();
