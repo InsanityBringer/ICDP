@@ -202,8 +202,11 @@ void nm_list::frame()
 	if (items.size() <= LB_ITEMS_ON_SCREEN)
 		first_item = 0;
 
-	if (first_item > items.size() - LB_ITEMS_ON_SCREEN)
-		first_item = items.size() - LB_ITEMS_ON_SCREEN;
+	//Bad hack: this logic doesn't work correctly with items.size() because size_t is unsigned.
+	//Chances are though that I'll never see a list with more than 2.1 billion items. 
+	int size_hack = items.size();
+	if (first_item > size_hack - LB_ITEMS_ON_SCREEN)
+		first_item = size_hack - LB_ITEMS_ON_SCREEN;
 	if (first_item < 0) first_item = 0;
 
 	if ((ofirst_item != first_item) || redraw)
