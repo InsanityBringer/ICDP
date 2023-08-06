@@ -70,9 +70,6 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "newmenu.h"
 #include "endlevel.h"
 #include "network.h"
-#ifdef ARCADE
-#include "arcade.h"
-#endif
 #include "playsave.h"
 #include "ctype.h"
 #include "multi.h"

@@ -23,13 +23,14 @@ struct TEXTURE_CACHE
 	grs_bitmap* bottom_bmp;
 	grs_bitmap* top_bmp;
 	int 		orient;
-	int		last_frame_used;
+	int			last_frame_used;
 };
 
 class Texmerge
 {
 	TEXTURE_CACHE Cache[MAX_NUM_CACHE_BITMAPS];
 
+	int	merge_count = 0;
 	int num_cache_entries = 0;
 
 	int cache_hits = 0;
