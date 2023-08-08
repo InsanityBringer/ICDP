@@ -67,22 +67,83 @@ nm_list::nm_list(const char* title, std::vector<char*>& newitems, bool allow_abo
 	citem = default_item;
 	if (citem < 0) citem = 0;
 	if (citem >= items.size()) citem = 0;
+	ocitem = default_item;
 
 	first_item = -1;
+	ofirst_item = first_item;
 	saved = nullptr;
+	background_drawn = false;
 }
 
 void nm_list::draw()
 {
-	nm_window::draw();
-	gr_set_current_canvas(nm_canvas);
-	grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_3];
+	if (!background_drawn)
+	{
+		nm_window::draw();
+		gr_set_current_canvas(nm_canvas);
+		grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_3];
 
-	saved = gr_create_bitmap(grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
-	gr_bm_bitblt(320, 200, 0, 0, 0, 0, &(grd_curcanv->cv_bitmap), saved);
-	nm_draw_background(wx - 15, wy - title_height - 15, wx + width + 15, wy + height + 15);
+		saved = gr_create_bitmap(grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
+		gr_bm_bitblt(320, 200, 0, 0, 0, 0, &(grd_curcanv->cv_bitmap), saved);
+		nm_draw_background(wx - 15, wy - title_height - 15, wx + width + 15, wy + height + 15);
 
-	gr_string(0x8000, wy - title_height, title_str.c_str());
+		gr_string(0x8000, wy - title_height, title_str.c_str());
+		background_drawn = true;
+	}
+
+	if ((ofirst_item != first_item)/* || redraw*/)
+	{
+		gr_setcolor(BM_XRGB(0, 0, 0));
+		for (int i = first_item; i < first_item + LB_ITEMS_ON_SCREEN; i++)
+		{
+			int w, h, aw, y;
+			y = (i - first_item) * 12 + wy;
+			if (i >= items.size())
+			{
+				gr_setcolor(BM_XRGB(0, 0, 0));
+				gr_rect(wx, y - 1, wx + width - 1, y + 11);
+			}
+			else
+			{
+				if (i == citem)
+					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
+				else
+					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
+				gr_get_string_size(items[i], &w, &h, &aw);
+				gr_rect(wx, y - 1, wx + width - 1, y + 11);
+				gr_string(wx + 5, y, items[i]);
+			}
+		}
+	}
+	else if (citem != ocitem)
+	{
+		int w, h, aw, y;
+
+		int i = ocitem;
+		if ((i >= 0) && (i < items.size()))
+		{
+			y = (i - first_item) * 12 + wy;
+			if (i == citem)
+				grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
+			else
+				grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
+			gr_get_string_size(items[i], &w, &h, &aw);
+			gr_rect(wx, y - 1, wx + width - 1, y + 11);
+			gr_string(wx + 5, y, items[i]);
+		}
+		i = citem;
+		if ((i >= 0) && (i < items.size()))
+		{
+			y = (i - first_item) * 12 + wy;
+			if (i == citem)
+				grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
+			else
+				grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
+			gr_get_string_size(items[i], &w, &h, &aw);
+			gr_rect(wx, y - 1, wx + width - 1, y + 11);
+			gr_string(wx + 5, y, items[i]);
+		}
+	}
 }
 
 void nm_list::frame()
@@ -90,8 +151,8 @@ void nm_list::frame()
 	bool done = false;
 	bool redraw = false;
 
-	int ocitem = citem;
-	int ofirst_item = first_item;
+	ocitem = citem;
+	ofirst_item = first_item;
 	int key = 0;
 
 	//if (listbox_callback) //never used
@@ -209,7 +270,7 @@ void nm_list::frame()
 		first_item = size_hack - LB_ITEMS_ON_SCREEN;
 	if (first_item < 0) first_item = 0;
 
-	if ((ofirst_item != first_item) || redraw)
+	/*if ((ofirst_item != first_item) || redraw)
 	{
 		gr_setcolor(BM_XRGB(0, 0, 0));
 		for (int i = first_item; i < first_item + LB_ITEMS_ON_SCREEN; i++)
@@ -261,7 +322,7 @@ void nm_list::frame()
 			gr_rect(wx, y - 1, wx + width - 1, y + 11);
 			gr_string(wx + 5, y, items[i]);
 		}
-	}
+	}*/
 }
 
 void nm_list::cleanup()

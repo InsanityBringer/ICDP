@@ -2146,9 +2146,10 @@ bool AbortGameCallback(int choice, int nitems, newmenu_item* items)
 		{
 			Game_aborted = true;
 			inferno_request_fade_out();
+			return true; //This stays on screen so it's visible during the fadeout. The function mode change will kill it. 
 		}
 	}
-	return true; //This stays on screen so it's visible during the fadeout. The function mode change will kill it. 
+	return false; 
 }
 
 void ReadControls()

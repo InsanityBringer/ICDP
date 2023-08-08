@@ -176,30 +176,96 @@ nm_filelist::nm_filelist(const char* newtitle, const char* filespec, void (*sele
 
 	pending_delete = false;
 	pending_delete_num = 0;
+
+	ofirst_item = first_item;
+	ocitem = citem;
+	redraw = false;
+	background_drawn = false;
 }
 
 void nm_filelist::draw()
 {
 	nm_window::draw();
-	// Save the background under the menu...
-	//TODO: Since the file list doesn't use a sub canvas, this creates a large region than expected. 
-	bg.saved = gr_create_bitmap(nm_canvas->cv_bitmap.bm_w, nm_canvas->cv_bitmap.bm_h);
-	Assert(bg.saved != NULL);
-	gr_set_current_canvas(nm_canvas);
-	gr_bm_bitblt(nm_canvas->cv_bitmap.bm_w, nm_canvas->cv_bitmap.bm_h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.saved);
 
-	nm_draw_background(w_x, w_y, w_x + w_w - 1, w_y + w_h - 1);
+	if (!background_drawn)
+	{
+		// Save the background under the menu...
+		//TODO: Since the file list doesn't use a sub canvas, this creates a large region than expected. 
+		bg.saved = gr_create_bitmap(nm_canvas->cv_bitmap.bm_w, nm_canvas->cv_bitmap.bm_h);
+		Assert(bg.saved != NULL);
+		gr_set_current_canvas(nm_canvas);
+		gr_bm_bitblt(nm_canvas->cv_bitmap.bm_w, nm_canvas->cv_bitmap.bm_h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.saved);
 
-	grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_3];
-	gr_string(0x8000, w_y + 10, title.c_str());
+		nm_draw_background(w_x, w_y, w_x + w_w - 1, w_y + w_h - 1);
+
+		grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_3];
+		gr_string(0x8000, w_y + 10, title.c_str());
+		background_drawn = true;
+	}
+
+	if (ofirst_item != first_item || redraw)
+	{
+		gr_setcolor(BM_XRGB(0, 0, 0));
+		for (int i = first_item; i < first_item + NumFiles_displayed; i++)
+		{
+			int w, h, aw, y;
+			y = (i - first_item) * 12 + w_y + 45;
+			if (i >= NumFiles)
+			{
+				gr_setcolor(BM_XRGB(0, 0, 0));
+				gr_rect(100, y - 1, 220, y + 11);
+			}
+			else
+			{
+				if (i == citem)
+					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
+				else
+					grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
+				gr_get_string_size(files[i].displayname.c_str(), &w, &h, &aw);
+				gr_rect(100, y - 1, 220, y + 11);
+				//gr_string(105, y, (&filenames[i * 14]) + ((player_mode && filenames[i * 14] == '$') ? 1 : 0));
+				gr_string(105, y, files[i].get_display_name());
+			}
+		}
+	}
+	else if (citem != ocitem)
+	{
+		int w, h, aw, y;
+
+		int i = ocitem;
+		if ((i >= 0) && (i < NumFiles))
+		{
+			y = (i - first_item) * 12 + w_y + 45;
+			if (i == citem)
+				grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
+			else
+				grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
+			gr_get_string_size(files[i].displayname.c_str(), &w, &h, &aw);
+			gr_rect(100, y - 1, 220, y + 11);
+			//gr_string(105, y, (&filenames[i * 14]) + ((player_mode && filenames[i * 14] == '$') ? 1 : 0));
+			gr_string(105, y, files[i].get_display_name());
+		}
+		i = citem;
+		if ((i >= 0) && (i < NumFiles))
+		{
+			y = (i - first_item) * 12 + w_y + 45;
+			if (i == citem)
+				grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_2];
+			else
+				grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_1];
+			gr_get_string_size(files[i].displayname.c_str(), &w, &h, &aw);
+			gr_rect(100, y - 1, 220, y + 11);
+			gr_string(105, y, files[i].get_display_name());
+		}
+	}
 }
 
 void nm_filelist::frame()
 {
 	bool done = false;
-	int ocitem = citem;
-	int ofirst_item = first_item;
-	bool redraw = false;
+	ocitem = citem;
+	ofirst_item = first_item;
+	redraw = false;
 
 	gr_set_current_canvas(nm_canvas);
 
@@ -357,7 +423,7 @@ void nm_filelist::frame()
 			first_item = NumFiles - NumFiles_displayed;
 		if (first_item < 0) first_item = 0;
 
-		if (ofirst_item != first_item || redraw)
+		/*if (ofirst_item != first_item || redraw)
 		{
 			gr_setcolor(BM_XRGB(0, 0, 0));
 			for (int i = first_item; i < first_item + NumFiles_displayed; i++)
@@ -411,7 +477,7 @@ void nm_filelist::frame()
 				gr_rect(100, y - 1, 220, y + 11);
 				gr_string(105, y, files[i].get_display_name());
 			}
-		}
+		}*/
 	}
 }
 

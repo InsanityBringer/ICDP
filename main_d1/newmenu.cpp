@@ -397,13 +397,18 @@ int newmenu_do2(const char* title, const char* subtitle, int nitems, newmenu_ite
 	return newmenu_do3(title, subtitle, nitems, item, subfunction, citem, filename, -1, -1);
 }
 
+void newmenu_open_window(std::unique_ptr<nm_window>&& window)
+{
+	if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
+		game_pause(true);
+
+	//window->draw(); //Paint the background for the window
+	nm_queued_windows.push(std::move(window));
+}
 
 void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
-	//TODO: Centralize this
-	if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
-		game_pause(true);
-	nm_queued_windows.push(std::make_unique<nm_menu>(items, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
+	newmenu_open_window(std::make_unique<nm_menu>(items, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
 }
 
 void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_item* items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
@@ -412,10 +417,7 @@ void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_i
 	for (int i = 0; i < nitems; i++)
 		itemclone.push_back(items[i]);
 
-	//TODO: Centralize this
-	if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
-		game_pause(true);
-	nm_queued_windows.push(std::make_unique<nm_menu>(itemclone, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
+	newmenu_open_window(std::make_unique<nm_menu>(itemclone, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
 }
 
 //Simple callback for purely informative message boxes
@@ -458,15 +460,30 @@ void nm_open_messagebox(const char* title, bool (*callback)(int choice, int nite
 
 void newmenu_open_filepicker(const char* title, const char* filespec, int allow_abort_flag, void (*callback)(std::string& str, int num))
 {
-	nm_queued_windows.push(std::make_unique<nm_filelist>(title, filespec, callback, allow_abort_flag));
-	//TODO: Centralize this
-	if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
-		game_pause(true);
+	newmenu_open_window(std::make_unique<nm_filelist>(title, filespec, callback, allow_abort_flag));
 }
 
 void newmenu_frame()
 {
 	bool did_frame = false;
+
+	while (!nm_open_windows.empty() && !did_frame)
+	{
+		std::unique_ptr<nm_window>& top = nm_open_windows.top();
+		
+		if (!top->is_closing())
+		{
+			top->frame(); //Run the window frame. 
+			top->draw();
+		}
+		did_frame = true;
+	}
+}
+
+//Draws or redraws the currently open window, if needed.
+//This is done as a separate stage because the game code may have created a window after running the newmenu frame. 
+void newmenu_draw()
+{
 	//Cleanup and pop any closed windows from the stack
 	bool cleanup = true;
 
@@ -479,7 +496,7 @@ void newmenu_frame()
 		{
 			top->cleanup();
 			nm_open_windows.pop(); //kill it, and then loop to check the next window.
-			was_open = true; 
+			was_open = true;
 		}
 		else
 		{
@@ -491,26 +508,21 @@ void newmenu_frame()
 	while (!nm_queued_windows.empty())
 	{
 		std::unique_ptr<nm_window>& front = nm_queued_windows.front();
+		front->draw(); //Draw the background
 		nm_open_windows.push(std::move(front));
 		nm_queued_windows.pop();
-	}
-
-	while (!nm_open_windows.empty() && !did_frame)
-	{
-		std::unique_ptr<nm_window>& top = nm_open_windows.top();
-		
-		//Drawing should be delayed, otherwise opening a window while closing the current won't work right
-		if (top->must_draw())
-			top->draw();
-
-		top->frame(); //Run the window frame. 
-		did_frame = true;
 	}
 
 	//If any windows were killed this frame, check if the game should be unpaused. 
 	if (was_open && nm_queued_windows.empty() && nm_open_windows.empty())
 		if (Function_mode == FMODE_GAME && !(Game_mode & GM_MULTI))
 			game_pause(false);
+
+	/*if (!nm_open_windows.empty())
+	{
+		std::unique_ptr<nm_window>& top = nm_open_windows.top();
+		top->draw();
+	}*/
 }
 
 void newmenu_present()
@@ -625,12 +637,12 @@ void newmenu_open_listbox(const char* title, int nitems, char* items[], bool all
 		itemsclone.push_back(items[i]);
 	}
 
-	nm_queued_windows.push(std::make_unique<nm_list>(title, itemsclone, allow_abort_flag, default_item, callback));
+	newmenu_open_window(std::make_unique<nm_list>(title, itemsclone, allow_abort_flag, default_item, callback));
 }
 
 void newmenu_open_listbox(const char* title, std::vector<char*> items, bool allow_abort_flag, void (*callback)(int choice), int default_item)
 {
-	nm_queued_windows.push(std::make_unique<nm_list>(title, items, allow_abort_flag, default_item, callback));
+	newmenu_open_window(std::make_unique<nm_list>(title, items, allow_abort_flag, default_item, callback));
 }
 
 #define LB_ITEMS_ON_SCREEN 8

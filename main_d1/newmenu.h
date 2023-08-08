@@ -96,6 +96,10 @@ void newmenu_init();
 //Does a frame of the menu system
 void newmenu_frame();
 
+//Draws or redraws the currently open window, if needed.
+//This is done as a separate stage because the game code may have created a window after running the newmenu frame. 
+void newmenu_draw();
+
 //Presents the currently drawn menu to the screen
 void newmenu_present();
 

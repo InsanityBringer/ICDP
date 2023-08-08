@@ -105,8 +105,8 @@ char	Current_level_name[LEVEL_NAME_LEN];
 int Last_level, Last_secret_level;
 
 // Global variables describing the player
-int 				N_players = 1;						// Number of players ( >1 means a net game, eh?)
-int 				Player_num = 0;						// The player number who is on the console.
+int 			N_players = 1;						// Number of players ( >1 means a net game, eh?)
+int 			Player_num = 0;						// The player number who is on the console.
 player			Players[MAX_PLAYERS];			// Misc player info
 obj_position	Player_init[MAX_PLAYERS];
 
@@ -504,7 +504,8 @@ void create_player_appearance_effect(object* player_obj)
 
 	effect_obj = object_create_explosion(player_obj->segnum, &pos, player_obj->size, VCLIP_PLAYER_APPEARANCE);
 
-	if (effect_obj) {
+	if (effect_obj) 
+	{
 		effect_obj->orient = player_obj->orient;
 
 		if (Vclip[VCLIP_PLAYER_APPEARANCE].sound_num > -1)

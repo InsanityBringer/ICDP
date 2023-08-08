@@ -146,6 +146,7 @@ nm_menu::nm_menu(std::vector<newmenu_item>& source_items, const char* new_title,
 
 	bg = {};
 	all_text = false;
+	background_drawn = false;
 	choice_callback = choicefunc;
 	newmenu_callback = subfunction;
 
@@ -379,54 +380,72 @@ void nm_menu::draw()
 {
 	nm_window::draw();
 
-	if (!bg_filename.empty())
-		nm_draw_background1(bg_filename.c_str());
-
-	// Save the background of the display
-	bg.menu_canvas = gr_create_sub_canvas(nm_canvas, x, y, w, h);
-	gr_set_current_canvas(bg.menu_canvas);
-
-	if (bg_filename.empty())
+	if (!background_drawn)
 	{
-		// Save the background under the menu...
-		bg.saved = gr_create_bitmap(w, h);
-		Assert(bg.saved != NULL);
-		gr_bm_bitblt(w, h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.saved);
-		gr_set_current_canvas(nm_canvas);
-		nm_draw_background(x, y, x + w - 1, y + h - 1);
-		bg.background = gr_create_sub_bitmap(&nm_background, 0, 0, w, h);
+		if (!bg_filename.empty())
+			nm_draw_background1(bg_filename.c_str());
+
+		// Save the background of the display
+		bg.menu_canvas = gr_create_sub_canvas(nm_canvas, x, y, w, h);
 		gr_set_current_canvas(bg.menu_canvas);
-	}
-	else
-	{
-		bg.saved = NULL;
-		bg.background = gr_create_bitmap(w, h);
-		Assert(bg.background != NULL);
-		gr_bm_bitblt(w, h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.background);
+
+		if (bg_filename.empty())
+		{
+			// Save the background under the menu...
+			bg.saved = gr_create_bitmap(w, h);
+			Assert(bg.saved != NULL);
+			gr_bm_bitblt(w, h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.saved);
+			gr_set_current_canvas(nm_canvas);
+			nm_draw_background(x, y, x + w - 1, y + h - 1);
+			bg.background = gr_create_sub_bitmap(&nm_background, 0, 0, w, h);
+			gr_set_current_canvas(bg.menu_canvas);
+		}
+		else
+		{
+			bg.saved = NULL;
+			bg.background = gr_create_bitmap(w, h);
+			Assert(bg.background != NULL);
+			gr_bm_bitblt(w, h, 0, 0, 0, 0, &grd_curcanv->cv_bitmap, bg.background);
+		}
+
+		int ty = 15;
+
+		if (title.size() > 0)
+		{
+			grd_curcanv->cv_font = TITLE_FONT;
+			gr_set_fontcolor(GR_GETCOLOR(31, 31, 31), -1);
+			gr_get_string_size(title.c_str(), &string_width, &string_height, &average_width);
+			tw = string_width;
+			th = string_height;
+			gr_printf(0x8000, ty, title.c_str());
+			ty += th;
+		}
+
+		if (subtitle.size() > 0)
+		{
+			grd_curcanv->cv_font = SUBTITLE_FONT;
+			gr_set_fontcolor(GR_GETCOLOR(21, 21, 21), -1);
+			gr_get_string_size(subtitle.c_str(), &string_width, &string_height, &average_width);
+			tw = string_width;
+			th = string_height;
+			gr_printf(0x8000, ty, subtitle.c_str());
+			ty += th;
+		}
+
+		background_drawn = true;
 	}
 
-	int ty = 15;
-
-	if (title.size() > 0)
+	gr_set_current_canvas(bg.menu_canvas);
+	// Redraw everything...
+	for (int i = 0; i < items.size(); i++)
 	{
-		grd_curcanv->cv_font = TITLE_FONT;
-		gr_set_fontcolor(GR_GETCOLOR(31, 31, 31), -1);
-		gr_get_string_size(title.c_str(), &string_width, &string_height, &average_width);
-		tw = string_width;
-		th = string_height;
-		gr_printf(0x8000, ty, title.c_str());
-		ty += th;
-	}
-
-	if (subtitle.size() > 0)
-	{
-		grd_curcanv->cv_font = SUBTITLE_FONT;
-		gr_set_fontcolor(GR_GETCOLOR(21, 21, 21), -1);
-		gr_get_string_size(subtitle.c_str(), &string_width, &string_height, &average_width);
-		tw = string_width;
-		th = string_height;
-		gr_printf(0x8000, ty, subtitle.c_str());
-		ty += th;
+		if (items[i].redraw)
+		{
+			draw_item(&bg, &items[i], (i == choice && !all_text), tiny);
+			items[i].redraw = 0;
+		}
+		else if (i == choice && (items[i].type == NM_TYPE_INPUT || (items[i].type == NM_TYPE_INPUT_MENU && items[i].group)))
+			update_cursor(&items[i]);
 	}
 }
 
@@ -439,9 +458,10 @@ void nm_menu::frame()
 	if (!event_available() && newmenu_callback)
 		(*newmenu_callback)(items.size(), items.data(), &k, choice);
 
-	gr_set_current_canvas(bg.menu_canvas);
+	//gr_set_current_canvas(bg.menu_canvas);
 
 	//Does this ever get executed
+	//[ISB] Yes, the callback can set a special key to close the menu. Need to support this
 	/*if (k < -1)
 	{
 		choice = k;
@@ -700,7 +720,7 @@ void nm_menu::frame()
 		}
 	}
 
-	gr_set_current_canvas(bg.menu_canvas);
+	/*gr_set_current_canvas(bg.menu_canvas);
 	// Redraw everything...
 	for (int i = 0; i < items.size(); i++)
 	{
@@ -711,7 +731,7 @@ void nm_menu::frame()
 		}
 		else if (i == choice && (items[i].type == NM_TYPE_INPUT || (items[i].type == NM_TYPE_INPUT_MENU && items[i].group)))
 			update_cursor(&items[i]);
-	}
+	}*/
 
 	if (done) //A choice was made
 	{

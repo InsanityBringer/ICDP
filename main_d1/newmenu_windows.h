@@ -46,7 +46,7 @@ class nm_menu : public nm_window
 	int choice, old_choice;
 	int tw, th;
 	int w, h, x, y;
-	bool tiny, all_text;
+	bool tiny, all_text, background_drawn;
 	bkg bg;
 	int string_width, string_height, average_width;
 
@@ -115,16 +115,16 @@ class nm_filelist : public nm_window
 	std::vector<newmenu_fileentry> files;
 	int NumFiles;
 	int NumFiles_displayed = 8;
-	int first_item = -1;
+	int first_item = -1, ofirst_item;
 	bool player_mode = false;
 	bool demo_mode = false;
 	int demos_deleted = 0;
 	int initialized = 0;
 	int exit_value = 0;
 	int w_x, w_y, w_w, w_h;
-	int citem;
+	int citem, ocitem;
 	bkg bg;
-	bool allow_abort_flag;
+	bool allow_abort_flag, background_drawn, redraw;
 
 	std::string title;
 	char localized_filespec[CHOCOLATE_MAX_FILE_PATH_SIZE];
@@ -149,12 +149,12 @@ class nm_list : public nm_window
 	int wy;
 	int width;
 	int height;
-	int citem;
+	int citem, ocitem;
 	int title_height;
-	bool allow_abort_flag;
+	bool allow_abort_flag, background_drawn;
 	std::vector<char*> items;
 	std::string title_str;
-	int first_item;
+	int first_item, ofirst_item;
 	grs_bitmap* saved;
 	void (*selected)(int choice);
 public:

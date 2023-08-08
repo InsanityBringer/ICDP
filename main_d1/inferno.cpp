@@ -542,6 +542,9 @@ int D_DescentMain(int argc, const char** argv)
 					break;
 				}
 			}
+
+			//If the game opened a menu, it needs to be drawn late.
+			newmenu_draw();
 		}
 
 		//run a frame of the fade system
