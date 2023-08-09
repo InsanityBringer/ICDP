@@ -852,7 +852,9 @@ static bool Inter_secret_flag;
 
 static bool Inter_died_in_mine;
 
-int AdvanceLevel(int secret_flag); //[ISB] this probably has killed a million kitties at this point tbh
+int AdvanceLevel(int secret_flag);
+
+extern bool do_end_game(void);
 
 //called when the player has finished a level
 void PlayerFinishedLevel(int secret_flag)
@@ -861,7 +863,22 @@ void PlayerFinishedLevel(int secret_flag)
 	int 	was_multi = 0;
 
 	Inter_secret_flag = !!secret_flag;
-	Pending_sub_mode = SUB_INTERMISSION;
+	//Handle the last level. Don't do this in multiplayer, though.
+	if (Current_level_num == Last_level && !(Game_mode & GM_MULTI))
+	{
+		if ((Newdemo_state == ND_STATE_RECORDING) || (Newdemo_state == ND_STATE_PAUSED))
+			newdemo_stop_recording();
+
+		songs_play_song(SONG_ENDGAME, 0);
+		if (do_end_game())
+			Pending_sub_mode = SUB_BRIEFING;
+		else
+			Pending_sub_mode = SUB_INTERMISSION;
+	}
+	else
+	{
+		Pending_sub_mode = SUB_INTERMISSION;
+	}
 	newmenu_close_all();
 
 	//credit the player for hostages
@@ -936,9 +953,6 @@ void PlayerFinishedLevel(int secret_flag)
 	*/
 }
 
-
-extern void do_end_game(void);
-
 //from which level each do you get to each secret level 
 int Secret_level_table[MAX_SECRET_LEVELS_PER_MISSION];
 
@@ -968,23 +982,26 @@ int AdvanceLevel(int secret_flag)
 	if (Current_level_num == Last_level) //player has finished the game!
 	{
 		Function_mode = FMODE_MENU;
-		if ((Newdemo_state == ND_STATE_RECORDING) || (Newdemo_state == ND_STATE_PAUSED))
+		Game_mode = GM_GAME_OVER;
+		/*if ((Newdemo_state == ND_STATE_RECORDING) || (Newdemo_state == ND_STATE_PAUSED))
 			newdemo_stop_recording();
 
 		songs_play_song(SONG_ENDGAME, 0);
 
-		do_end_game();
+		do_end_game();*/
 		return 1;
 	}
 	else 
 	{
 		Next_level_num = Current_level_num + 1;		//assume go to next normal level
 
-		if (secret_flag) {			//go to secret level instead
+		if (secret_flag) //go to secret level instead
+		{
 			int i;
 
 			for (i = 0; i < -Last_secret_level; i++)
-				if (Secret_level_table[i] == Current_level_num) {
+				if (Secret_level_table[i] == Current_level_num) 
+				{
 					Next_level_num = -(i + 1);
 					break;
 				}
@@ -1437,7 +1454,10 @@ void StartPendingMode()
 	{
 	case SUB_BRIEFING:
 		//Set pending mode based on whether or not the player has won the game.
-		Pending_sub_mode = SUB_GAME;
+		if (Current_level_num == Last_level)
+			Pending_sub_mode = SUB_INTERMISSION;
+		else
+			Pending_sub_mode = SUB_GAME;
 		break;
 	case SUB_INTERMISSION:
 		StartIntermission();

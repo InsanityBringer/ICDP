@@ -2015,7 +2015,8 @@ void game_frame()
 				if (!finished)
 					IntermissionFrame();
 			}
-			else if (Game_sub_mode == SUB_INDETERMINATE)
+			//It's only a problem if the sub mode is indeterminate but the function mode is still the game
+			else if (Game_sub_mode == SUB_INDETERMINATE && Function_mode == FMODE_GAME)
 			{
 				Int3(); //Hey, how'd I get here?
 			}

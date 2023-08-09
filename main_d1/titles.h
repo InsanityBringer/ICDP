@@ -34,7 +34,7 @@ extern bool briefing_finished();
 //Presents the briefing canvas to the screen
 extern void briefing_present();
 
-extern void do_end_game(void);
+extern bool do_end_game(void);
 extern char* get_briefing_screen(int level_num);
 
 void title_save_game();

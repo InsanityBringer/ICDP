@@ -1049,6 +1049,9 @@ bool do_briefing_screens(int level_num)
 	Current_screen_num = -1;
 	//Get the initial pointer for the current level. If there isn't one, abort.
 	int screen_num = get_next_screen();
+	if (screen_num < 0)
+		return false;
+
 	message_ptr = get_briefing_message(Briefing_screens[screen_num].message_num);
 	
 	if (!message_ptr)
@@ -1412,10 +1415,10 @@ bool briefing_finished()
 }
 
 #ifndef SHAREWARE
-void do_registered_end_game(void)
+bool do_registered_end_game(void)
 {
 	if (!Ending_text_filename[0])		//no filename?
-		return;
+		return false;
 
 	if ((Game_mode & GM_MULTI) && !(Game_mode & GM_MULTI_COOP))
 	{
@@ -1428,10 +1431,29 @@ void do_registered_end_game(void)
 
 	load_screen_text(Ending_text_filename, &Briefing_text);
 
-	for (int cur_briefing_screen = 0; cur_briefing_screen < MAX_BRIEFING_SCREEN; cur_briefing_screen++)
+	Briefing_level_num = REGISTERED_ENDING_LEVEL_NUM;
+
+	Current_screen_num = -1;
+	//Get the initial pointer for the current level. If there isn't one, abort.
+	int screen_num = get_next_screen();
+	if (screen_num < 0)
+		return false;
+
+	message_ptr = get_briefing_message(Briefing_screens[screen_num].message_num);
+
+	if (!message_ptr)
+		return false;
+
+	init_briefing();
+	//start_screen(Current_screen_num);
+	Pending_screen = screen_num;
+
+	return true;
+
+	/*for (int cur_briefing_screen = 0; cur_briefing_screen < MAX_BRIEFING_SCREEN; cur_briefing_screen++)
 		if (Briefing_screens[cur_briefing_screen].level_num == REGISTERED_ENDING_LEVEL_NUM)
 			if (show_briefing_screen(cur_briefing_screen, 0))
-				break;
+				break;*/
 
 }
 #endif
@@ -1483,7 +1505,7 @@ void do_shareware_end_game(void)
 
 extern void show_order_form(void);
 
-void do_end_game(void)
+bool do_end_game(void)
 {
 	if (!briefing_canvas)
 		briefing_canvas = gr_create_canvas(320, 200);
@@ -1491,6 +1513,7 @@ void do_end_game(void)
 	gr_set_current_canvas(briefing_canvas);
 
 	key_flush();
+	init_briefing();
 
 #ifdef SHAREWARE
 	do_shareware_end_game();		//hurrah! you win!
@@ -1498,20 +1521,17 @@ void do_end_game(void)
 #ifdef DEST_SAT
 	do_shareware_end_game();		//hurrah! you win!
 #else
-	do_registered_end_game();		//hurrah! you win!
+	bool ret = do_registered_end_game();		//hurrah! you win!
 #endif
 #endif
 
-	if (Briefing_text) 
+	/*if (Briefing_text) 
 	{
 		free(Briefing_text);
 		Briefing_text = NULL;
-	}
+	}*/
 
 	key_flush();
-
-	Function_mode = FMODE_MENU;
-	Game_mode = GM_GAME_OVER;
 
 #ifdef DEST_SAT
 	show_order_form();
@@ -1520,6 +1540,8 @@ void do_end_game(void)
 #ifdef SHAREWARE
 	show_order_form();
 #endif
+
+	return ret;
 }
 
 //Gets a color for the briefing system, emulating overflows
