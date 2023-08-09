@@ -736,7 +736,11 @@ static bool IntermissionStarted = false;
 
 bool EndLevelHandler(int choice, int nitems, newmenu_item* items)
 {
-	return false;
+	IntermissionStarted = false;
+	if (!inferno_is_screen_faded())
+		inferno_request_fade_out();
+
+	return true; //menu will be closed by transition
 }
 
 
@@ -974,7 +978,6 @@ int AdvanceLevel(int secret_flag)
 	}
 	else 
 	{
-
 		Next_level_num = Current_level_num + 1;		//assume go to next normal level
 
 		if (secret_flag) {			//go to secret level instead
@@ -1458,6 +1461,7 @@ bool SecretLevelDialogCallback(int choice, int nitems, newmenu_item* item)
 
 void StartIntermission()
 {
+	IntermissionStarted = true;
 	if (!(Game_mode & GM_MULTI) && Inter_secret_flag)
 	{
 		newmenu_item	m[1];
@@ -1479,10 +1483,11 @@ void StartIntermission()
 
 bool IntermissionFinished()
 {
-	if (IntermissionStarted) //this hack may not be needed anymore, new solution implemented
-		return newmenu_empty();
+	/*if (IntermissionStarted) //this hack may not be needed anymore, new solution implemented
+		return inferno_is_screen_faded();
 
-	return false;
+	return false;*/
+	return IntermissionStarted == false && inferno_is_screen_faded();
 }
 
 void IntermissionFrame()
