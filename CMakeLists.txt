@@ -229,6 +229,10 @@ set(DESCENT1_SOURCES
 	main_d1/newdemo.h
 	main_d1/newmenu.cpp
 	main_d1/newmenu.h
+	main_d1/newmenu_filepicker.cpp
+	main_d1/newmenu_menu.cpp
+	main_d1/newmenu_list.cpp
+	main_d1/newmenu_windows.h
 	main_d1/object.cpp
 	main_d1/object.h
 	main_d1/paging.cpp

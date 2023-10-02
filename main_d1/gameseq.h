@@ -35,6 +35,25 @@ extern int Current_level_num, Next_level_num;
 extern char Current_level_name[];
 extern obj_position	Player_init[MAX_PLAYERS];
 
+//Sub modes for the game frame. 
+//Not doing anything. Bad if you're in this state without something pending. 
+constexpr int SUB_INDETERMINATE = -1;
+//Run the game ticker each frame. 
+constexpr int SUB_GAME = 0;
+//Run a briefing frame each frame.
+constexpr int SUB_BRIEFING = 1;
+//Between levels, showing the intermission screen. 
+constexpr int SUB_INTERMISSION = 2;
+//Quit out of the game and go into FMODE_MENU.
+constexpr int SUB_ABORT = 3;
+//Waiting for sync in a multiplayer game.
+constexpr int SUB_PENDING = 4;
+
+//The current sub mode, driving what will happen each time game_frame is called.
+extern int Game_sub_mode;
+//A pending sub mode, will be switched to when the current sub mode indicates completion
+extern int Pending_sub_mode;
+
 
 //This is the highest level the player has ever reached
 extern int Player_highest_level;
@@ -52,14 +71,20 @@ void StartNewGame(int start_level);
 //starts the next level
 void StartNewLevel(int level_num);
 
+//When the current mode is done, start the pending mode.
+void StartPendingMode();
+
+//Returns true if the intermission screen is finished. 
+bool IntermissionFinished();
+
+//Runs a frame of the intermission screen.
+void IntermissionFrame();
+
 // Actually does the work to start new level
 void StartNewLevelSub(int level_num, int page_in_textures);
 
 void InitPlayerObject();				//make sure player's object set up
 void init_player_stats_game();		//clear all stats
-
-//starts a resumed game loaded from disk
-void ResumeSavedGame(int start_level);
 
 //called when the player has finished a level
 //if secret flag is true, advance to secret level, else next normal level
@@ -78,22 +103,10 @@ extern void show_help();
 extern void update_player_stats();
 
 //from scores.c
-
-//extern void show_high_scores(int place);
-//extern void draw_high_scores(int place);
-//extern int add_player_to_high_scores(player* pp);
-//extern void input_name(int place);
-//extern int reset_high_scores();
 extern void init_player_stats_level();
-
-//void open_message_window(void);
-//void close_message_window(void);
 
 //create flash for player appearance
 extern void create_player_appearance_effect(object* player_obj);
-
-//goto whatever secrect level is appropriate given the current level
-//extern void goto_secret_level();
 
 //reset stuff so game is semi-normal when playing from editor
 void editor_reset_stuff_on_level();

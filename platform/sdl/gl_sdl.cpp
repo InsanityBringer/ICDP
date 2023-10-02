@@ -322,6 +322,7 @@ void GL_DrawPhase1()
 
 void GL_Clear()
 {
+	sglViewport(0, 0, 256, 256);
 	sglClear(GL_COLOR_BUFFER_BIT);
 }
 

@@ -84,9 +84,6 @@ Texmerge::Texmerge()
 			// Make temp tmap for use when combining
 		Cache[i].bitmap = gr_create_bitmap( 64, 64 );
 
-		//if (get_selector( Cache[i].bitmap->bm_data, 64*64,  &Cache[i].bitmap->bm_selector))
-		//	Error( "ERROR ALLOCATING CACHE BITMAP'S SELECTORS!!!!" );
-
 		Cache[i].last_frame_used = -1;
 		Cache[i].top_bmp = nullptr;
 		Cache[i].bottom_bmp = nullptr;
@@ -112,6 +109,14 @@ grs_bitmap* Texmerge::get_cached_bitmap(RLECache& rle_cache, int tmap_bottom, in
 	int lowest_frame_count;
 	int least_recently_used;
 
+	merge_count++;
+	if (merge_count < 0)
+	{
+		//Not entirely ideal, but it should avoid problems.
+		mprintf((1, "Texmerge::get_cached_bitmap: merge_count overflow."));
+		flush();
+		merge_count = 1;
+	}
 	//	if ( ((FrameCount % 1000)==0) && ((cache_hits+cache_misses)>0) && (!info_printed) )	{
 	//		mprintf( 0, "Texmap caching:  %d hits, %d misses. (Missed=%d%%)\n", cache_hits, cache_misses, (cache_misses*100)/(cache_hits+cache_misses)  );
 	//		info_printed = 1;
@@ -132,7 +137,7 @@ grs_bitmap* Texmerge::get_cached_bitmap(RLECache& rle_cache, int tmap_bottom, in
 		if ((Cache[i].last_frame_used > -1) && (Cache[i].top_bmp == bitmap_top) && (Cache[i].bottom_bmp == bitmap_bottom) && (Cache[i].orient == orient)) 
 		{
 			cache_hits++;
-			Cache[i].last_frame_used = FrameCount;
+			Cache[i].last_frame_used = merge_count;
 			return Cache[i].bitmap;
 		}
 		if (Cache[i].last_frame_used < lowest_frame_count)
@@ -174,7 +179,7 @@ grs_bitmap* Texmerge::get_cached_bitmap(RLECache& rle_cache, int tmap_bottom, in
 
 	Cache[least_recently_used].top_bmp = bitmap_top;
 	Cache[least_recently_used].bottom_bmp = bitmap_bottom;
-	Cache[least_recently_used].last_frame_used = FrameCount;
+	Cache[least_recently_used].last_frame_used = merge_count;
 	Cache[least_recently_used].orient = orient;
 
 	return Cache[least_recently_used].bitmap;
@@ -191,6 +196,8 @@ void Texmerge::flush()
 		Cache[i].bottom_bmp = nullptr;
 		Cache[i].orient = -1;
 	}
+
+	merge_count = 0;
 }
 
 void texmerge_flush()

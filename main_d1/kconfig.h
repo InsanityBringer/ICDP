@@ -18,6 +18,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/types.h"
 #include "misc/nbt.h"
 #include "fix/fix.h"
+#include "platform/event.h"
 
 //Game control sources that are identified by the engine.
 enum class KConfigMode
@@ -185,6 +186,9 @@ extern int Kconfig_joy_binding_handle;
 
 extern control_info Controls;
 extern void controls_read_all();
+void control_read_event(plat_event& ev);
+void control_clear_input();
+void kconfig_clear_down_counts();
 
 extern void kconfig(KConfigMode control_mode, const char* title);
 

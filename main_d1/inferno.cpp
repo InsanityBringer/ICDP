@@ -87,8 +87,10 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 
 #include "vers_id.h"
 #include "platform/platform.h"
+#include "platform/event.h"
 
 int Function_mode = FMODE_MENU;		//game or editor?
+int Old_function_mode = FMODE_MENU;
 int Screen_mode = -1;					//game screen or editor screen?
 
 #ifdef EDITOR
@@ -114,6 +116,103 @@ extern int Network_allow_socket_changes;
 #endif
 
 extern void multi_test_packet_serialization();
+
+//Transition system
+enum class transition_state
+{
+	no, //A transition is not occurring. 
+	fadeout, //Screen is fading out.
+	frame, //Screen is completely faded. Run a frame to prep the canvases.
+	fadein //Screen is fading in.
+};
+
+constexpr int FADE_TIME = 32;
+
+static bool fade_started;
+static bool fade_stopped_time;
+static bool fade_present; //true if a fade has happened. 
+static int fade_timer;
+static transition_state fade_state;
+static uint8_t fade_palette[768], fade_temp[768], fade_dest_palette[768];
+extern uint8_t gr_current_pal[256 * 3];
+
+void inferno_request_fade_out()
+{
+	if (!fade_started)
+	{
+		fade_timer = FADE_TIME;
+		fade_started = true;
+		fade_state = transition_state::fadeout;
+		memcpy(fade_palette, gr_current_pal, sizeof(fade_palette));
+	}
+}
+
+void inferno_request_fade_in(uint8_t* dest_palette)
+{
+	if (!fade_started && fade_present)
+	{
+		fade_timer = FADE_TIME;
+		fade_started = true;
+		fade_state = transition_state::fadein;
+		memcpy(fade_dest_palette, dest_palette, sizeof(fade_dest_palette));
+
+		if (Function_mode == FMODE_GAME)
+		{
+			stop_time();
+			fade_stopped_time = true;
+		}
+	}
+}
+
+bool inferno_is_screen_faded()
+{
+	return fade_present;
+}
+
+bool inferno_transitioning()
+{
+	return fade_started;
+}
+
+void inferno_fade_frame()
+{
+	if (fade_state == transition_state::fadeout)
+	{
+		fade_timer--;
+		if (fade_timer == 0)
+		{
+			fade_started = false;
+			fade_present = true;
+		}
+
+		for (int i = 0; i < 768; i++)
+		{
+			fade_temp[i] = fade_palette[i] * fade_timer / FADE_TIME;
+		}
+		gr_palette_load(fade_temp);
+	}
+
+	else if (fade_state == transition_state::fadein)
+	{
+		fade_timer--;
+		if (fade_timer == 0)
+		{
+			fade_started = false;
+			fade_present = false;
+			if (fade_stopped_time)
+			{
+				start_time();
+				fade_stopped_time = false;
+			}
+		}
+
+		for (int i = 0; i < 768; i++)
+		{
+			fade_temp[i] = fade_dest_palette[i] * (FADE_TIME-fade_timer) / FADE_TIME;
+		}
+		gr_palette_load(fade_temp);
+	}
+}
 
 //[ISB] Okay, the trouble is that SDL redefines main. I don't want to include SDL here. Solution is to rip off doom
 //and add a separate main function
@@ -209,7 +308,8 @@ int D_DescentMain(int argc, const char** argv)
 
 	if (Inferno_verbose) printf("\n%s", TXT_VERBOSE_3);
 	key_init();
-	if (!FindArg("-nomouse")) {
+	if (!FindArg("-nomouse")) 
+	{
 		if (Inferno_verbose) printf("\n%s", TXT_VERBOSE_4);
 		mouse_init(0);
 	}
@@ -357,6 +457,7 @@ int D_DescentMain(int argc, const char** argv)
 	set_screen_mode(SCREEN_MENU);
 
 	init_game();
+	newmenu_init();
 	set_detail_level_parameters(Detail_level);
 
 	Players[Player_num].callsign[0] = '\0';
@@ -366,7 +467,7 @@ int D_DescentMain(int argc, const char** argv)
 		RegisterPlayer();		//get player's name
 	}
 
-	gr_palette_fade_out(title_pal, 32, 0);
+	//gr_palette_fade_out(title_pal, 32, 0);
 
 	//kconfig_load_all();
 
@@ -374,19 +475,99 @@ int D_DescentMain(int argc, const char** argv)
 
 	if (Auto_demo) 
 	{
-#if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
-		char demo_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-		get_full_file_path(demo_full_path, "descent.dem", CHOCOLATE_DEMOS_DIR);
-		newdemo_start_playback(demo_full_path);
-#else
 		newdemo_start_playback("DESCENT.DEM");
-#endif
+
 		if (Newdemo_state == ND_STATE_PLAYBACK)
 			Function_mode = FMODE_GAME;
 	}
 
 	build_mission_list(false);		// This also loads mission 0.
 
+	set_events_enabled(true);
+
+	while (Function_mode != FMODE_EXIT)
+	{
+		timer_mark_start();
+		plat_clear_screen();
+		plat_do_events();
+
+		if (!fade_started)
+		{
+			if (Function_mode != Old_function_mode)
+			{
+				//Switching to a new function mode
+				//Do any cleanup for the previous function mode
+				switch (Old_function_mode)
+				{
+				case FMODE_GAME:
+					game_end();
+					break;
+				}
+				newmenu_close_all(); //Clean all open windows
+
+				//Do initialization for the new function mode
+				switch (Function_mode)
+				{
+					//The first time into the menu from game start, this will already be playing
+					//But from another function mode, it needs to be started now. 
+				case FMODE_MENU:
+					songs_play_song(SONG_TITLE, 1);
+					//Start the main menu
+					if (inferno_is_screen_faded())
+						inferno_request_fade_in(gr_palette);
+					DoMenu();
+					break;
+				case FMODE_GAME:
+					game_start();
+					break;
+				}
+
+				Old_function_mode = Function_mode;
+			}
+
+			//Run newmenu frames before others. If a menu is open, this will consume events before the game. 
+			newmenu_frame();
+
+			//do game and editor frames here
+			if (Function_mode == Old_function_mode) //In case newmenu_frame changed the function mode
+			{
+				switch (Function_mode)
+				{
+				case FMODE_GAME:
+					game_frame();
+					break;
+				case FMODE_MENU:
+					if (newmenu_empty())
+						DoMenu(); //If the menu list is empty, show the main menu
+					break;
+				}
+			}
+
+			//If the game opened a menu, it needs to be drawn late.
+			newmenu_draw();
+		}
+
+		//run a frame of the fade system
+		if (fade_started)
+			inferno_fade_frame();
+
+		//do present for function mode
+		if (Function_mode == Old_function_mode) //In case newmenu_frame changed the function mode
+		{
+			switch (Function_mode)
+			{
+			case FMODE_GAME:
+				game_present();
+				break;
+			}
+		}
+
+		newmenu_present();
+		plat_flip();
+		timer_mark_end(game_fps_limit_time());
+	}
+
+#if 0
 	while (Function_mode != FMODE_EXIT)
 	{
 		switch (Function_mode) 
@@ -440,6 +621,7 @@ int D_DescentMain(int argc, const char** argv)
 			Error("Invalid function mode %d", Function_mode);
 		}
 	}
+#endif
 
 	WriteConfigFile();
 

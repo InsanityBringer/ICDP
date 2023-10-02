@@ -13,6 +13,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
+#include <stdint.h>
+
  //	How close two points must be in all dimensions to be considered the same point.
 #define	FIX_EPSILON	10
 
@@ -25,3 +27,15 @@ extern char Menu_pcx_name[13];
 void show_order_form();
 
 int D_DescentMain(int argc, const char** argv);
+
+//Call to request a fade out. 
+void inferno_request_fade_out();
+
+//Call to request a fade in. This will fade into the specified palette. 
+void inferno_request_fade_in(uint8_t* dest_palette);
+
+//Returns true if the screen has been faded out
+bool inferno_is_screen_faded();
+
+//Returns true if the screen is currently transitioning
+bool inferno_transitioning();

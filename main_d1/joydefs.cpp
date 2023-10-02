@@ -59,72 +59,71 @@ void joydef_menuset_1(int nitems, newmenu_item* items, int* last_key, int citem)
 
 }
 
+bool joydefs_callback(int choice, int nitems, newmenu_item* items)
+{
+	if (choice == -1)
+	{
+		Config_joystick_sensitivity = items[9].value;
+		Kconfig_use_mouse = items[2].value != 0;
+		Kconfig_use_joystick = items[4].value != 0;
+		Kconfig_use_gamepad = items[6].value != 0;
+		return false;
+	}
+
+	switch (choice)
+	{
+	case 0:
+		kconfig(KConfigMode::Keyboard, TXT_KEYBOARD);
+		break;
+	case 3:
+		kconfig(KConfigMode::Mouse, "Mouse");
+		break;
+	case 5:
+	{
+		std::vector<joy_info> attached_joysticks;
+		joy_get_attached_joysticks(attached_joysticks);
+
+		if (attached_joysticks.size() == 0)
+		{
+			nm_open_messagebox("Note", nullptr, 1, "OK", "No attached joysticks\nwere detected.");
+		}
+		else
+		{
+			char** nameptrs = new char* [attached_joysticks.size()];
+
+			for (int i = 0; i < attached_joysticks.size(); i++)
+				nameptrs[i] = (char*)attached_joysticks[i].name.c_str();
+
+			int sticknum = newmenu_listbox("Select a joystick to bind", attached_joysticks.size(),
+				nameptrs, true, nullptr);
+
+			if (sticknum != -1)
+			{
+				Kconfig_joy_binding_handle = attached_joysticks[sticknum].handle;
+				kconfig(KConfigMode::Joystick, (const char*)nameptrs[sticknum]);
+			}
+
+			delete[] nameptrs;
+		}
+	}
+	}
+	return true;
+}
+
 void joydefs_config()
 {
-	char xtext[128];
-	int i, old_masks, masks;
 	newmenu_item m[13];
-	int i1 = 0;
-	int nitems;
+	int nitems = 10;
+	m[0].type = NM_TYPE_MENU; m[0].text = TXT_CUST_KEYBOARD;
+	m[1].type = NM_TYPE_TEXT; m[1].text = (char*)"";
+	m[2].type = NM_TYPE_CHECK; m[2].text = (char*)"Enable mouse"; m[2].value = Kconfig_use_mouse;
+	m[3].type = NM_TYPE_MENU; m[3].text = (char*)"Customize mouse...";
+	m[4].type = NM_TYPE_CHECK; m[4].text = (char*)"Enable joystick"; m[4].value = Kconfig_use_joystick;
+	m[5].type = NM_TYPE_MENU; m[5].text = (char*)"Customize joysticks...";
+	m[6].type = NM_TYPE_CHECK; m[6].text = (char*)"Enable gamepad"; m[6].value = Kconfig_use_gamepad;
+	m[7].type = NM_TYPE_MENU; m[7].text = (char*)"Customize gamepad...";
+	m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
+	m[9].type = NM_TYPE_SLIDER; m[9].text = TXT_JOYS_SENSITIVITY; m[9].value = Config_joystick_sensitivity; m[9].min_value = 0; m[9].max_value = 8;
 
-	do 
-	{
-		nitems = 10;
-		m[0].type = NM_TYPE_MENU; m[0].text = TXT_CUST_KEYBOARD;
-		m[1].type = NM_TYPE_TEXT; m[1].text = (char*)"";
-		m[2].type = NM_TYPE_CHECK; m[2].text = (char*)"Enable mouse"; m[2].value = Kconfig_use_mouse;
-		m[3].type = NM_TYPE_MENU; m[3].text = (char*)"Customize mouse...";
-		m[4].type = NM_TYPE_CHECK; m[4].text = (char*)"Enable joystick"; m[4].value = Kconfig_use_joystick;
-		m[5].type = NM_TYPE_MENU; m[5].text = (char*)"Customize joysticks...";
-		m[6].type = NM_TYPE_CHECK; m[6].text = (char*)"Enable gamepad"; m[6].value = Kconfig_use_gamepad;
-		m[7].type = NM_TYPE_MENU; m[7].text = (char*)"Customize gamepad...";
-		m[8].type = NM_TYPE_TEXT; m[8].text = (char*)"";
-		m[9].type = NM_TYPE_SLIDER; m[9].text = TXT_JOYS_SENSITIVITY; m[9].value = Config_joystick_sensitivity; m[9].min_value = 0; m[9].max_value = 8;
-
-		i1 = newmenu_do1(NULL, TXT_CONTROLS, nitems, m, joydef_menuset_1, i1);
-
-		switch (i1)
-		{
-		case 0:
-			kconfig(KConfigMode::Keyboard, TXT_KEYBOARD);
-			break;
-		case 3:
-			kconfig(KConfigMode::Mouse, "Mouse");
-			break;
-		case 5:
-		{
-			std::vector<joy_info> attached_joysticks;
-			joy_get_attached_joysticks(attached_joysticks);
-
-			if (attached_joysticks.size() == 0)
-			{
-				nm_messagebox("Note", 1, "OK", "No attached joysticks\nwere detected.");
-			}
-			else
-			{
-				char** nameptrs = new char* [attached_joysticks.size()];
-
-				for (i = 0; i < attached_joysticks.size(); i++)
-					nameptrs[i] = (char*)attached_joysticks[i].name.c_str();
-
-				int sticknum = newmenu_listbox("Select a joystick to bind", attached_joysticks.size(),
-					nameptrs, true, nullptr);
-
-				if (sticknum != -1)
-				{
-					Kconfig_joy_binding_handle = attached_joysticks[sticknum].handle;
-					kconfig(KConfigMode::Joystick, (const char*)nameptrs[sticknum]);
-				}
-
-				delete[] nameptrs;
-			}
-		}
-		break;
-		}
-
-		Config_joystick_sensitivity = m[9].value;
-		Kconfig_use_mouse = m[2].value != 0;
-		Kconfig_use_joystick = m[4].value != 0;
-		Kconfig_use_gamepad = m[6].value != 0;
-	} while (i1 > -1);
+	newmenu_open(NULL, TXT_CONTROLS, nitems, m, joydef_menuset_1, joydefs_callback);
 }

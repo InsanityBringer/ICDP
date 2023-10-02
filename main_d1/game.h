@@ -61,7 +61,7 @@ extern float Game_render_aspect;
 
 extern int Game_mode;
 
-extern int Game_paused;
+extern bool Game_paused;
 extern int gauge_message_on;
 
 extern grs_bitmap background_bitmap; //Used by gauges to draw the background
@@ -85,10 +85,24 @@ extern int FPSLimit; //[ISB] timer controls
 //from game.c
 
 void init_game(void);
-void game(void);
+
+//Performs all the initialization needed to start a game. 
+void game_start();
+
+//Runs a single frame of the game
+void game_frame();
+
+void game_present();
+
+//Cleans up the game's state before switching to another game.  
+void game_end();
+
 void close_game(void);
 
 void calc_frame_time(void);
+
+//Returns the amount of microseconds to spend between frames.
+uint64_t game_fps_limit_time();
 
 #ifdef EDITOR
 void do_flythrough(object* obj, int first_time);
@@ -141,6 +155,8 @@ extern char faded_in;
 extern void stop_time(void);
 extern void start_time(void);
 extern void reset_time(void);		//called when starting level
+
+void game_pause(bool paused);
 
 //	If automap_flag == 1, then call automap routine to write message.
 extern void save_screen_shot(int automap_flag);

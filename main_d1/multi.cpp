@@ -2571,6 +2571,7 @@ void change_playernum_to(int new_Player_num)
 
 void multi_initiate_save_game()
 {
+#ifdef MULTI_SAVE
 	uint32_t game_id;
 	int i, slot;
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
@@ -2607,10 +2608,14 @@ void multi_initiate_save_game()
 	multi_send_save_game(slot, game_id, desc);
 	multi_do_frame();
 	multi_save_game(slot, game_id, desc);
+#else
+	Int3();
+#endif
 }
 
 void multi_initiate_restore_game()
 {
+#ifdef MULTI_SAVE
 	int slot;
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
@@ -2632,10 +2637,14 @@ void multi_initiate_restore_game()
 	multi_send_restore_game(slot, state_game_id);
 	multi_do_frame();
 	multi_restore_game(slot, state_game_id);
+#else
+	Int3();
+#endif
 }
 
 void multi_save_game(uint8_t slot, uint32_t id, char* desc)
 {
+#ifdef MULTI_SAVE
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 #else
@@ -2651,10 +2660,14 @@ void multi_save_game(uint8_t slot, uint32_t id, char* desc)
 	stop_time();
 	state_game_id = id;
 	state_save_all_sub(filename, desc, 0);
+#else
+	Int3();
+#endif
 }
 
 void multi_restore_game(uint8_t slot, uint32_t id)
 {
+#ifdef MULTI_SAVE
 #if defined(CHOCOLATE_USE_LOCALIZED_PATHS)
 	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 #else
@@ -2684,6 +2697,9 @@ void multi_restore_game(uint8_t slot, uint32_t id)
 	Players[Player_num].connected = saved_player.connected;
 	Players[Player_num].n_packets_got = saved_player.n_packets_got;
 	Players[Player_num].n_packets_sent = saved_player.n_packets_sent;
+#else
+	Int3();
+#endif
 }
 
 

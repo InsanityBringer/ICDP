@@ -21,6 +21,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <string.h>
 #include <stdarg.h>
 #include <algorithm>
+#include <queue>
 #include "gameinfo/gameinfo.h"
 #include "misc/rand.h"
 #include "inferno.h"
@@ -138,8 +139,6 @@ int cfg_render_width = 320, cfg_render_height = 200;
 int cfg_aspect_ratio = GAMEASPECT_AUTO;
 int Game_aspect_mode = GAMEASPECT_AUTO;
 
-int Debug_pause = 0;				//John's debugging pause system
-
 int Cockpit_mode = CM_FULL_COCKPIT;		//set game.h for values
 int old_cockpit_mode = -1;
 int force_cockpit_redraw = 0;
@@ -147,6 +146,7 @@ int force_cockpit_redraw = 0;
 bool framerate_on = false;
 
 int PaletteRedAdd, PaletteGreenAdd, PaletteBlueAdd;
+bool Game_paused; 
 
 #ifdef EDITOR
 //flag for whether initial fade-in has been done
@@ -158,9 +158,6 @@ fix fixed_frametime = 0;          //if non-zero, set frametime to this
 #endif
 
 int Game_suspended = 0;           //if non-zero, nothing moves but player
-
-int svr_black = 0x00;
-int svr_white = 0xFF;
 
 fix 	RealFrameTime;
 fix	Auto_fire_fusion_cannon_time = 0;
@@ -189,8 +186,6 @@ extern void newdemo_strip_frames(char*, int);
 
 //[ISB] FPS limit for the current session, defaults to 30 FPS
 int FPSLimit = 30;
-//[ISB] Start time for the polled FPS loop
-uint64_t startTime = 0;
 
 //	==============================================================================================
 
@@ -756,13 +751,6 @@ int set_screen_mode(int sm)
 	switch (Screen_mode) 
 	{
 	case SCREEN_MENU:
-		plat_set_mouse_relative_mode(0); //[ISB] doesn't work rip
-		/*if (grd_curscreen->sc_mode != SM_320x200C) 
-		{
-			if (gr_set_mode(SM_320x200C)) Error("Cannot set screen mode for game!");
-			gr_palette_load(gr_palette);
-		}*/
-
 		gr_palette_load(gr_palette);
 		
 		VR_screen_buffer = gr_create_canvas(320, 200);
@@ -859,48 +847,29 @@ static int timer_paused = 0;
 
 void stop_time()
 {
-	if (timer_paused == 0) {
+	if (timer_paused == 0) 
+	{
 		fix time;
 		time = timer_get_fixed_seconds();
 		last_timer_value = time - last_timer_value;
-		if (last_timer_value < 0) {
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-			Int3();		//get Matt!!!!
-#endif
+		if (last_timer_value < 0) 
+		{
 			last_timer_value = 0;
 		}
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-		time_stopped = time;
-#endif
 	}
 	timer_paused++;
-
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	stop_count++;
-#endif
 }
 
 void start_time()
 {
 	timer_paused--;
 	Assert(timer_paused >= 0);
-	if (timer_paused == 0) {
+	if (timer_paused == 0) 
+	{
 		fix time;
 		time = timer_get_fixed_seconds();
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-		if (last_timer_value < 0)
-			Int3();		//get Matt!!!!
+		last_timer_value = time - last_timer_value;
 	}
-#endif
-	last_timer_value = time - last_timer_value;
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	time_started = time;
-#endif
-}
-
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-start_count++;
-#endif
 }
 
 void game_flush_inputs()
@@ -924,27 +893,16 @@ void calc_frame_time()
 {
 	fix timer_value, last_frametime = FrameTime;
 
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	_last_frametime = last_frametime;
-#endif
-
 	timer_value = timer_get_fixed_seconds();
 	FrameTime = timer_value - last_timer_value;
 
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	_timer_value = timer_value;
-#endif
-
 #ifndef NDEBUG
-	if (!(((FrameTime > 0) && (FrameTime <= F1_0)) || (Function_mode == FMODE_EDITOR) || (Newdemo_state == ND_STATE_PLAYBACK))) {
+	if (!(((FrameTime > 0) && (FrameTime <= F1_0)) || (Function_mode == FMODE_EDITOR) || (Newdemo_state == ND_STATE_PLAYBACK))) 
+	{
 		mprintf((1, "Bad FrameTime - value = %x\n", FrameTime));
 		if (FrameTime == 0)
 			Int3();	//	Call Mike or Matt or John!  Your interrupts are probably trashed!
 	}
-#endif
-
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	actual_last_timer_value = last_timer_value;
 #endif
 
 	if (Game_turbo_mode)
@@ -964,31 +922,6 @@ void calc_frame_time()
 	if (fixed_frametime) FrameTime = fixed_frametime;
 #endif
 
-#ifndef NDEBUG
-	// Pause here!!!
-	if (Debug_pause)
-	{
-		int c;
-		c = 0;
-		while (c == 0)
-		{
-			plat_do_events();
-			c = key_peekkey();
-		}
-
-		if (c == KEY_P) 
-		{
-			Debug_pause = 0;
-			c = key_inkey();
-		}
-		last_timer_value = timer_get_fixed_seconds();
-	}
-#endif
-
-#if defined(TIMER_TEST) && !defined(NDEBUG)
-	stop_count = start_count = 0;
-#endif
-
 	//	Set value to determine whether homing missile can see target.
 	//	The lower frametime is, the more likely that it can see its target.
 	if (FrameTime <= F1_0 / 16)
@@ -997,7 +930,17 @@ void calc_frame_time()
 		Min_trackable_dot = fixmul(F1_0 - MIN_TRACKABLE_DOT, F1_0 - 4 * FrameTime) + MIN_TRACKABLE_DOT;
 	else
 		Min_trackable_dot = MIN_TRACKABLE_DOT;
+}
 
+uint64_t game_fps_limit_time()
+{
+	if (inferno_transitioning())
+		return US_70FPS;
+
+	else if (Function_mode == FMODE_GAME && Game_sub_mode == SUB_GAME)
+		return 1000000 / FPSLimit;
+
+	return US_60FPS;
 }
 
 //--unused-- int Auto_flythrough=0;  //if set, start flythough automatically
@@ -1042,7 +985,8 @@ void draw_window_label()
 		default:					viewer_name = "Unknown"; break;
 		}
 
-		switch (Viewer->control_type) {
+		switch (Viewer->control_type) 
+		{
 		case CT_NONE:			control_name = "Stopped"; break;
 		case CT_AI:				control_name = "AI"; break;
 		case CT_FLYING:		control_name = "Flying"; break;
@@ -1147,15 +1091,6 @@ void game_draw_hud_stuff()
 	grs_canvas* save = grd_curcanv;
 	gr_set_current_canvas(get_hud_render_canvas());
 	gr_clear_canvas(255); //HUD is now on its own canvas, so it needs to be cleared before drawing
-
-#ifndef NDEBUG
-	if (Debug_pause)
-	{
-		gr_set_curfont(HELP_FONT);
-		gr_set_fontcolor(gr_getcolor(31, 31, 31), -1); // gr_getcolor(31,0,0));
-		gr_ustring(0x8000, 85 / 2, "Debug Pause - Press P to exit");
-	}
-#endif
 
 #ifdef RESTORE_REPAIRCENTER
  	if (RepairObj) 
@@ -1309,9 +1244,9 @@ void game_render_frame()
 	game_render_frame_mono();
 
 	// Make sure palette is faded in
-	stop_time();
-	gr_palette_fade_in(gr_palette, 32, 0);
-	start_time();
+
+	if (inferno_is_screen_faded())
+		inferno_request_fade_in(gr_palette);
 
 }
 
@@ -1542,31 +1477,12 @@ void palette_restore(void)
 extern void dead_player_frame(void);
 
 #ifndef RELEASE
-void do_cheat_menu()
+
+bool cheat_menu_callback(int choice, int nitems, newmenu_item* mm)
 {
-	int mmn;
-	newmenu_item mm[16];
-	char score_text[21];
-
-	sprintf(score_text, "%d", Players[Player_num].score);
-
-	mm[0].type = NM_TYPE_CHECK; mm[0].value = Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE; mm[0].text = (char*)"Invulnerability";
-	mm[1].type = NM_TYPE_CHECK; mm[1].value = Players[Player_num].flags & PLAYER_FLAGS_IMMATERIAL; mm[1].text = (char*)"Immaterial";
-	mm[2].type = NM_TYPE_CHECK; mm[2].value = 0; mm[2].text = (char*)"All keys";
-	mm[3].type = NM_TYPE_NUMBER; mm[3].value = f2i(Players[Player_num].energy); mm[3].text = (char*)"% Energy"; mm[3].min_value = 0; mm[3].max_value = 200;
-	mm[4].type = NM_TYPE_NUMBER; mm[4].value = f2i(Players[Player_num].shields); mm[4].text = (char*)"% Shields"; mm[4].min_value = 0; mm[4].max_value = 200;
-	mm[5].type = NM_TYPE_TEXT; mm[5].text = (char*)"Score:";
-	mm[6].type = NM_TYPE_INPUT; mm[6].text_len = 10; mm[6].text = score_text;
-	mm[7].type = NM_TYPE_RADIO; mm[7].value = (Players[Player_num].laser_level == 0); mm[7].group = 0; mm[7].text = (char*)"Laser level 1";
-	mm[8].type = NM_TYPE_RADIO; mm[8].value = (Players[Player_num].laser_level == 1); mm[8].group = 0; mm[8].text = (char*)"Laser level 2";
-	mm[9].type = NM_TYPE_RADIO; mm[9].value = (Players[Player_num].laser_level == 2); mm[9].group = 0; mm[9].text = (char*)"Laser level 3";
-	mm[10].type = NM_TYPE_RADIO; mm[10].value = (Players[Player_num].laser_level == 3); mm[10].group = 0; mm[10].text = (char*)"Laser level 4";
-	mm[11].type = NM_TYPE_NUMBER; mm[11].value = Players[Player_num].secondary_ammo[CONCUSSION_INDEX]; mm[11].text = (char*)"Missiles"; mm[11].min_value = 0; mm[11].max_value = 200;
-
-	mmn = newmenu_do("Wimp Menu", NULL, 12, mm, NULL);
-
-	if (mmn > -1) {
-		if (mm[0].value) 
+	if (choice > -1)
+	{
+		if (mm[0].value)
 		{
 			Players[Player_num].flags |= PLAYER_FLAGS_INVULNERABLE;
 			Players[Player_num].invulnerable_time = GameTime + i2f(1000);
@@ -1588,6 +1504,31 @@ void do_cheat_menu()
 		Players[Player_num].secondary_ammo[CONCUSSION_INDEX] = mm[11].value;
 		init_gauges();
 	}
+	return false;
+}
+
+void do_cheat_menu()
+{
+	int mmn;
+	newmenu_item mm[16];
+	static char score_text[21];
+
+	sprintf(score_text, "%d", Players[Player_num].score);
+
+	mm[0].type = NM_TYPE_CHECK; mm[0].value = Players[Player_num].flags & PLAYER_FLAGS_INVULNERABLE; mm[0].text = (char*)"Invulnerability";
+	mm[1].type = NM_TYPE_CHECK; mm[1].value = Players[Player_num].flags & PLAYER_FLAGS_IMMATERIAL; mm[1].text = (char*)"Immaterial";
+	mm[2].type = NM_TYPE_CHECK; mm[2].value = 0; mm[2].text = (char*)"All keys";
+	mm[3].type = NM_TYPE_NUMBER; mm[3].value = f2i(Players[Player_num].energy); mm[3].text = (char*)"% Energy"; mm[3].min_value = 0; mm[3].max_value = 200;
+	mm[4].type = NM_TYPE_NUMBER; mm[4].value = f2i(Players[Player_num].shields); mm[4].text = (char*)"% Shields"; mm[4].min_value = 0; mm[4].max_value = 200;
+	mm[5].type = NM_TYPE_TEXT; mm[5].text = (char*)"Score:";
+	mm[6].type = NM_TYPE_INPUT; mm[6].text_len = 10; mm[6].text = score_text;
+	mm[7].type = NM_TYPE_RADIO; mm[7].value = (Players[Player_num].laser_level == 0); mm[7].group = 0; mm[7].text = (char*)"Laser level 1";
+	mm[8].type = NM_TYPE_RADIO; mm[8].value = (Players[Player_num].laser_level == 1); mm[8].group = 0; mm[8].text = (char*)"Laser level 2";
+	mm[9].type = NM_TYPE_RADIO; mm[9].value = (Players[Player_num].laser_level == 2); mm[9].group = 0; mm[9].text = (char*)"Laser level 3";
+	mm[10].type = NM_TYPE_RADIO; mm[10].value = (Players[Player_num].laser_level == 3); mm[10].group = 0; mm[10].text = (char*)"Laser level 4";
+	mm[11].type = NM_TYPE_NUMBER; mm[11].value = Players[Player_num].secondary_ammo[CONCUSSION_INDEX]; mm[11].text = (char*)"Missiles"; mm[11].min_value = 0; mm[11].max_value = 200;
+
+	newmenu_open("Wimp Menu", nullptr, 12, mm, nullptr, cheat_menu_callback);
 }
 #endif
 
@@ -1634,29 +1575,28 @@ int allowed_to_fire_missile(void)
 	return 1;
 }
 
-typedef struct bkg 
+struct game_bkg
 {
 	short x, y, w, h;			// The location of the menu.
 	grs_bitmap* bmp;			// The background under the menu.
-} bkg;
+};
 
-bkg bg = { 0,0,0,0,NULL };
+game_bkg bg = { 0,0,0,0,NULL };
 
-//show a message in a nice little box
-void show_boxed_message(char* msg)
+void show_boxed_message_on(char* msg, grs_canvas* canv)
 {
 	int w, h, aw;
 	int x, y;
 
-	gr_set_current_canvas(VR_screen_buffer);
+	gr_set_current_canvas(canv);
 	gr_set_curfont(HELP_FONT);
 
 	gr_get_string_size(msg, &w, &h, &aw);
 
-	x = (VR_screen_buffer->cv_w - w) / 2;
-	y = (VR_screen_buffer->cv_h - h) / 2;
+	x = (canv->cv_w - w) / 2;
+	y = (canv->cv_h - h) / 2;
 
-	if (bg.bmp) 
+	if (bg.bmp)
 	{
 		gr_free_bitmap(bg.bmp);
 		bg.bmp = NULL;
@@ -1666,13 +1606,18 @@ void show_boxed_message(char* msg)
 	bg.x = x; bg.y = y; bg.w = w; bg.h = h;
 
 	bg.bmp = gr_create_bitmap(w + 30, h + 30);
-	gr_bm_ubitblt(w + 30, h + 30, 0, 0, x - 15, y - 15, &(VR_screen_buffer->cv_bitmap), bg.bmp);
+	gr_bm_ubitblt(w + 30, h + 30, 0, 0, x - 15, y - 15, &(canv->cv_bitmap), bg.bmp);
 
 	nm_draw_background(x - 15, y - 15, x + w + 15 - 1, y + h + 15 - 1);
 
 	gr_set_fontcolor(gr_getcolor(31, 31, 31), -1);
 	gr_ustring(0x8000, y, msg);
+}
 
+//show a message in a nice little box
+void show_boxed_message(char* msg)
+{
+	show_boxed_message_on(msg, VR_screen_buffer);
 }
 
 void clear_boxed_message()
@@ -1687,10 +1632,55 @@ void clear_boxed_message()
 
 extern int Death_sequence_aborted;
 
+void game_pause(bool paused)
+{
+	if (Game_mode & GM_MULTI)
+	{
+		HUD_init_message(TXT_CANT_PAUSE);
+		return;
+	}
+
+	if (paused)
+	{
+		if (!Game_paused) //Don't stop time multiple times
+		{
+			digi_pause_all();
+			stop_time();
+			palette_save();
+			reset_palette_add();
+			gr_palette_load(gr_palette);
+
+			game_flush_inputs();
+
+			Game_paused = true;
+			grs_canvas* canv = get_hud_canvas();
+			show_boxed_message_on(TXT_PAUSE, canv);
+		}
+	}
+	else
+	{
+		if (Game_paused)
+		{
+			game_flush_inputs();
+
+			palette_restore();
+
+			start_time();
+			digi_resume_all();
+
+			Game_paused = false;
+			grs_canvas* canv = get_hud_canvas();
+			clear_boxed_message();
+		}
+	}
+}
+
 //Process selected keys until game unpaused. returns key that left pause (p or esc)
 int do_game_pause(int allow_menu)
 {
-	int paused;
+	Int3();
+	return 0;
+	/*int paused;
 	int key;
 
 	if (Game_mode & GM_MULTI)
@@ -1764,7 +1754,7 @@ int do_game_pause(int allow_menu)
 	start_time();
 	digi_resume_all();
 
-	return key;
+	return key;*/
 }
 
 
@@ -1772,21 +1762,18 @@ void show_help()
 {
 	newmenu_item m[14];
 
-	//if (VR_render_mode != VR_NONE) //[ISB] I'm confused
-	{
-		m[0].type = NM_TYPE_TEXT; m[0].text = TXT_HELP_ESC;
-		m[1].type = NM_TYPE_TEXT; m[1].text = TXT_HELP_ALT_F2;
-		m[2].type = NM_TYPE_TEXT; m[2].text = TXT_HELP_ALT_F3;
-		m[3].type = NM_TYPE_TEXT; m[3].text = TXT_HELP_F2;
-		m[4].type = NM_TYPE_TEXT; m[4].text = TXT_HELP_F4;
-		m[5].type = NM_TYPE_TEXT; m[5].text = TXT_HELP_F5;
-		m[6].type = NM_TYPE_TEXT; m[6].text = TXT_HELP_PAUSE;
-		m[7].type = NM_TYPE_TEXT; m[7].text = TXT_HELP_1TO5;
-		m[8].type = NM_TYPE_TEXT; m[8].text = TXT_HELP_6TO10;
-		m[9].type = NM_TYPE_TEXT; m[9].text = (char*)"";
-		m[10].type = NM_TYPE_TEXT; m[10].text = TXT_HELP_TO_VIEW;
-		newmenu_do(NULL, TXT_KEYS, 11, m, NULL);
-	}
+	m[0].type = NM_TYPE_TEXT; m[0].text = TXT_HELP_ESC;
+	m[1].type = NM_TYPE_TEXT; m[1].text = TXT_HELP_ALT_F2;
+	m[2].type = NM_TYPE_TEXT; m[2].text = TXT_HELP_ALT_F3;
+	m[3].type = NM_TYPE_TEXT; m[3].text = TXT_HELP_F2;
+	m[4].type = NM_TYPE_TEXT; m[4].text = TXT_HELP_F4;
+	m[5].type = NM_TYPE_TEXT; m[5].text = TXT_HELP_F5;
+	m[6].type = NM_TYPE_TEXT; m[6].text = TXT_HELP_PAUSE;
+	m[7].type = NM_TYPE_TEXT; m[7].text = TXT_HELP_1TO5;
+	m[8].type = NM_TYPE_TEXT; m[8].text = TXT_HELP_6TO10;
+	m[9].type = NM_TYPE_TEXT; m[9].text = (char*)"";
+	m[10].type = NM_TYPE_TEXT; m[10].text = TXT_HELP_TO_VIEW;
+	newmenu_do(NULL, TXT_KEYS, 11, m, NULL);
 }
 
 //deal with rear view - switch it on, or off, or whatever
@@ -1875,10 +1862,7 @@ void game_disable_cheats()
 	Physics_cheat_flag = false;
 }
 
-//	------------------------------------------------------------------------------------
-//this function is the game.  called when game mode selected.  runs until
-//editor mode or exit selected
-void game()
+void game_start()
 {
 	do_lunacy_on();		//	Copy values for insane into copy buffer in ai.c
 	do_lunacy_off();		//	Restore true insane mode.
@@ -1893,6 +1877,8 @@ void game()
 	reset_palette_add();
 
 	set_warn_func(game_show_warning);
+
+	game_pause(false);
 
 	init_cockpit();
 	init_gauges();
@@ -1926,102 +1912,173 @@ void game()
 	}
 #endif
 
-	fix_object_segs();
+	//fix_object_segs(); //Why's this done here? It's done in LoadLevel
 
 	game_flush_inputs();
 
-	if (setjmp(LeaveGame) == 0) 
+	//The game should have been started with a pending mode, so get that going. 
+	Game_sub_mode = SUB_INDETERMINATE;
+	StartPendingMode();
+}
+
+//Handler run when the game is paused
+void game_paused_frame()
+{
+	//Read events
+	while (event_available())
 	{
-		set_events_enabled(true);
-		while (1) 
+		plat_event ev;
+		pop_event(ev);
+
+		control_read_event(ev);
+
+		if (ev.down)
 		{
-			// GAME LOOP!
-			Automap_flag = 0;
-			Config_menu_flag = 0;
-
-			//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
-			if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
-			{
-				game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
-				init_cockpit(); last_drawn_cockpit = -1;
-			}
-
-			startTime = timer_get_us();
-
-			Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
-
-			GameLoop(1, 1);		// Do game loop with rendering and reading controls.
-
-			if (Config_menu_flag) 
-			{
-				if (!(Game_mode & GM_MULTI)) palette_save();
-				do_options_menu();
-				if (!(Game_mode & GM_MULTI)) palette_restore();
-			}
-
-			if (Automap_flag) 
-			{
-				int save_w = Game_window_w, save_h = Game_window_h;
-				do_automap(0);
-				Screen_mode = -1; set_screen_mode(SCREEN_GAME);
-				Game_window_w = save_w; Game_window_h = save_h;
-				init_cockpit();
-				last_drawn_cockpit = -1;
-			}
-
-			if ((Function_mode != FMODE_GAME) && Auto_demo && (Newdemo_state != ND_STATE_NORMAL))
-			{
-				int choice, fmode;
-				fmode = Function_mode;
-				Function_mode = FMODE_GAME;
-				choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_AUTODEMO);
-				Function_mode = fmode;
-				if (choice == 0) {
-					Auto_demo = 0;
-					newdemo_stop_playback();
-					Function_mode = FMODE_MENU;
-				}
-				else 
-				{
-					Function_mode = FMODE_GAME;
-				}
-			}
-
-			if ((Function_mode != FMODE_GAME) && (Newdemo_state != ND_STATE_PLAYBACK) && (Function_mode != FMODE_EDITOR)) 
-			{
-				int choice, fmode;
-				fmode = Function_mode;
-				Function_mode = FMODE_GAME;
-				choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_GAME);
-				Function_mode = fmode;
-				if (choice != 0)
-					Function_mode = FMODE_GAME;
-			}
-
-			if (Function_mode != FMODE_GAME)
-				longjmp(LeaveGame, 0);
-
-			//[ISB] assumption is that anything calling without renderflag (basically network mode) will already be updating. 
-			plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
-			grs_canvas* cockpit_canvas = get_cockpit_canvas();
-			if (cockpit_canvas)
-				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-			cockpit_canvas = get_hud_canvas();
-			if (cockpit_canvas)
-				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-			plat_flip();
-			plat_do_events();
-			//waiting loop for polled fps mode
-			uint64_t numUS = 1000000 / FPSLimit;
-			//[ISB] Combine a sleep with the polling loop to try to spare CPU cycles
-			uint64_t diff = (startTime + numUS) - timer_get_us();
-			if (diff > 2000) //[ISB] Sleep only if there's sufficient time to do so, since the scheduler isn't precise enough
-				timer_delay_us(diff - 2000);
-			while (timer_get_us() < startTime + numUS);
+			game_pause(false);
 		}
-		set_events_enabled(false);
+	}
+}
+
+void game_frame()
+{
+	if (Game_aborted)
+	{
+		if (inferno_is_screen_faded())
+			Function_mode = FMODE_MENU; 
+		return;
 	}
 
+	if (setjmp(LeaveGame) == 0)
+	{
+		bool finished;
+		do
+		{
+			finished = false;
+			if (Game_sub_mode == SUB_GAME)
+			{
+				if (Pending_sub_mode != SUB_INDETERMINATE) //Switch if the game wishes to change for any reason
+					finished = true;
+				else
+				{
+					if (Game_paused)
+					{
+						game_paused_frame();
+					}
+
+					//It's a little silly for this to not be an else, but this allows the game to be unpaused quickly. 
+					if (!Game_paused)
+					{
+						// GAME LOOP!
+						Automap_flag = 0;
+						Config_menu_flag = 0;
+
+						//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
+						if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
+						{
+							game_init_render_buffers(0, cfg_render_width, cfg_render_height, 0);
+							init_cockpit(); last_drawn_cockpit = -1;
+						}
+
+						Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
+
+						bool doInput = newmenu_empty();
+						GameLoop(1, doInput);		// Do game loop with rendering and reading controls.
+
+						if (Config_menu_flag)
+						{
+							//if (!(Game_mode & GM_MULTI)) palette_save();
+							do_options_menu();
+							//if (!(Game_mode & GM_MULTI)) palette_restore();
+						}
+
+						if (Automap_flag)
+						{
+							/*int save_w = Game_window_w, save_h = Game_window_h;
+							do_automap(0);
+							Screen_mode = -1; set_screen_mode(SCREEN_GAME);
+							Game_window_w = save_w; Game_window_h = save_h;
+							init_cockpit();
+							last_drawn_cockpit = -1;*/
+						}
+					}
+				}
+			}
+			else if (Game_sub_mode == SUB_BRIEFING)
+			{
+				finished = briefing_finished();
+				if (!finished)
+					briefing_frame();
+			}
+			else if (Game_sub_mode == SUB_INTERMISSION)
+			{
+				finished = IntermissionFinished();
+				if (!finished)
+					IntermissionFrame();
+			}
+			//It's only a problem if the sub mode is indeterminate but the function mode is still the game
+			else if (Game_sub_mode == SUB_INDETERMINATE && Function_mode == FMODE_GAME)
+			{
+				Int3(); //Hey, how'd I get here?
+			}
+
+			if (finished)
+				StartPendingMode();
+		} while (finished);
+
+
+		/*if ((Function_mode != FMODE_GAME) && Auto_demo && (Newdemo_state != ND_STATE_NORMAL))
+		{
+			int choice, fmode;
+			fmode = Function_mode;
+			Function_mode = FMODE_GAME;
+			choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_AUTODEMO);
+			Function_mode = fmode;
+			if (choice == 0) 
+			{
+				Auto_demo = 0;
+				newdemo_stop_playback();
+				Function_mode = FMODE_MENU;
+			}
+			else
+			{
+				Function_mode = FMODE_GAME;
+			}
+		}*/
+
+		/*if ((Function_mode != FMODE_GAME) && (Newdemo_state != ND_STATE_PLAYBACK) && (Function_mode != FMODE_EDITOR))
+		{
+			int choice, fmode;
+			fmode = Function_mode;
+			Function_mode = FMODE_GAME;
+			choice = nm_messagebox(NULL, 2, TXT_YES, TXT_NO, TXT_ABORT_GAME);
+			Function_mode = fmode;
+			if (choice != 0)
+				Function_mode = FMODE_GAME;
+		}*/
+
+		//if (Function_mode != FMODE_GAME)
+		//	longjmp(LeaveGame, 0);
+	}
+}
+
+void game_present()
+{
+	if (Game_sub_mode == SUB_GAME)
+	{
+		plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
+		grs_canvas* cockpit_canvas = get_cockpit_canvas();
+		if (cockpit_canvas)
+			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+		cockpit_canvas = get_hud_canvas();
+		if (cockpit_canvas)
+			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+	}
+	else if (Game_sub_mode == SUB_BRIEFING)
+		briefing_present();
+}
+
+void game_end()
+{
 	digi_stop_all();
 
 	if ((Newdemo_state == ND_STATE_RECORDING) || (Newdemo_state == ND_STATE_PAUSED))
@@ -2033,9 +2090,6 @@ void game()
 
 	if (Newdemo_state == ND_STATE_PLAYBACK)
 		newdemo_stop_playback();
-
-	if (Function_mode != FMODE_EDITOR)
-		gr_palette_fade_out(gr_palette, 32, 0);			// Fade out before going to menu
 
 	clear_warn_func(game_show_warning);     //don't use this func anymore
 
@@ -2083,10 +2137,25 @@ extern void dump_used_textures_all();
 int create_special_path(void);
 #endif
 
+std::queue<int> game_key_queue;
+
+bool AbortGameCallback(int choice, int nitems, newmenu_item* items)
+{
+	if (!Game_aborted)
+	{
+		if (choice == 0)
+		{
+			Game_aborted = true;
+			inferno_request_fade_out();
+			return true; //This stays on screen so it's visible during the fadeout. The function mode change will kill it. 
+		}
+	}
+	return false; 
+}
+
 void ReadControls()
 {
 	int key;
-	fix key_time;
 	static fix newdemo_single_frame_time;
 
 	Player_fired_laser_this_frame = -1;
@@ -2095,6 +2164,24 @@ void ReadControls()
 	if (speedtest_on)
 		speedtest_frame();
 #endif
+
+	kconfig_clear_down_counts();
+
+	//This could be improved, sometimes the game key queue will be leaky. 
+	while (!game_key_queue.empty())
+		game_key_queue.pop();
+
+	//Read events and check if they're used by the game controls
+	while (event_available())
+	{
+		plat_event ev;
+		pop_event(ev);
+
+		control_read_event(ev);
+
+		//Add the legacy keycode for the original handler.
+		game_key_queue.push(event_to_keycode(ev));
+	}
 
 	if (!Endlevel_sequence && !Player_is_dead) 
 	{
@@ -2184,8 +2271,11 @@ void ReadControls()
 			Newdemo_vcr_state = ND_STATE_PLAYBACK;
 	}
 
-	while ((key = key_inkey_time(&key_time)) != 0) 
+	//while ((key = key_inkey_time(&key_time)) != 0) 
+	while (!game_key_queue.empty())
 	{
+		key = game_key_queue.front(); game_key_queue.pop();
+
 		//cleaned up cheat handling done here. 
 		do_cheat_key(key);
 
@@ -2213,7 +2303,8 @@ void ReadControls()
 				save_screen_shot(0);
 
 			if (key == KEY_PAUSE)
-				key = do_game_pause(0);		//so esc from pause will end level
+				game_pause(true);
+				//key = do_game_pause(0);		//so esc from pause will end level
 
 			if (key == KEY_ESC) 
 			{
@@ -2235,8 +2326,9 @@ void ReadControls()
 
 			if (key == KEY_PAUSE) 
 			{
-				key = do_game_pause(0);		//so esc from pause will end level
-				Death_sequence_aborted = 0;		// Clear because code above sets this for any key.
+				game_pause(true);
+				//key = do_game_pause(0);		//so esc from pause will end level
+				//Death_sequence_aborted = 0;		// Clear because code above sets this for any key.
 			}
 
 			if (key == KEY_ESC) 
@@ -2306,7 +2398,8 @@ void ReadControls()
 				Int3();
 				break;
 			case KEY_ESC:
-				Function_mode = FMODE_MENU;
+				nm_open_messagebox(nullptr, AbortGameCallback, 2, TXT_YES, TXT_NO, TXT_ABORT_GAME);
+				//Function_mode = FMODE_MENU;
 				break;
 			case KEY_UP:
 				Newdemo_vcr_state = ND_STATE_PLAYBACK;
@@ -2329,7 +2422,7 @@ void ReadControls()
 				newdemo_goto_beginning();
 				break;
 			case KEY_PAUSE:
-				do_game_pause(0);
+				game_pause(true);
 				break;
 			case KEY_PRINT_SCREEN: 
 			{
@@ -2359,13 +2452,11 @@ void ReadControls()
 			case KEY_SHIFTED+KEY_A:	toggle_afterburner_status();	break;
 #endif
 		case KEY_ESC:
-			Game_aborted = 1;
-			Function_mode = FMODE_MENU;
+			nm_open_messagebox(nullptr, AbortGameCallback, 2, TXT_YES, TXT_NO, TXT_ABORT_GAME);
 			break;
 		case KEY_F1: 				do_show_help();			break;
 		case KEY_F2:				Config_menu_flag = 1;	break;
 		case KEY_F3:				toggle_cockpit();			break;
-		//case KEY_F4:				palette_save(); joydefs_calibrate(); palette_restore(); break;
 		case KEY_F5:
 			if (Newdemo_state == ND_STATE_RECORDING)
 				newdemo_stop_recording();
@@ -2428,8 +2519,12 @@ void ReadControls()
 #endif
 			break;		// redefine taunt macros
 
-		case KEY_PAUSE:			do_game_pause(1); 		break;
-		case KEY_PRINT_SCREEN: 	save_screen_shot(0);		break;
+		case KEY_PAUSE:			
+			game_pause(true);
+			break;
+		case KEY_PRINT_SCREEN: 	
+			save_screen_shot(0);		
+			break;
 
 			//	Select primary or secondary weapon.
 		case KEY_1:
@@ -2515,7 +2610,8 @@ void ReadControls()
 		case KEY_DEBUGGED + KEY_H:
 			//					if (!(Game_mode & GM_MULTI) )	{
 			Players[Player_num].flags ^= PLAYER_FLAGS_CLOAKED;
-			if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) {
+			if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED) 
+			{
 #ifdef NETWORK
 				if (Game_mode & GM_MULTI)
 					multi_send_cloak();
@@ -2589,7 +2685,6 @@ void ReadControls()
 			break;
 
 		case KEY_DEBUGGED + KEY_C:
-
 			do_cheat_menu();
 			break;
 		case KEY_DEBUGGED + KEY_SHIFTED + KEY_A:
@@ -2621,8 +2716,6 @@ void ReadControls()
 		case KEY_DEBUGGED + KEY_COMMA: Render_zoom = fixmul(Render_zoom, 62259); break;
 		case KEY_DEBUGGED + KEY_PERIOD: Render_zoom = fixmul(Render_zoom, 68985); break;
 
-		case KEY_DEBUGGED + KEY_P + KEY_SHIFTED: Debug_pause = 1; break;
-
 #ifndef NDEBUG
 		case KEY_DEBUGGED + KEY_F8: speedtest_init(); Speedtest_count = 1;	break;
 		case KEY_DEBUGGED + KEY_F9: speedtest_init(); Speedtest_count = 10;	break;
@@ -2649,9 +2742,6 @@ void ReadControls()
 	}
 }
 
-#ifndef	NDEBUG
-int	Debug_slowdown = 0;
-#endif
 
 #ifdef EDITOR
 extern void player_follow_path(object* objp);
@@ -2666,18 +2756,6 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 	//[ISB] Put the game in relative mouse mode, except if ReadControls isn't set
 	//as this prevents releasing mouse capture in the menus in multiplayer.
 	plat_set_mouse_relative_mode(ReadControlsFlag);
-#ifndef	NDEBUG
-	//	Used to slow down frame rate for testing things.
-//	RenderFlag = 1; // DEBUG
-	if (Debug_slowdown)
-	{
-		int	h, i, j = 0;
-
-		for (h = 0; h < Debug_slowdown; h++)
-			for (i = 0; i < 1000; i++)
-				j += i;
-	}
-#endif
 
 #ifndef RELEASE
 	if (FindArg("-invulnerability"))
@@ -2727,7 +2805,11 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 	if (ReadControlsFlag)
 		ReadControls();
 	else
+	{
+		//For safetly, also dump kconfig state
+		kconfig_flush_inputs();
 		memset(&Controls, 0, sizeof(Controls));
+	}
 
 	GameTime += FrameTime;
 
@@ -2735,6 +2817,7 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 
 	if (Endlevel_sequence)
 	{
+		newmenu_close_all();
 		do_endlevel_frame();
 		powerup_grab_cheat_all();
 		do_special_effects();
@@ -2770,6 +2853,15 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 	{ // Note the link to above!
 
 		Players[Player_num].homing_object_dist = -1;		//	Assume not being tracked.  Laser_do_weapon_sequence modifies this.
+
+		//If we're about to start the intermission, don't complete running the frame.
+		//This is to resolve some serious spaghetti with the death sequence. dead_player_frame() above will kick off the intermission sequence.
+		//But unlike the original, where this would stall the game loop until the next level starts, this lets the rest of the loop run.
+		//But object_move_all() will simply rekill the player in this case..
+
+		//Please fix me. 
+		if (Pending_sub_mode != SUB_INDETERMINATE)
+			return;
 
 		object_move_all();
 		powerup_grab_cheat_all();
@@ -2864,9 +2956,6 @@ void GameLoop(int RenderFlag, int ReadControlsFlag)
 
 		if (Global_laser_firing_count)
 		{
-			//	Don't cap here, gets capped in Laser_create_new and is based on whether in multiplayer mode, MK, 3/27/95
-			// if (Fusion_charge > F1_0*2)
-			// 	Fusion_charge = F1_0*2;
 			Global_laser_firing_count -= do_laser_firing_player();	//do_laser_firing(Players[Player_num].objnum, Primary_weapon);
 		}
 
