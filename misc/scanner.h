@@ -9,6 +9,23 @@ as described in copying.txt.
 
 #include <string_view>
 #include <string>
+#include <stack>
+
+enum class punctuation
+{
+	equals,
+	comma,
+	period,
+	curly_right,
+	curly_left,
+	semicolon,
+};
+
+struct punctuation_entry
+{
+	punctuation type;
+	std::string_view str;
+};
 
 //Format of a token. 
 enum class token_format
@@ -99,25 +116,33 @@ public:
 	}
 };
 
+//Entry of a document that needs to be processed after finishing the current document. 
+struct scanner_stack
+{
+	std::string name;		//Name of the document, for diagonstics.
+	std::string buf;		//Contents of the documents. 
+	size_t		cursor;		//Position in the buffer that this document will resume at. 
+	int			line_num;	//Line number that this document will resume at. 
+};
+
 //A token stream vaguely similar to Hexen's sc_man, but from scratch.
 //Note: Not all fuctions of this have been tested yet, still needs further development. 
 class scanner
 {
 	int line_num;
 	size_t cursor;
+	std::string name; //Name of the document, for diagonstics. 
 	std::string buf;
 	token_type last_token_type;
 	sc_token last_token;
 
 	std::string error;
 
+	std::stack<scanner_stack> document_stack;
+
 	//Advances the cursor. Returns true if EOF, false otherwise. 
 	//This will automatically scan for newlines. 
 	bool advance(int amount = 1);
-	//Reads all whitespace. Returns true if EOF, false otherwise.
-	bool clear_whitespace();
-	//Advances the cursor to either the start of the next line, or EOF. 
-	bool clear_to_end_of_line();
 	//Reads a quoted string
 	void read_quoted_string();
 	//Reads a unquoted string
@@ -127,8 +152,6 @@ class scanner
 	//Reads punctuation
 	void read_punct();
 
-	void raise_error(const char* msg);
-
 public:
 	//Initializes the scanner, copying the contents of the string view buf into a new string,
 	//so the initial buffer can be freed without problems. 
@@ -136,6 +159,16 @@ public:
 
 	//Reads one string from the buffer. Returns true if read, false otherwise
 	bool read_string();
+
+	//Reads all whitespace. Returns true if EOF, false otherwise.
+	bool clear_whitespace();
+	//Advances the cursor to either the end of the line, or EOF. 
+	bool clear_to_end_of_line();
+	//Advances the cursor to either the start of the next line, or EOF.
+	bool clear_to_next_line();
+
+	//Includes another document onto the stack. After calling this, all parsing will start parsing from the included document,
+	//and will only return to the current position of the initial document once the document is parsed to EOF.
 
 	//Gets the last token read. 
 	sc_token& get_last_token()
@@ -147,4 +180,7 @@ public:
 	{
 		return line_num;
 	}
+
+	void raise_error(const char* msg);
+	void raise_error(std::string& msg);
 };

@@ -297,6 +297,7 @@ int D_DescentMain(int argc, const char** argv)
 	CFILE* test = cfopen("lexertst.txt", "rb");
 	if (test)
 	{
+		static const char* token_strs[] = { "none", "number", "punctuation", "string", "quoted string" };
 		size_t testsize = cfilelength(test);
 
 		std::string testbuf; testbuf.resize(testsize);
@@ -308,7 +309,7 @@ int D_DescentMain(int argc, const char** argv)
 		while (vargscanner.read_string())
 		{
 			sc_token& token = vargscanner.get_last_token();
-			mprintf((0, "%d: %s\n", vargscanner.get_line_num(), token.get_chars().c_str()));
+			mprintf((0, "%d: %s (%s)\n", vargscanner.get_line_num(), token.get_chars().c_str(), token_strs[(int)token.get_token_type()]));
 		}
 	}
 

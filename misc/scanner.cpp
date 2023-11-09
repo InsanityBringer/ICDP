@@ -13,22 +13,22 @@ as described in copying.txt.
 #include "error.h"
 
 //For the sake of maximal munch, this will need to be sorted by longest to shortest when longer punctuation sequences are in. 
-std::string_view const punctuation_strings[] =
+punctuation_entry const punctuation_strings[] =
 {
-	"=",
-	",",
-	".",
-	"}",
-	"{",
-	";",
+	{ punctuation::equals, "=" },
+	{ punctuation::comma, "," },
+	{ punctuation::period, "." },
+	{ punctuation::curly_right, "}" },
+	{ punctuation::curly_left, "{" },
+	{ punctuation::semicolon, ";" },
 };
 
 //Determine if this character is a part of punctuation
 bool is_punct(char ch)
 {
-	for (std::string_view const& view : punctuation_strings)
+	for (punctuation_entry const& entry : punctuation_strings)
 	{
-		if (view[0] == ch)
+		if (entry.str[0] == ch)
 			return true;
 	}
 
@@ -86,6 +86,14 @@ scanner::scanner(std::string_view buf) : buf(buf)
 }
 
 void scanner::raise_error(const char* msg)
+{
+	error = std::format("Script error at line {}: {}", line_num, msg);
+
+	//TODO: Maybe allow caller to disable fatal errors?
+	Error(error.c_str());
+}
+
+void scanner::raise_error(std::string& msg)
 {
 	error = std::format("Script error at line {}: {}", line_num, msg);
 
@@ -183,7 +191,22 @@ bool scanner::clear_to_end_of_line()
 		ch = buf[cursor];
 	}
 
-	//Cursor is on the '\n' so advance one more time.
+	if (cursor == buf.size())
+		return true;
+	return false;
+}
+
+bool scanner::clear_to_next_line()
+{
+	char ch = buf[cursor];
+	while (ch != '\n')
+	{
+		if (advance())
+			return true;
+
+		ch = buf[cursor];
+	}
+
 	return advance();
 }
 
@@ -219,7 +242,7 @@ void scanner::read_quoted_string()
 				new_token += ch; //These add the escaped character directly
 			else if (ch == 't')
 				new_token += '\t';
-			else if (ch == '\n')
+			else if (ch == '\n' || ch == '\r')
 				clear_to_end_of_line(); //Escaped newline 
 			else
 			{
@@ -261,37 +284,26 @@ void scanner::read_unquoted_string()
 void scanner::read_number()
 {
 	bool found_dot = false;
-	bool found_neg = false;
 	std::string new_token;
 
 	while (true)
 	{
 		char ch = buf[cursor];
 
-		if (found_dot && ch == '.')
-			break; //Found more than one dot, so it must be part of punctuation
-		else if (ch == '.')
+		//TODO: Should any validation of the statement be done here?
+		//Suffixes and alternate bases aren't supported, but should they be?
+		if (ch == '.')
 		{
-			found_dot = true; //No dots seen before, so its now a punctuation marker
+			if (found_dot)
+				break; //Punctuation between operations. Should this be an error at the lexer level?
+
+			found_dot = true;
 			new_token += ch;
 		}
-		else if (ch == '-')
+		//Negative sign can only be at the beginning of a token. Otherwise it could be a minus between operands. 
+		else if (ch == '-' && new_token.size() == 0)
 		{
-			if (found_dot) //neg sign after dot?
-			{
-				raise_error("Bad numeric constant. Negative sign after .");
-				break;
-			}
-			else if (found_neg)
-			{
-				raise_error("Bad numeric constant. Multiple negative signs.");
-				break;
-			}
-			else
-			{
-				found_neg = true;
-				new_token += ch;
-			}
+			new_token += ch;
 		}
 		else if (!isdigit(ch))
 			break; //Check non-digit after dots since otherwise the . would fail this check. 
@@ -310,12 +322,12 @@ void scanner::read_punct()
 	//This is very silly, but I make a string view from cursor to the end of the buffer, so I don't have to count manually
 	std::string_view punct_view = std::string_view(buf.data() + cursor, buf.size() - cursor);
 
-	for (std::string_view const& view : punctuation_strings)
+	for (punctuation_entry const& entry : punctuation_strings)
 	{
-		if (punct_view.starts_with(view))
+		if (punct_view.starts_with(entry.str))
 		{
-			last_token = sc_token(std::string(view), token_type::punctuation);
-			advance(view.size());
+			last_token = sc_token(std::string(entry.str), token_type::punctuation);
+			advance(entry.str.size());
 			return;
 		}
 	}
