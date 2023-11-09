@@ -76,6 +76,8 @@ set(SHARED_SOURCES
 	3d/threading.h
 	cfile/cfile.cpp
 	cfile/cfile.h
+	defs/definitions.cpp
+	defs/definitions.h
 	fix/fix.cpp
 	fix/fix.h
 	fix/tables.cpp
@@ -181,6 +183,9 @@ set(DESCENT1_SOURCES
 	main_d1/game.cpp
 	main_d1/game.h
 	main_d1/gamecntl.cpp
+	main_d1/gamedefs.cpp
+	main_d1/gamedefs.h
+	main_d1/gamedefs_schemas.cpp
 	main_d1/gamefont.cpp
 	main_d1/gamefont.h
 	main_d1/gamemine.cpp
@@ -560,6 +565,7 @@ source_group("2d" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/2d/.+")
 source_group("3d" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/3d/.+")
 source_group("cfile" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/cfile/.+")
 source_group("conf" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/conf/.+")
+source_group("defs" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/defs/.+")
 source_group("fix" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/fix/.+")
 source_group("gameinfo" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/gameinfo/.+")
 source_group("iff" REGULAR_EXPRESSION "${CMAKE_CURRENT_SOURCE_DIR}/iff/.+")

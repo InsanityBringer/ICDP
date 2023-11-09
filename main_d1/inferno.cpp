@@ -214,6 +214,8 @@ void inferno_fade_frame()
 	}
 }
 
+#include "misc/scanner.h"
+
 //[ISB] Okay, the trouble is that SDL redefines main. I don't want to include SDL here. Solution is to rip off doom
 //and add a separate main function
 int D_DescentMain(int argc, const char** argv)
@@ -291,6 +293,24 @@ int D_DescentMain(int argc, const char** argv)
 	mopen(0, 9, 1, 78, 15, "Debug Spew");
 	mopen(1, 2, 1, 78, 5, "Errors & Serious Warnings");
 #endif
+
+	CFILE* test = cfopen("lexertst.txt", "rb");
+	if (test)
+	{
+		size_t testsize = cfilelength(test);
+
+		std::string testbuf; testbuf.resize(testsize);
+		cfread((void*)testbuf.c_str(), 1, testsize, test);
+		cfclose(test);
+
+		scanner vargscanner(testbuf);
+
+		while (vargscanner.read_string())
+		{
+			sc_token& token = vargscanner.get_last_token();
+			mprintf((0, "%d: %s\n", vargscanner.get_line_num(), token.get_chars().c_str()));
+		}
+	}
 
 	if (Inferno_verbose) printf("%s", TXT_VERBOSE_1);
 	ReadConfigFile();

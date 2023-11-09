@@ -18,6 +18,9 @@ std::string_view const punctuation_strings[] =
 	"=",
 	",",
 	".",
+	"}",
+	"{",
+	";",
 };
 
 //Determine if this character is a part of punctuation
@@ -85,11 +88,14 @@ scanner::scanner(std::string_view buf) : buf(buf)
 void scanner::raise_error(const char* msg)
 {
 	error = std::format("Script error at line {}: {}", line_num, msg);
-}
 
+	//TODO: Maybe allow caller to disable fatal errors?
+	Error(error.c_str());
+}
 
 bool scanner::advance(int amount)
 {
+	Assert(cursor <= buf.size());
 	if (cursor == buf.size())
 		return true; //already at eof
 
@@ -105,16 +111,80 @@ bool scanner::advance(int amount)
 	return false;
 }
 
-void scanner::clear_to_end_of_line()
+bool scanner::clear_whitespace()
+{
+	for (;;)
+	{
+		//Skip any whitespace
+		while (iswspace(buf[cursor]))
+		{
+			if (advance())
+				return true;
+		}
+
+		//Check for comments.
+		//Does it start with /? Is there enough space to even have a comment?
+		if (buf[cursor] == '/' && cursor < buf.size())
+		{
+			//Check for // line comment. 
+			if (buf[cursor + 1] == '/')
+			{
+				if (clear_to_end_of_line()) //hit EOF?
+					return true;
+
+				continue;
+			}
+			//Check for /* block comment. 
+			else if (buf[cursor + 1] == '*')
+			{
+				//Skip over the "/*"
+				if (advance(2))
+				{
+					raise_error("EOF in block comment");
+					return true;
+				}
+
+				for (;;)
+				{
+					if (cursor < buf.size() - 1)
+					{
+						if (buf[cursor] == '*' && buf[cursor + 1] == '/')
+						{
+							if (advance(2))
+								return true; //hit EOF. 
+							break;
+						}
+					}
+					else
+					{
+						raise_error("EOF in block comment");
+						return true;
+					}
+					advance();
+				}
+
+				continue;
+			}
+		}
+
+		return false;
+	}
+	return false;
+}
+
+bool scanner::clear_to_end_of_line()
 {
 	char ch = buf[cursor];
 	while (ch != '\n')
 	{
 		if (advance())
-			return;
+			return true;
 
 		ch = buf[cursor];
 	}
+
+	//Cursor is on the '\n' so advance one more time.
+	return advance();
 }
 
 void scanner::read_quoted_string()
@@ -237,7 +307,7 @@ void scanner::read_number()
 
 void scanner::read_punct()
 {
-	//This is slightly silly, but I make a string view from cursor to the end of the buffer, so I don't have to count manually
+	//This is very silly, but I make a string view from cursor to the end of the buffer, so I don't have to count manually
 	std::string_view punct_view = std::string_view(buf.data() + cursor, buf.size() - cursor);
 
 	for (std::string_view const& view : punctuation_strings)
@@ -257,25 +327,15 @@ void scanner::read_punct()
 
 bool scanner::read_string()
 {
+	Assert(cursor <= buf.size());
 	if (cursor == buf.size())
 		return false; //At end of buffer, so nothing left to read
 
-	//If the cursor is in whitespace, progress until the first character is found
-	while (iswspace(buf[cursor]))
-	{
-		if (advance())
-			return false;
-	}
+	//Read to the first non-whitespace character. 
+	if (clear_whitespace())
+		return false;
 
 	std::string_view remaining(buf.data() + cursor, buf.size() - cursor);
-
-	//Check if we need to remove a comment
-	if (is_cpp_comment(remaining))
-	{
-		clear_to_end_of_line();
-		//Recursively start parsing from the new cursor
-		return read_string();
-	}
 
 	//Check what kind of token this is
 	char ch = buf[cursor];

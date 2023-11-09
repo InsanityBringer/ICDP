@@ -114,8 +114,10 @@ class scanner
 	//Advances the cursor. Returns true if EOF, false otherwise. 
 	//This will automatically scan for newlines. 
 	bool advance(int amount = 1);
+	//Reads all whitespace. Returns true if EOF, false otherwise.
+	bool clear_whitespace();
 	//Advances the cursor to either the start of the next line, or EOF. 
-	void clear_to_end_of_line();
+	bool clear_to_end_of_line();
 	//Reads a quoted string
 	void read_quoted_string();
 	//Reads a unquoted string
@@ -139,5 +141,10 @@ public:
 	sc_token& get_last_token()
 	{
 		return last_token;
+	}
+
+	int get_line_num()
+	{
+		return line_num;
 	}
 };
