@@ -294,7 +294,8 @@ int D_DescentMain(int argc, const char** argv)
 	mopen(1, 2, 1, 78, 5, "Errors & Serious Warnings");
 #endif
 
-	CFILE* test = cfopen("lexertst.txt", "rb");
+	const char* test_filename = "lexertst.txt";
+	CFILE* test = cfopen(test_filename, "rb");
 	if (test)
 	{
 		static const char* token_strs[] = { "none", "number", "punctuation", "string", "quoted string" };
@@ -304,12 +305,30 @@ int D_DescentMain(int argc, const char** argv)
 		cfread((void*)testbuf.c_str(), 1, testsize, test);
 		cfclose(test);
 
-		scanner vargscanner(testbuf);
+		const char* test_filename2 = "lexerinclude.txt";
+		test = cfopen(test_filename2, "rb");
+		testsize = cfilelength(test);
 
-		while (vargscanner.read_string())
+		if (test)
 		{
-			sc_token& token = vargscanner.get_last_token();
-			mprintf((0, "%d: %s (%s)\n", vargscanner.get_line_num(), token.get_chars().c_str(), token_strs[(int)token.get_token_type()]));
+			std::string testbuf2; testbuf2.resize(testsize);
+			cfread((void*)testbuf2.c_str(), 1, testsize, test);
+			cfclose(test);
+
+			scanner vargscanner(test_filename, testbuf);
+
+			bool included = false;
+			while (vargscanner.read_string())
+			{
+				sc_token& token = vargscanner.get_last_token();
+				mprintf((0, "%d: %s (%s)\n", vargscanner.get_line_num(), token.get_chars().c_str(), token_strs[(int)token.get_token_type()]));
+				if (vargscanner.get_line_num() == 25 && !included)
+				{
+					vargscanner.clear_to_next_line();
+					vargscanner.include_document(test_filename2, testbuf2);
+					included = true;
+				}
+			}
 		}
 	}
 

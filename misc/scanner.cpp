@@ -15,12 +15,12 @@ as described in copying.txt.
 //For the sake of maximal munch, this will need to be sorted by longest to shortest when longer punctuation sequences are in. 
 punctuation_entry const punctuation_strings[] =
 {
-	{ punctuation::equals, "=" },
-	{ punctuation::comma, "," },
-	{ punctuation::period, "." },
-	{ punctuation::curly_right, "}" },
-	{ punctuation::curly_left, "{" },
-	{ punctuation::semicolon, ";" },
+	{ punctuation_type::equals, "=" },
+	{ punctuation_type::comma, "," },
+	{ punctuation_type::period, "." },
+	{ punctuation_type::curly_right, "}" },
+	{ punctuation_type::curly_left, "{" },
+	{ punctuation_type::semicolon, ";" },
 };
 
 //Determine if this character is a part of punctuation
@@ -79,6 +79,13 @@ bool is_cpp_comment(std::string_view& start)
 }
 
 scanner::scanner(std::string_view buf) : buf(buf)
+{
+	cursor = 0;
+	line_num = 1;
+	last_token_type = token_type::none;
+}
+
+scanner::scanner(std::string_view document_name, std::string_view buf) : name(document_name), buf(buf)
 {
 	cursor = 0;
 	line_num = 1;
@@ -210,6 +217,18 @@ bool scanner::clear_to_next_line()
 	return advance();
 }
 
+void scanner::include_document(std::string_view document_name, std::string_view document_buf)
+{
+	//Ugh, a double move. Move into cur_document. move cur_document. Optimize me.
+	scanner_stack cur_document(name, buf, cursor, line_num);
+	document_stack.push(std::move(cur_document));
+
+	name = document_name;
+	buf = document_buf;
+	cursor = 0;
+	line_num = 1;
+}
+
 void scanner::read_quoted_string()
 {
 	bool last_escaped = false;
@@ -326,7 +345,7 @@ void scanner::read_punct()
 	{
 		if (punct_view.starts_with(entry.str))
 		{
-			last_token = sc_token(std::string(entry.str), token_type::punctuation);
+			last_token = sc_token(std::string(entry.str), entry.type);
 			advance(entry.str.size());
 			return;
 		}
@@ -337,15 +356,44 @@ void scanner::read_punct()
 	Int3();
 }
 
+bool scanner::check_or_pop_pending_document()
+{
+	if (document_stack.empty())
+		return true;
+
+	//A document is pending, so pop it back into the scanner's state.
+	scanner_stack& entry = document_stack.top();
+	buf = std::move(entry.buf);
+	name = std::move(entry.name);
+	cursor = entry.cursor;
+	line_num = entry.line_num;
+	
+	//This should avoid deallocating things because the strings were moved. 
+	document_stack.pop();
+
+	return false;
+}
+
 bool scanner::read_string()
 {
 	Assert(cursor <= buf.size());
-	if (cursor == buf.size())
-		return false; //At end of buffer, so nothing left to read
+	bool skipping_whitespace = true;
+	while (skipping_whitespace)
+	{
+		skipping_whitespace = false;
+		if (cursor == buf.size())
+			if (check_or_pop_pending_document())
+				return false; //At end of buffer, so nothing left to read
+			else
+				skipping_whitespace = true; //Popped a document off the stack, will need to clear whitespace on this document. 
 
-	//Read to the first non-whitespace character. 
-	if (clear_whitespace())
-		return false;
+		//Read to the first non-whitespace character. 
+		if (clear_whitespace())
+			if (check_or_pop_pending_document())
+				return false;
+			else
+				skipping_whitespace = true; //Popped a document off the stack, will need to clear whitespace on this document. 
+	}
 
 	std::string_view remaining(buf.data() + cursor, buf.size() - cursor);
 
@@ -373,4 +421,28 @@ bool scanner::read_string()
 	}
 
 	return true;
+}
+
+scanner_stack::scanner_stack(std::string& doc_name, std::string& doc_buf, size_t doc_cursor, int doc_line_num)
+{
+	name = std::move(doc_name);
+	buf = std::move(doc_buf);
+	cursor = doc_cursor;
+	line_num = doc_line_num;
+}
+
+scanner_stack::scanner_stack(const scanner_stack& other)
+{
+	name = other.name;
+	buf = other.buf;
+	cursor = other.cursor;
+	line_num = other.line_num;
+}
+
+scanner_stack::scanner_stack(scanner_stack&& other) noexcept
+{
+	name = std::move(other.name);
+	buf = std::move(other.buf);
+	cursor = other.cursor;
+	line_num = other.line_num;
 }

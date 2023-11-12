@@ -11,8 +11,9 @@ as described in copying.txt.
 #include <string>
 #include <stack>
 
-enum class punctuation
+enum class punctuation_type
 {
+	none,
 	equals,
 	comma,
 	period,
@@ -23,7 +24,7 @@ enum class punctuation
 
 struct punctuation_entry
 {
-	punctuation type;
+	punctuation_type type;
 	std::string_view str;
 };
 
@@ -33,7 +34,8 @@ enum class token_format
 	none, //You never read anything or something bad happened
 	string, //Token is composed of characters
 	integer, //Token is composed of an integer
-	floating //Token is composed of a floating-point value.
+	floating, //Token is composed of a floating-point value.
+	empty, //Token is empty. Used for punctuation since there's no need to store characters ATM. 
 };
 
 enum class token_type
@@ -50,6 +52,7 @@ class sc_token
 {
 	token_format format;
 	token_type type;
+	punctuation_type punctuation; //For punctuation, type of the punctuation encountered. 
 	std::string chars;
 
 	//Just for convenience
@@ -63,6 +66,7 @@ public:
 		format = token_format::none;
 		type = token_type::none;
 		dval = ival = 0;
+		punctuation = punctuation_type::none;
 	}
 
 	//Constructs an initialized token with the string chars.
@@ -88,6 +92,15 @@ public:
 			format = token_format::string;
 			dval = ival = 0;
 		}
+		punctuation = punctuation_type::none;
+	}
+
+	//Constructs an initialized punctuation token
+	sc_token(std::string chars, punctuation_type punctuation) : chars(chars), punctuation(punctuation)
+	{
+		format = token_format::empty;
+		type = token_type::punctuation;
+		dval = ival = 0;
 	}
 
 	int get_integer() const
@@ -114,6 +127,11 @@ public:
 	{
 		return type;
 	}
+
+	punctuation_type get_punctuation_type() const
+	{
+		return punctuation;
+	}
 };
 
 //Entry of a document that needs to be processed after finishing the current document. 
@@ -123,6 +141,13 @@ struct scanner_stack
 	std::string buf;		//Contents of the documents. 
 	size_t		cursor;		//Position in the buffer that this document will resume at. 
 	int			line_num;	//Line number that this document will resume at. 
+
+	//Creates a new scanner stack entry. 
+	//WARNING: This moves the passed strings, so they are invalid after creation!
+	//Thus, this should only ever be called from scanner::include_document. 
+	scanner_stack(std::string& doc_name, std::string& doc_buf, size_t doc_cursor, int doc_line_num);
+	scanner_stack(const scanner_stack& other);
+	scanner_stack(scanner_stack&& other) noexcept;
 };
 
 //A token stream vaguely similar to Hexen's sc_man, but from scratch.
@@ -151,11 +176,17 @@ class scanner
 	void read_number();
 	//Reads punctuation
 	void read_punct();
+	//At EOF, checks if there are pending documents to be processed.
+	//Returns true if EOF is reached, or false if there's still documents to process.
+	bool check_or_pop_pending_document();
 
 public:
-	//Initializes the scanner, copying the contents of the string view buf into a new string,
+	//Initializes the scanner with no document name, copying the contents of the string view buf into a new string,
 	//so the initial buffer can be freed without problems. 
 	scanner(std::string_view buf);
+	//Initializes the scanner, copying the contents of the string view buf into a new string,
+	//so the initial buffer can be freed without problems. 
+	scanner(std::string_view document_name, std::string_view buf);
 
 	//Reads one string from the buffer. Returns true if read, false otherwise
 	bool read_string();
@@ -169,6 +200,7 @@ public:
 
 	//Includes another document onto the stack. After calling this, all parsing will start parsing from the included document,
 	//and will only return to the current position of the initial document once the document is parsed to EOF.
+	void include_document(std::string_view document_name, std::string_view buf);
 
 	//Gets the last token read. 
 	sc_token& get_last_token()
