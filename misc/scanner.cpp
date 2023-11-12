@@ -94,7 +94,7 @@ scanner::scanner(std::string_view document_name, std::string_view buf) : name(do
 
 void scanner::raise_error(const char* msg)
 {
-	error = std::format("Script error at line {}: {}", line_num, msg);
+	error = std::format("Script error in {} at line {}: {}", name, line_num, msg);
 
 	//TODO: Maybe allow caller to disable fatal errors?
 	Error(error.c_str());
@@ -102,7 +102,7 @@ void scanner::raise_error(const char* msg)
 
 void scanner::raise_error(std::string& msg)
 {
-	error = std::format("Script error at line {}: {}", line_num, msg);
+	error = std::format("Script error in {} at line {}: {}", name, line_num, msg);
 
 	//TODO: Maybe allow caller to disable fatal errors?
 	Error(error.c_str());

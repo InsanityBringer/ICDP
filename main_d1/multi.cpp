@@ -2847,7 +2847,7 @@ void multi_parse_config_string(std::string_view& config_string)
 	if (config_string.size() == 0)
 		return; //nothing to parse
 
-	scanner sc(config_string);
+	scanner sc("multi config string", config_string);
 
 	while (sc.read_string())
 	{
