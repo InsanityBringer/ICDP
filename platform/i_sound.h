@@ -10,9 +10,12 @@
 
 //Number of possible sound channels
 #define _MAX_VOICES 32
+//For handles. Can I use a consteval function to ensure these are accurate at compile time. 
+#define _VOICESHIFT 5
 
 //Id of a bad handle
-#define _ERR_NO_SLOTS 0xFFFE
+#define _NULL_HANDLE 0xFFFFFFFF
+#define _ERR_NO_SLOTS 0xFFFFFFFE
 
 //-----------------------------------------------------------------------------
 // Init and shutdown
@@ -28,30 +31,32 @@ void plat_close_audio();
 // Handles and data
 //-----------------------------------------------------------------------------
 
-//Gets a handle to refer to this sound
-int plat_get_new_sound_handle();
+//Gets a handle to refer to this sound.
+uint32_t plat_get_new_sound_handle();
+//Like plat_get_new_sound_handle, but will return the handle of any prior source using soundNum, even if it is currently playing.
+uint32_t plat_get_unique_sound_handle(int soundNum);
 
 //Provide the PCM data for this sound effect
-void plat_set_sound_data(int handle, unsigned char* data, int length, int sampleRate);
+void plat_set_sound_data(uint32_t handle, unsigned char* data, int length, int sampleRate);
 
-void plat_set_sound_position(int handle, int volume, int angle);
+void plat_set_sound_position(uint32_t handle, int volume, int angle);
 
-void plat_set_sound_angle(int handle, int angle);
+void plat_set_sound_angle(uint32_t handle, int angle);
 
-void plat_set_sound_volume(int handle, int volume);
+void plat_set_sound_volume(uint32_t handle, int volume);
 
-void plat_set_sound_loop_points(int handle, int start, int end);
+void plat_set_sound_loop_points(uint32_t handle, int start, int end);
 
 //-----------------------------------------------------------------------------
 // Emitting noise at player
 //-----------------------------------------------------------------------------
 
-void plat_start_sound(int handle, int loop);
-void plat_stop_sound(int handle);
+void plat_start_sound(uint32_t handle, int loop);
+void plat_stop_sound(uint32_t handle);
 
-int plat_check_if_sound_playing(int handle);
+bool plat_check_if_sound_playing(uint32_t handle);
 
-int plat_check_if_sound_finished(int handle);
+bool plat_check_if_sound_finished(uint32_t handle);
 
 //-----------------------------------------------------------------------------
 // Emitting pleasing rythmic sequences at player

@@ -19,16 +19,21 @@ Instead, it is released under the terms of the MIT License.
 #include "platform/i_sound.h"
 #include "platform/s_midi.h"
 #include "platform/s_sequencer.h"
+#include "platform/timer.h"
 #include "misc/error.h"
-//#include "mem/mem.h" //[ISB] mem.h isn't thread safe so uh
 
 ALCdevice *ALDevice = NULL;
 ALCcontext *ALContext = NULL;
 
 int AL_initialized = 0;
 
+constexpr int SF_RESERVED = 1; //When set, source is reserved for future use. Cleared when a sound starts playing. 
+
 ALuint bufferNames[_MAX_VOICES];
 ALuint sourceNames[_MAX_VOICES];
+uint32_t sourceFlags[_MAX_VOICES]; //maybe bundle me up into a struct?
+uint32_t sourceHandle[_MAX_VOICES];
+int		 sourceSndNum[_MAX_VOICES];
 
 //MIDI audio fields
 //MAX_BUFFERS_QUEUED is currently in terms of buffers of 4 ticks
@@ -145,43 +150,94 @@ void plat_close_audio()
 	}
 }
 
-int plat_get_new_sound_handle()
+//Given a channel, creates a handle to reference a playing sound.
+static uint32_t plat_get_handle_from_channel(int channel)
+{
+	Assert((1 << _VOICESHIFT) == _MAX_VOICES);
+	uint32_t time = timer_get_ms();
+	uint32_t handle = channel | (time << _VOICESHIFT);
+
+	//check for error conditions
+	if (handle == _ERR_NO_SLOTS || handle == _NULL_HANDLE)
+	{
+		time += 2;
+		handle = channel | (time << _VOICESHIFT);
+	}
+
+	return handle;
+}
+
+//Given a handle, figures out what channel it is referencing.
+//If the handle is an error handle, returns 0xFFFFFFFF.
+//The resultant channel should be checked that it is playing the correct handle. 
+static uint32_t plat_get_channel_from_handle(uint32_t handle)
+{
+	if (handle == _ERR_NO_SLOTS || handle == _NULL_HANDLE)
+		return 0xFFFFFFFF; //will fail range check
+
+	return handle & ((1 << _VOICESHIFT) - 1);
+}
+
+uint32_t plat_get_new_sound_handle()
 {
 	int i;
 	ALint state;
 	for (i = 0; i < _MAX_VOICES; i++)
 	{
 		alGetSourcei(sourceNames[i], AL_SOURCE_STATE, &state);
-		if (state != AL_PLAYING)
+		if (state != AL_PLAYING && !(sourceFlags[i] & SF_RESERVED))
 		{
-			return i;
+			sourceFlags[i] |= SF_RESERVED;
+			sourceHandle[i] = plat_get_handle_from_channel(i);
+			sourceSndNum[i] = -1;
+			return sourceHandle[i];
 		}
 	}
 	AL_ErrorCheck("Getting handle");
 	return _ERR_NO_SLOTS;
 }
 
-void plat_set_sound_data(int handle, unsigned char* data, int length, int sampleRate)
+uint32_t plat_get_unique_sound_handle(int soundNum)
 {
-	if (handle >= _MAX_VOICES) return;
+	int i;
+	ALint state;
+	for (i = 0; i < _MAX_VOICES; i++)
+	{
+		alGetSourcei(sourceNames[i], AL_SOURCE_STATE, &state);
+		if (sourceSndNum[i] == soundNum || (state != AL_PLAYING && !(sourceFlags[i] & SF_RESERVED)))
+		{
+			sourceFlags[i] |= SF_RESERVED;
+			sourceHandle[i] = plat_get_handle_from_channel(i);
+			sourceSndNum[i] = soundNum;
+			return sourceHandle[i];
+		}
+	}
+	AL_ErrorCheck("Getting handle");
+	return _ERR_NO_SLOTS;
+}
 
-	alSourcei(sourceNames[handle], AL_BUFFER, 0);
-	alBufferData(bufferNames[handle], AL_FORMAT_MONO8, data, length, sampleRate);
+void plat_set_sound_data(uint32_t handle, unsigned char* data, int length, int sampleRate)
+{
+	uint32_t channel = plat_get_channel_from_handle(handle);
+	if (channel >= _MAX_VOICES || sourceHandle[channel] != handle) return;
+
+	alSourcei(sourceNames[channel], AL_BUFFER, 0);
+	alBufferData(bufferNames[channel], AL_FORMAT_MONO8, data, length, sampleRate);
 	plat_set_sound_loop_points(handle, 0, length);
 
 	AL_ErrorCheck("Setting sound data");
 }
 
-void plat_set_sound_position(int handle, int volume, int angle)
+void plat_set_sound_position(uint32_t handle, int volume, int angle)
 {
-	if (handle >= _MAX_VOICES) return;
 	plat_set_sound_angle(handle, angle);
 	plat_set_sound_volume(handle, volume);
 }
 
-void plat_set_sound_angle(int handle, int angle)
+void plat_set_sound_angle(uint32_t handle, int angle)
 {
-	if (handle >= _MAX_VOICES) return;
+	uint32_t channel = plat_get_channel_from_handle(handle);
+	if (channel >= _MAX_VOICES || sourceHandle[channel] != handle) return;
 
 	float x, y;
 	float flang = (angle / 65536.0f) * (3.1415927f);
@@ -189,67 +245,80 @@ void plat_set_sound_angle(int handle, int angle)
 	x = (float)cos(flang);
 	y = (float)sin(flang);
 
-	alSource3f(sourceNames[handle], AL_POSITION, -x, 0.0f, -y);
+	alSource3f(sourceNames[channel], AL_POSITION, -x, 0.0f, -y);
 	AL_ErrorCheck("Setting sound angle");
 }
 
-void plat_set_sound_volume(int handle, int volume)
+void plat_set_sound_volume(uint32_t handle, int volume)
 {
-	if (handle >= _MAX_VOICES) return;
+	uint32_t channel = plat_get_channel_from_handle(handle);
+	if (channel >= _MAX_VOICES || sourceHandle[channel] != handle) return;
 
 	float gain = volume / 32768.0f;
-	alSourcef(sourceNames[handle], AL_GAIN, gain);
+	alSourcef(sourceNames[channel], AL_GAIN, gain);
 	AL_ErrorCheck("Setting sound volume");
 }
 
-void plat_set_sound_loop_points(int handle, int start, int end)
+void plat_set_sound_loop_points(uint32_t handle, int start, int end) //TODO: These should be part of the source play information. 
 {
+	uint32_t channel = plat_get_channel_from_handle(handle);
+	if (channel >= _MAX_VOICES || sourceHandle[channel] != handle) return;
+
 	if (start == -1) start = 0;
 	if (end == -1)
 	{
 		ALint len;
-		alGetBufferi(bufferNames[handle], AL_SIZE, &len);
+		alGetBufferi(bufferNames[channel], AL_SIZE, &len);
 		end = len;
 		AL_ErrorCheck("Getting buffer length");
 	}
 	ALint loopPoints[2];
 	loopPoints[0] = start;
 	loopPoints[1] = end;
-	alBufferiv(bufferNames[handle], AL_LOOP_POINTS_SOFT, &loopPoints[0]);
+	alBufferiv(bufferNames[channel], AL_LOOP_POINTS_SOFT, &loopPoints[0]);
 	AL_ErrorCheck("Setting loop points");
 }
 
-void plat_start_sound(int handle, int loop)
+void plat_start_sound(uint32_t handle, int loop)
 {
-	if (handle >= _MAX_VOICES) return;
-	alSourcei(sourceNames[handle], AL_BUFFER, bufferNames[handle]);
-	alSourcei(sourceNames[handle], AL_LOOPING, loop);
-	alSourcePlay(sourceNames[handle]);
+	uint32_t channel = plat_get_channel_from_handle(handle);
+	if (channel >= _MAX_VOICES || sourceHandle[channel] != handle) return;
+
+	alSourcei(sourceNames[channel], AL_BUFFER, bufferNames[channel]);
+	alSourcei(sourceNames[channel], AL_LOOPING, loop);
+	alSourcePlay(sourceNames[channel]);
+
+	//clear reserved flag so this sound slot can be retaken ASAP.
+	sourceFlags[channel] &= ~SF_RESERVED;
 	AL_ErrorCheck("Playing sound");
 }
 
-void plat_stop_sound(int handle)
+void plat_stop_sound(uint32_t handle)
 {
-	if (handle >= _MAX_VOICES) return;
-	alSourceStop(sourceNames[handle]);
+	uint32_t channel = plat_get_channel_from_handle(handle);
+	if (channel >= _MAX_VOICES || sourceHandle[channel] != handle) return;
+
+	alSourceStop(sourceNames[channel]);
 	AL_ErrorCheck("Stopping sound");
 }
 
-int plat_check_if_sound_playing(int handle)
+bool plat_check_if_sound_playing(uint32_t handle)
 {
-	if (handle >= _MAX_VOICES) return 0;
+	uint32_t channel = plat_get_channel_from_handle(handle);
+	if (channel >= _MAX_VOICES || sourceHandle[channel] != handle) return false; 
 	
 	int playing;
-	alGetSourcei(sourceNames[handle], AL_SOURCE_STATE, &playing);
+	alGetSourcei(sourceNames[channel], AL_SOURCE_STATE, &playing);
 	return playing == AL_PLAYING;
 }
 
-int plat_check_if_sound_finished(int handle)
+bool plat_check_if_sound_finished(uint32_t handle)
 {
-	if (handle >= _MAX_VOICES) return 0;
+	uint32_t channel = plat_get_channel_from_handle(handle);
+	if (channel >= _MAX_VOICES || sourceHandle[channel] != handle) return true;
 
 	int playing;
-	alGetSourcei(sourceNames[handle], AL_SOURCE_STATE, &playing);
+	alGetSourcei(sourceNames[channel], AL_SOURCE_STATE, &playing);
 	return playing == AL_STOPPED;
 }
 

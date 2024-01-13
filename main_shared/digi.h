@@ -16,11 +16,11 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/types.h"
 #include "vecmat/vecmat.h"
 
-typedef struct digi_sound 	
+struct digi_sound
 {
 	int length;
-	uint8_t * data;
-} digi_sound;
+	uint8_t* data;
+};
 
 #define SAMPLE_RATE_11K		11025
 #define SAMPLE_RATE_22K		22050
@@ -84,7 +84,7 @@ extern void digi_stop_sound( int channel );
 extern int digi_find_channel(int soundno);
 
 // Volume 0-F1_0
-extern int digi_start_sound(short soundnum, fix volume, int pan, int looping, int loop_start, int loop_end, int persistant );
+extern uint32_t digi_start_sound(short soundnum, fix volume, int pan, int looping, int loop_start, int loop_end, int persistant );
 
 // Stops all sounds that are playing
 void digi_stop_all_channels();
