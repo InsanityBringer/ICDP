@@ -25,6 +25,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
  //Returns a checksum of a block of memory.
 extern uint16_t netmisc_calc_checksum(void* vptr, int len);
 
+#ifdef NETWORK
+
 #define netmisc_encode_buffer(ptr, offset, buf, length) do { memcpy(&ptr[*offset], buf, length); *offset+=length; } while(0)
 #define netmisc_decode_buffer(ptr, offset, buf, length) do { memcpy(buf, &ptr[*offset], length); *offset+=length; } while(0)
 
@@ -294,3 +296,5 @@ public:
 		message_length[num] = classname::buf_size(); \
 		return num; \
 	}
+
+#endif

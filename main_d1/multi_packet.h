@@ -7,6 +7,7 @@ as described in copying.txt.
 
 #pragma once
 
+#ifdef NETWORK
 #include "netmisc.h"
 
 struct test_packet
@@ -356,3 +357,4 @@ struct multi_drop_robot_loot
 	vms_vector pos;
 	short objnums[MAX_ROBOT_POWERUPS];
 };
+#endif

@@ -233,9 +233,9 @@ int D_DescentMain(int argc, const char** argv)
 	platform_set_filesystem_game_prefix(gameinfo_get_current_game_prefix());
 	init_all_platform_localized_paths();
 	//validate_required_files(); ICDP TODO: This is good but it needs tweaks for the ICDP filesystem. 
-
+#ifdef NETWORK
 	multi_test_packet_serialization();
-
+#endif
 	//Descent 1 missions were placed in the root directory, so they didn't need hogs because all files were part of the filesystem implicitly.
 	//To allow this to work with a mission dir, the mission dir must be registered as an alternate search path.
 	char mission_dir[CHOCOLATE_MAX_FILE_PATH_SIZE] = {};

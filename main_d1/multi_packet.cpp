@@ -8,6 +8,8 @@ as described in copying.txt.
 #include "multi_packet.h"
 #include "misc/error.h"
 
+#ifdef NETWORK
+
 NETMISC_DEFINE_DATA(test_packet)
 
 NETMISC_DEFINE_FIELD(f1, netmisc_field_type::BYTE)
@@ -354,3 +356,5 @@ NETMISC_DEFINE_ARRAY(objnums, netmisc_field_type::INT16, MAX_ROBOT_POWERUPS)
 
 NETMISC_END_DATA;
 NETMISC_DEFINE_MULTI_MESSAGE(multi_drop_robot_loot, MULTI_CREATE_ROBOT_POWERUPS)
+
+#endif
