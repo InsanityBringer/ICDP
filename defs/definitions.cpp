@@ -6,6 +6,50 @@ as described in copying.txt.
 */
 
 #include "definitions.h"
+#include "misc/error.h"
+
+//SCHEMAS
+//A registered schema
+struct st_schema
+{
+	std::string_view name;
+	std::span<def_schema_field> fields;
+	int id;
+
+	st_schema() 
+	{
+		id = -1;
+	}
+
+	st_schema(std::string_view name, int id, std::span<def_schema_field> fields) : name(name), id(id), fields(fields)
+	{
+	}
+};
+
+static std::vector<st_schema> cur_schemas;
+
+void defs_add_schema(std::string_view name, int id, std::span<def_schema_field> fields)
+{
+	//See if another schema with this name or ID was already registered
+	for (st_schema& schema : cur_schemas)
+	{
+		if (schema.name == name)
+			Error("defs_add_schema: Schema %s is already registered!", name.data());
+		else if (schema.id == id)
+			Error("defs_add_schema: Schema id %d is already registered!", id);
+	}
+
+	//no duplicates, so add it
+	cur_schemas.emplace_back(name, id, fields);
+}
+
+//DEFINITIONS
+
+//List of all objects found when calling defs_parse_base_file.
+//This list is initialized once when a Neptune engine game starts, and represents the base game data before any mods are loaded.
+std::vector<def_object> base_objects;
+
+//Just sort of shoving the keys down here.. should move them out this file. 
 
 def_key::def_key(std::string& name, const int value) : name(name), type(def_field_type::INTEGER)
 {

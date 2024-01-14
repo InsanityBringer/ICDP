@@ -38,6 +38,15 @@ struct def_schema_field
 	int					subtype; //If fieldtype is OBJECT, this is the id of the object type. Otherwise this is an expected array count. These probably should be separate.
 };
 
+//Schema functions
+
+//Adds a new definition schema. 
+//name is the name that will be used to define an entity of this schema.
+//id is an identifier for this schema that will be used in the created data.
+//fields defines the fields that this schema will contain. 
+//NOTE: The data referenced by both name and fields must be valid for the program's entire life!
+void defs_add_schema(std::string_view name, int id, std::span<def_schema_field> fields);
+
 //Definition files.
 //Definition files are key/value files that are used by the engine to provide data for various information.
 //The defintion files are flexible and schemas are registered by the game code to describe which definitions are possible.
@@ -66,6 +75,8 @@ subobject is a key of type OBJECT. The subobject will also be defined by a schem
 class def_object;
 
 //An individual key in a definition file. This will encapsulate several kinds of data.
+//TODO: def_key is waaaaaaay too large due to std::string, but ownership of the name is needed. I will go as far as to make this a char* if it will make things more compact, 
+//even if it means I need to manage it myself. 
 class def_key
 {
 	std::string		name;			//The name of the key. 
