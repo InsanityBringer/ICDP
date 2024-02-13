@@ -4,17 +4,16 @@ and is not under the terms of the Parallax Software Source license.
 Instead, it is released under the terms of the MIT License,
 as described in copying.txt.
 */
+#pragma once
 
 #include <string>
 #include <string_view>
 #include <vector>
 #include <span>
+#include <variant>
+#include <unordered_map>
 
-//Schema data.
-//Schemas are used to control the parser and tell it what keys to expect, and what types these keys are.
-//The schema is used to provide validation for user input, showing errors if a unexpected key is present, 
-//or if the key is in an unexpected format.
-
+//Properties are defined by entities read from a definition file. This is used to validate that the data is in a correct format.
 enum class def_field_type
 {
 	//Field should be an integer.
@@ -29,23 +28,13 @@ enum class def_field_type
 	NULLFIELD,
 };
 
-//A definition field for a schema. A field will give the key name expected, and an expected type for it. 
-//The expected type can be OBJECT, in which subtype will describe an identifier for that schema block. 
-struct def_schema_field
+//A property for an object. When inheriting, all properties of all sub types are made available. 
+struct def_property
 {
-	std::string_view	fieldname; //Name of the field. Probably case sensitive.
+	std::string			fieldname; //Name of the field. Probably case sensitive.
 	def_field_type		fieldtype; //Type of the field.
 	int					subtype; //If fieldtype is OBJECT, this is the id of the object type. Otherwise this is an expected array count. These probably should be separate.
 };
-
-//Schema functions
-
-//Adds a new definition schema. 
-//name is the name that will be used to define an entity of this schema.
-//id is an identifier for this schema that will be used in the created data.
-//fields defines the fields that this schema will contain. 
-//NOTE: The data referenced by both name and fields must be valid for the program's entire life!
-void defs_add_schema(std::string_view name, int id, std::span<def_schema_field> fields);
 
 //Definition files.
 //Definition files are key/value files that are used by the engine to provide data for various information.
@@ -64,15 +53,34 @@ typename object_name
 	}
 }
 
-typename is the name of a type that is registered as a schema.
-object_name is the name of this object. These are namespaced per registered schema.
+typename is the name of a type that is registered. Not all definition lists may need registration. 
+object_name is the name of this object. These are namespaced per object type.
 key_1 is a schema-registered key of type INTEGER.
 key_2 is a key of type STRING
 array_key is a key of type INTEGER, in an array of size 5. 
-subobject is a key of type OBJECT. The subobject will also be defined by a schema, as identified by the parent type's schema.
+subobject is a key of type OBJECT. 
 */
 
-class def_object;
+class def_key;
+
+class def_object
+{
+	std::string					name; //Object name. Note that subobjects are anonmoyous and have no name. 
+	int							type; //Number of the registered type, identifying this object.
+	std::vector<def_key>		keys; //Keys for this object, hopefully validated against the schema.
+	std::vector<def_property>	properties;
+	def_object*					parent; //Parent definiton, may be null. 
+	//Depending on the performance, keys should probably have an associated hash set of indicies with it. 
+
+public:
+	def_object();
+	//Checks the property, throwing a relevant error if it is not found or in the wrong format. 
+	//Will chain to parent entity if exists.
+	void check_property(def_key& key);
+};
+
+//not using this yet, I want to judge performance and memory usage of the initial approach. 
+//using def_keydata = std::variant<int, double, std::string, def_object>;
 
 //An individual key in a definition file. This will encapsulate several kinds of data.
 //TODO: def_key is waaaaaaay too large due to std::string, but ownership of the name is needed. I will go as far as to make this a char* if it will make things more compact, 
@@ -90,6 +98,9 @@ class def_key
 	size_t			array_count;	//Number of elements
 	void*			data;			//Flexible data type.
 
+private:
+	void delete_data();
+
 public:
 	def_key(std::string& name, const int value); //Creates a new INTEGER key.
 	def_key(std::string& name, const double value); //Creates a new FLOATING key.
@@ -106,19 +117,44 @@ public:
 	def_key(const def_key& other); //copy constructor. 
 	def_key(def_key&& other) noexcept; //move constructor.
 
+	def_key& operator=(const def_key& other);
+
 	~def_key(); //Destructor for freeing data if used.
 
 	def_field_type get_type()
 	{
 		return type;
 	}
+
+	std::string& get_name()
+	{
+		return name;
+	}
 };
 
-class def_object
+//A registered type in a definition list. This type cannot be used until a "_default" entity is processed.
+struct definition_type
 {
-	std::string				name; //Object name. Note that subobjects are anonmoyous and have no name. 
-	int						type; //Number of the registered type, identifying this object.
-	std::vector<def_key>	keys; //Keys for this object, hopefully validated against the schema.
-	//Depending on the performance, keys should probably have an associated hash set of indicies with it. 
+	std::string	name;		//Name of the type, used when reading definitions.
+	int			id;			//Identifier of the type, used to identify which type an object belongs to.
+	def_object	defaults;	//The default object for this type. All objects registered will inherit from this object. 
+public:
+	definition_type(std::string name, int id) : name(name), id(id)
+	{
+	}
 };
 
+class definition_list
+{
+	bool									need_types;
+	std::vector<definition_type>			types;
+	std::unordered_map<std::string, int>	typelookup;
+
+public:
+	//Constructor for the definition list.
+	//Set must_register_type to true if types and properties are to be used. 
+	//Otherwise, typeless definitions are allowed. 
+	definition_list(bool must_register_types);
+
+	void register_type(std::string_view name, int id);
+};

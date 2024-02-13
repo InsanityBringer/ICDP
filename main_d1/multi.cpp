@@ -2849,11 +2849,10 @@ void multi_parse_config_string(std::string_view& config_string)
 
 	scanner sc("multi config string", config_string);
 
-	while (sc.read_string())
+	sc_token token;
+	while (sc.read_string(token))
 	{
 		//Check what token was read
-		sc_token& token = sc.get_last_token();
-
 		//Must be a string
 		if (token.get_token_type() != token_type::string)
 			Error("multi_parse_config_string: Expected string, got %s", token.get_chars().c_str());

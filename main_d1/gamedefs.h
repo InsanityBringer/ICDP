@@ -17,3 +17,6 @@ inline constexpr int SCHEMA_SOUNDINFO = 6; //A schema for a sound definition.
 inline constexpr int SCHEMA_PLAYERWEAPON = 7; //A schema for a player weapon. 
 inline constexpr int SCHEMA_MODEL = 8; //A schema for a model name. 
 inline constexpr int SHCMEA_PHYSICS = 9; //Physics data for an object's physics. 
+
+//Functions
+void gamedefs_init();

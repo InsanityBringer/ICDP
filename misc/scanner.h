@@ -20,6 +20,8 @@ enum class punctuation_type
 	curly_right,
 	curly_left,
 	semicolon,
+	square_right,
+	square_left,
 };
 
 struct punctuation_entry
@@ -154,12 +156,13 @@ struct scanner_stack
 //Note: Not all fuctions of this have been tested yet, still needs further development. 
 class scanner
 {
-	int line_num;
-	size_t cursor;
-	std::string name; //Name of the document, for diagonstics. 
+	int			line_num;
+	size_t		cursor;
+	std::string name;				//Name of the document, for diagonstics. 
 	std::string buf;
-	token_type last_token_type;
-	sc_token last_token;
+	token_type	last_token_type;
+	sc_token	last_token;
+	bool		unread;				//If true, read_string will initialize token with last_token.
 
 	std::string error;
 
@@ -189,7 +192,10 @@ public:
 	scanner(std::string_view document_name, std::string_view buf);
 
 	//Reads one string from the buffer. Returns true if read, false otherwise
-	bool read_string();
+	bool read_string(sc_token& token);
+
+	//Unreads the previous token, allowing it to be read again
+	void unread_token();
 
 	//Reads all whitespace. Returns true if EOF, false otherwise.
 	bool clear_whitespace();

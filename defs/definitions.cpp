@@ -8,41 +8,6 @@ as described in copying.txt.
 #include "definitions.h"
 #include "misc/error.h"
 
-//SCHEMAS
-//A registered schema
-struct st_schema
-{
-	std::string_view name;
-	std::span<def_schema_field> fields;
-	int id;
-
-	st_schema() 
-	{
-		id = -1;
-	}
-
-	st_schema(std::string_view name, int id, std::span<def_schema_field> fields) : name(name), id(id), fields(fields)
-	{
-	}
-};
-
-static std::vector<st_schema> cur_schemas;
-
-void defs_add_schema(std::string_view name, int id, std::span<def_schema_field> fields)
-{
-	//See if another schema with this name or ID was already registered
-	for (st_schema& schema : cur_schemas)
-	{
-		if (schema.name == name)
-			Error("defs_add_schema: Schema %s is already registered!", name.data());
-		else if (schema.id == id)
-			Error("defs_add_schema: Schema id %d is already registered!", id);
-	}
-
-	//no duplicates, so add it
-	cur_schemas.emplace_back(name, id, fields);
-}
-
 //DEFINITIONS
 
 //List of all objects found when calling defs_parse_base_file.
@@ -50,6 +15,38 @@ void defs_add_schema(std::string_view name, int id, std::span<def_schema_field> 
 std::vector<def_object> base_objects;
 
 //Just sort of shoving the keys down here.. should move them out this file. 
+
+void def_key::delete_data()
+{
+	if (array_count <= 1) //not an array?
+	{
+		if (type == def_field_type::STRING)
+		{
+			std::string* str = (std::string*)data;
+			delete str;
+		}
+		else if (type == def_field_type::OBJECT)
+		{
+			def_object* obj = (def_object*)data;
+			delete obj;
+		}
+	}
+	else
+	{
+		if (type == def_field_type::INTEGER)
+		{
+			int* arr = (int*)data;
+			delete[] arr;
+		}
+		else if (type == def_field_type::FLOATING)
+		{
+			double* arr = (double*)data;
+			delete[] arr;
+		}
+	}
+
+	data = nullptr;
+}
 
 def_key::def_key(std::string& name, const int value) : name(name), type(def_field_type::INTEGER)
 {
@@ -123,6 +120,7 @@ def_key::def_key(const def_key& other)
 	ivalue = other.ivalue;
 	fvalue = other.fvalue;
 	array_count = other.array_count;
+	data = nullptr;
 
 	if (array_count <= 1) //not an array?
 	{
@@ -139,6 +137,46 @@ def_key::def_key(const def_key& other)
 			data = obj;
 		}
 	}
+	else
+	{
+		if (type == def_field_type::INTEGER)
+		{
+			int* src = (int*)other.data;
+			int* dest = new int[array_count];
+			for (int i = 0; i < array_count; i++)
+				dest[i] = src[i];
+
+			data = dest;
+		}
+		else if (type == def_field_type::FLOATING)
+		{
+			double* src = (double*)other.data;
+			double* dest = new double[array_count];
+			for (int i = 0; i < array_count; i++)
+				dest[i] = src[i];
+
+			data = dest;
+		}
+		else if (type == def_field_type::STRING)
+		{
+			std::string* src = (std::string*)other.data;
+			std::string* dest = new std::string[array_count];
+
+			for (int i = 0; i < array_count; i++)
+				dest[i] = std::string(src[i]);
+			data = dest;
+		}
+		else if (type == def_field_type::OBJECT)
+		{
+			def_object* src = (def_object*)other.data;
+			def_object* dest = new def_object[array_count];
+
+			for (int i = 0; i < array_count; i++)
+				dest[i] = src[i];
+
+			data = dest;
+		}
+	}
 }
 
 def_key::def_key(def_key&& other) noexcept
@@ -148,6 +186,7 @@ def_key::def_key(def_key&& other) noexcept
 	ivalue = other.ivalue;
 	fvalue = other.fvalue;
 	array_count = other.array_count;
+	data = nullptr;
 
 	if (array_count <= 1) //not an array?
 	{
@@ -172,34 +211,103 @@ def_key::def_key(def_key&& other) noexcept
 	other.type = def_field_type::NULLFIELD;
 }
 
-def_key::~def_key()
+def_key& def_key::operator=(const def_key& other)
 {
+	//Must delete data that already exists.
+	delete_data();
+
+	name = other.name;
+	type = other.type;
+	ivalue = other.ivalue;
+	fvalue = other.fvalue;
+	array_count = other.array_count;
+	data = nullptr;
+
 	if (array_count <= 1) //not an array?
 	{
 		if (type == def_field_type::STRING)
 		{
-			std::string* str = (std::string*)data;
-			delete str;
+			std::string* orig = (std::string*)other.data;
+			std::string* str = new std::string(*orig);
+			data = str;
 		}
 		else if (type == def_field_type::OBJECT)
 		{
-			def_object* obj = (def_object*)data;
-			delete obj;
+			def_object* orig = (def_object*)other.data;
+			def_object* obj = new def_object(*orig);
+			data = obj;
 		}
 	}
 	else
 	{
 		if (type == def_field_type::INTEGER)
 		{
-			int* arr = (int*)data;
-			delete[] arr;
+			int* src = (int*)other.data;
+			int* dest = new int[array_count];
+			for (int i = 0; i < array_count; i++)
+				dest[i] = src[i];
+
+			data = dest;
 		}
 		else if (type == def_field_type::FLOATING)
 		{
-			double* arr = (double*)data;
-			delete[] arr;
+			double* src = (double*)other.data;
+			double* dest = new double[array_count];
+			for (int i = 0; i < array_count; i++)
+				dest[i] = src[i];
+
+			data = dest;
+		}
+		else if (type == def_field_type::STRING)
+		{
+			std::string* src = (std::string*)other.data;
+			std::string* dest = new std::string[array_count];
+
+			for (int i = 0; i < array_count; i++)
+				dest[i] = std::string(src[i]);
+			data = dest;
+		}
+		else if (type == def_field_type::OBJECT)
+		{
+			def_object* src = (def_object*)other.data;
+			def_object* dest = new def_object[array_count];
+
+			for (int i = 0; i < array_count; i++)
+				dest[i] = src[i];
+
+			data = dest;
 		}
 	}
 
-	data = nullptr;
+	return *this;
+}
+
+def_key::~def_key()
+{
+	delete_data();
+}
+
+def_object::def_object()
+{
+	type = -1;
+	parent = nullptr;
+}
+
+definition_list::definition_list(bool must_register_types)
+{
+	need_types = must_register_types;
+}
+
+void definition_list::register_type(std::string_view name, int id)
+{
+	std::string namestr = std::string(name.data(), name.size());
+	auto it = typelookup.find(namestr);
+	if (it == typelookup.end()) //Type doesn't already exist?
+	{
+		types.emplace_back(namestr, id);
+	}
+	else
+	{
+		Error("definition_list::register_type: %s already registered!", namestr.c_str());
+	}
 }

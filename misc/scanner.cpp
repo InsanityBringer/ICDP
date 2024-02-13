@@ -21,6 +21,8 @@ punctuation_entry const punctuation_strings[] =
 	{ punctuation_type::curly_right, "}" },
 	{ punctuation_type::curly_left, "{" },
 	{ punctuation_type::semicolon, ";" },
+	{ punctuation_type::square_left, "[" },
+	{ punctuation_type::square_right, "]" },
 };
 
 //Determine if this character is a part of punctuation
@@ -83,6 +85,7 @@ scanner::scanner(std::string_view buf) : buf(buf)
 	cursor = 0;
 	line_num = 1;
 	last_token_type = token_type::none;
+	unread = false;
 }
 
 scanner::scanner(std::string_view document_name, std::string_view buf) : name(document_name), buf(buf)
@@ -90,6 +93,7 @@ scanner::scanner(std::string_view document_name, std::string_view buf) : name(do
 	cursor = 0;
 	line_num = 1;
 	last_token_type = token_type::none;
+	unread = false;
 }
 
 void scanner::raise_error(const char* msg)
@@ -219,9 +223,7 @@ bool scanner::clear_to_next_line()
 
 void scanner::include_document(std::string_view document_name, std::string_view document_buf)
 {
-	//Ugh, a double move. Move into cur_document. move cur_document. Optimize me.
-	scanner_stack cur_document(name, buf, cursor, line_num);
-	document_stack.push(std::move(cur_document));
+	document_stack.emplace(name, buf, cursor, line_num);
 
 	name = document_name;
 	buf = document_buf;
@@ -374,11 +376,20 @@ bool scanner::check_or_pop_pending_document()
 	return false;
 }
 
-bool scanner::read_string()
+bool scanner::read_string(sc_token& token)
 {
+	if (unread)
+	{
+		//last token was unread so give it back. 
+		unread = false;
+		token = last_token;
+		return true;
+	}
+
 	Assert(cursor <= buf.size());
-	bool skipping_whitespace = true;
-	while (skipping_whitespace)
+	bool skipping_whitespace;
+
+	do
 	{
 		skipping_whitespace = false;
 		if (cursor == buf.size())
@@ -393,7 +404,7 @@ bool scanner::read_string()
 				return false;
 			else
 				skipping_whitespace = true; //Popped a document off the stack, will need to clear whitespace on this document. 
-	}
+	} while (skipping_whitespace);
 
 	std::string_view remaining(buf.data() + cursor, buf.size() - cursor);
 
@@ -420,7 +431,13 @@ bool scanner::read_string()
 		read_unquoted_string();
 	}
 
+	token = last_token;
 	return true;
+}
+
+void scanner::unread_token()
+{
+	unread = true;
 }
 
 scanner_stack::scanner_stack(std::string& doc_name, std::string& doc_buf, size_t doc_cursor, int doc_line_num)

@@ -66,10 +66,6 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 #include "network.h"
 #include "gamefont.h"
 #include "kconfig.h"
-#ifdef ARCADE
-#include "arcade.h"
-#include "coindev.h"
-#endif
 #include "platform/mouse.h"
 #include "platform/joy.h"
 #include "newmenu.h"
@@ -79,6 +75,7 @@ static char copyright[] = "DESCENT   COPYRIGHT (C) 1994,1995 PARALLAX SOFTWARE C
 #include "main_shared/songs.h"
 #include "cfile/cfile.h"
 #include "gameseq.h"
+#include "gamedefs.h"
 
 #ifdef EDITOR
 #include "editor\editor.h"
@@ -261,6 +258,7 @@ int D_DescentMain(int argc, const char** argv)
 	cfile_add_hogfile(hog_filename);
 
 	load_text(621);
+	gamedefs_init();
 
 	//	set_exit_message("\n\n%s", TXT_THANKS);
 
@@ -293,44 +291,6 @@ int D_DescentMain(int argc, const char** argv)
 	mopen(0, 9, 1, 78, 15, "Debug Spew");
 	mopen(1, 2, 1, 78, 5, "Errors & Serious Warnings");
 #endif
-
-	const char* test_filename = "lexertst.txt";
-	CFILE* test = cfopen(test_filename, "rb");
-	if (test)
-	{
-		static const char* token_strs[] = { "none", "number", "punctuation", "string", "quoted string" };
-		size_t testsize = cfilelength(test);
-
-		std::string testbuf; testbuf.resize(testsize);
-		cfread((void*)testbuf.c_str(), 1, testsize, test);
-		cfclose(test);
-
-		const char* test_filename2 = "lexerinclude.txt";
-		test = cfopen(test_filename2, "rb");
-		testsize = cfilelength(test);
-
-		if (test)
-		{
-			std::string testbuf2; testbuf2.resize(testsize);
-			cfread((void*)testbuf2.c_str(), 1, testsize, test);
-			cfclose(test);
-
-			scanner vargscanner(test_filename, testbuf);
-
-			bool included = false;
-			while (vargscanner.read_string())
-			{
-				sc_token& token = vargscanner.get_last_token();
-				mprintf((0, "%d: %s (%s)\n", vargscanner.get_line_num(), token.get_chars().c_str(), token_strs[(int)token.get_token_type()]));
-				if (vargscanner.get_line_num() == 25 && !included)
-				{
-					vargscanner.clear_to_next_line();
-					vargscanner.include_document(test_filename2, testbuf2);
-					included = true;
-				}
-			}
-		}
-	}
 
 	if (Inferno_verbose) printf("%s", TXT_VERBOSE_1);
 	ReadConfigFile();
