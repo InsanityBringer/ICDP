@@ -43,6 +43,16 @@ void def_key::delete_data()
 			double* arr = (double*)data;
 			delete[] arr;
 		}
+		else if (type == def_field_type::STRING)
+		{
+			std::string* str = (std::string*)data;
+			delete[] str;
+		}
+		else if (type == def_field_type::OBJECT)
+		{
+			def_object* obj = (def_object*)data;
+			delete[] obj;
+		}
 	}
 
 	data = nullptr;
@@ -196,19 +206,20 @@ def_key::def_key(def_key&& other) noexcept
 			std::string* orig = (std::string*)other.data;
 			std::string* str = new std::string(*orig);
 			data = str;
-			delete orig;
+			//delete orig;
 		}
 		else if (type == def_field_type::OBJECT)
 		{
 			def_object* orig = (def_object*)other.data;
 			def_object* obj = new def_object(*orig);
 			data = obj;
-			delete orig;
+			//delete orig;
 		}
 	}
 
 	other.data = nullptr;
 	other.type = def_field_type::NULLFIELD;
+	other.delete_data();
 }
 
 def_key& def_key::operator=(const def_key& other)
@@ -300,10 +311,12 @@ definition_list::definition_list(bool must_register_types)
 
 void definition_list::register_type(std::string_view name, int id)
 {
+	Assert(need_types);
 	std::string namestr = std::string(name.data(), name.size());
 	auto it = typelookup.find(namestr);
 	if (it == typelookup.end()) //Type doesn't already exist?
 	{
+		typelookup[namestr] = types.size();
 		types.emplace_back(namestr, id);
 	}
 	else

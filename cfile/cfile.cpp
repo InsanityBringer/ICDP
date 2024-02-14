@@ -34,6 +34,10 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 std::vector<hogarchive> hogarchives;
 std::vector<hogarchive> alternate_hogarchives;
 
+//This is a bit simple, but give every hogfile a unique handle.
+//This handle can then be used to read files from a specific hogfile. 
+static uint32_t last_handle = 1;
+
 std::vector<std::string> alternate_searchdirs;
 
 FILE* cfile_get_filehandle(const char* filename, const char* mode)
@@ -100,15 +104,17 @@ FILE* cfile_get_filehandle(const char* filename, const char* mode)
 	return fp;
 }
 
-bool cfile_add_hogfile(const char* hogname)
+uint32_t cfile_add_hogfile(const char* hogname)
 {
 	hogarchive archive(hogname);
 	if (archive.num_files() == 0) //either didn't load or no files
 		return false;
-
+	
+	uint32_t handle = last_handle++;
+	archive.handle() = handle;
 	hogarchives.push_back(std::move(archive));
 
-	return true;
+	return handle;
 }
 
 bool cfile_libfile_exists(const char* name)
@@ -129,48 +135,56 @@ bool cfile_libfile_exists(const char* name)
 
 	return false;
 }
-
-CFILE* cfile_find_libfile(const char* name)
+CFILE* cfile_find_libfile(const char* name, uint32_t handle = 0)
 {
 	CFILE* fp;
 	//Search alternate archives first
 	//Search is done in reverse so that later loaded hogfiles (for addons, presumably) take priority over lower priority ones (like the mission hog itself)
 	for (int i = alternate_hogarchives.size() - 1; i >= 0; i--)
 	{
-		fp = alternate_hogarchives[i].open(name);
-		if (fp) //found it?
-			return fp;
+		if (handle == 0 || handle == alternate_hogarchives[i].handle())
+		{
+			fp = alternate_hogarchives[i].open(name);
+			if (fp) //found it?
+				return fp;
+		}
 	}
 
 	//Search core archives second, so that data can be overridden by alternate archives
 	for (int i = hogarchives.size() - 1; i >= 0; i--)
 	{
-		fp = hogarchives[i].open(name);
-		if (fp) //found it?
-			return fp;
+		if (handle == 0 || handle == alternate_hogarchives[i].handle())
+		{
+			fp = hogarchives[i].open(name);
+			if (fp) //found it?
+				return fp;
+		}
 	}
 	return nullptr;
 }
 
-bool cfile_use_alternate_hogfile(const char* name)
+uint32_t cfile_use_alternate_hogfile(const char* name)
 {
 	if (name)
 	{
 		hogarchive archive(name);
 		if (archive.num_files() == 0)
-			return false;
+			return 0;
+
+		uint32_t handle = last_handle++;
+		archive.handle() = handle;
 
 		alternate_hogarchives.push_back(std::move(archive));
-		return true;
+		return handle;
 	}
 	else 
 	{
 		alternate_hogarchives.clear();
-		return true;
+		return 0;
 	}
 }
 
-bool cfile_add_alternate_searchdir(const char* dir)
+uint32_t cfile_add_alternate_searchdir(const char* dir)
 {
 	if (dir)
 	{
@@ -180,7 +194,7 @@ bool cfile_add_alternate_searchdir(const char* dir)
 		
 		alternate_searchdirs.push_back(std::move(newdir));
 	}
-	return true;
+	return last_handle++;
 }
 
 int cfexist(const char* filename)
@@ -249,6 +263,23 @@ CFILE* cfopen(const char* filename, const char* mode)
 		cfile->raw_position = 0;
 		return cfile;
 	}
+}
+
+CFILE* cfopen_from(uint32_t handle, const char* filename)
+{
+	//The directory iteration code needs to be modified some to support handles (missions in a directory? could be nice)
+	//[ISB] descent 2 code for handling '\x01'
+	/*if (filename[0] != '\x01')
+	{
+		fp = cfile_get_filehandle(filename, "rb");		// Check for non-hog file first...
+	}
+	else
+	{
+		fp = NULL;		//don't look in dir, only in hogfile
+		filename++;
+	}*/
+
+	return cfile_find_libfile(filename, handle);
 }
 
 int cfilelength(CFILE* fp)

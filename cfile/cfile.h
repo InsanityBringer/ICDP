@@ -31,9 +31,12 @@ struct CFILE
 };
 
 
-bool cfile_add_hogfile(const char* hogname);
+//Adds a hogfile to the main list. Used for Neptune's own hogfiles and the game data hogfile. 
+uint32_t cfile_add_hogfile(const char* hogname);
 
 CFILE* cfopen(const char* filename, const char* mode);
+//Opens a file from the file system, from the specified handle. If you don't care what archive it comes from, specify a handle of 0. 
+CFILE* cfopen_from(uint32_t handle, const char* filename);
 int cfilelength(CFILE* fp);							// Returns actual size of file...
 size_t cfread(void* buf, size_t elsize, size_t nelem, CFILE* fp);
 void cfclose(CFILE* cfile);
@@ -64,12 +67,14 @@ void file_write_int64(FILE* fp, int64_t i);
 void cfile_get_string(char* buffer, int count, CFILE* fp);
 
 // Allows files to be gotten from an alternate hog file.
-// Passing NULL disables this.
-bool cfile_use_alternate_hogfile(const char* name);
+// Passing NULL removes all alternate hogfiles for now.
+//Returns handle to reference the archive, or 0 if it couldn't be loaded.
+uint32_t cfile_use_alternate_hogfile(const char* name);
 
 //Adds an additional search dir for searching for files.
 //This can be with or without a separator on the end. 
-bool cfile_add_alternate_searchdir(const char* dir);
+//Returns handle to reference this directory.
+uint32_t cfile_add_alternate_searchdir(const char* dir);
 
 void cfile_read_vector(vms_vector *vec, CFILE* fp);
 void cfile_read_angvec(vms_angvec *vec, CFILE* fp);
@@ -85,9 +90,11 @@ class hogarchive
 {
 	std::string archivename;
 	std::vector<hogfile> hogfiles;
+	uint32_t m_handle;
 public:
 	hogarchive(const char* filename) : archivename(filename)
 	{
+		m_handle = 0;
 		FILE* fp = fopen(filename, "rb");
 
 		if (fp)
@@ -167,5 +174,10 @@ public:
 		}
 
 		return false;
+	}
+
+	uint32_t& handle()
+	{
+		return m_handle;
 	}
 };

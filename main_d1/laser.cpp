@@ -71,6 +71,7 @@ void Laser_render(object* obj)
 		break;
 	case WEAPON_RENDER_VCLIP:
 		Int3();	//	Oops, not supported, type added by mk on 09/09/94, but not for lasers...
+		[[fallthrough]];
 	default:
 		Error("Invalid weapon render type in Laser_render\n");
 	}
@@ -1373,14 +1374,14 @@ void do_missile_firing(void)
 			break;
 
 		case PROXIMITY_INDEX:
+#ifdef NETWORK
 			Laser_num_prox_dropped++;
 			if (Laser_num_prox_dropped == 4)
 			{
 				Laser_num_prox_dropped = 0;
-#ifdef NETWORK
 				maybe_drop_net_powerup(POW_PROXIMITY_WEAPON);
-#endif
 			}
+#endif
 			Laser_player_fire(ConsoleObject, PROXIMITY_ID, PROXIMITY_GUN, 1, 0);
 			break;
 

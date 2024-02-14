@@ -437,6 +437,7 @@ bool scanner::read_string(sc_token& token)
 
 void scanner::unread_token()
 {
+	Assert(!unread);
 	unread = true;
 }
 
