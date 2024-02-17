@@ -258,7 +258,6 @@ int D_DescentMain(int argc, const char** argv)
 	cfile_add_hogfile(hog_filename);
 
 	load_text(621);
-	gamedefs_init();
 
 	//	set_exit_message("\n\n%s", TXT_THANKS);
 
@@ -291,6 +290,8 @@ int D_DescentMain(int argc, const char** argv)
 	mopen(0, 9, 1, 78, 15, "Debug Spew");
 	mopen(1, 2, 1, 78, 5, "Errors & Serious Warnings");
 #endif
+
+	gamedefs_init();
 
 	if (Inferno_verbose) printf("%s", TXT_VERBOSE_1);
 	ReadConfigFile();

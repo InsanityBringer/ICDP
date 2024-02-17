@@ -12,6 +12,7 @@ as described in copying.txt.
 #include <span>
 #include <variant>
 #include <unordered_map>
+#include "misc/scanner.h"
 
 //Properties are defined by entities read from a definition file. This is used to validate that the data is in a correct format.
 enum class def_field_type
@@ -33,7 +34,7 @@ struct def_property
 {
 	std::string			fieldname; //Name of the field. Probably case sensitive.
 	def_field_type		fieldtype; //Type of the field.
-	int					subtype; //If fieldtype is OBJECT, this is the id of the object type. Otherwise this is an expected array count. These probably should be separate.
+	bool				is_array;
 };
 
 //Definition files.
@@ -77,6 +78,16 @@ public:
 	//Checks the property, throwing a relevant error if it is not found or in the wrong format. 
 	//Will chain to parent entity if exists.
 	void check_property(def_key& key);
+
+	std::string& get_name()
+	{
+		return name;
+	}
+
+	int get_type_num()
+	{
+		return type;
+	}
 };
 
 //not using this yet, I want to judge performance and memory usage of the initial approach. 
@@ -144,11 +155,87 @@ public:
 	}
 };
 
+//A constant, can only be integer or floating. 
+using def_const = std::variant<int, double>;
+using const_dict = std::unordered_map<std::string, def_const>;
+
 class definition_list
 {
 	bool									need_types;
 	std::vector<definition_type>			types;
 	std::unordered_map<std::string, int>	typelookup;
+
+	std::vector<def_object>					defs;		//Definitions from the core data files
+	std::vector<def_object>					addon_defs;	//Definitions from any addons. 
+
+	const_dict								constants;			//Const values loaded from the core defintion files. Apply to all further processed documents.
+	const_dict								addon_constants;	//Addon constants. purged after each document is loaded, so addons won't conflict.
+
+	//Internal state during parsing
+	bool									is_parsing_extras;	//True if reading addon definitions. 
+	uint32_t								archive_handle;
+
+	//Parse a document loaded into the scanner sc. Included files will come from the archive specified by archivehandle.
+	//Set add_to_extra to true if loading addon files, all parsed objects will be loaded into addon_defs instead.
+	void parse_document(scanner& sc, bool add_to_extra);
+	void parse_constant(scanner& sc, sc_token& token);
+	void parse_include(scanner& sc, sc_token& token);
+	void maybe_parse_object(scanner& sc, sc_token& token);
+
+	//Finds a constant, returns nullptr on error. 
+	def_const* find_constant(std::string& constname)
+	{
+		//Check core constants
+		auto it = constants.find(constname);
+		if (it != constants.end())
+			return &it->second;
+
+		//Check addon constants
+		it = addon_constants.find(constname);
+		if (it != addon_constants.end())
+			return &it->second;
+
+		return nullptr;
+	}
+
+	//Adds a constant, does not check if it's been added before.
+	void add_constant(std::string& name, def_const value)
+	{
+		if (is_parsing_extras)
+			addon_constants[name] = value;
+		else
+			constants[name] = value;
+	}
+
+	definition_type* find_type(std::string& name)
+	{
+		auto it = typelookup.find(name);
+		if (it != typelookup.end())
+			return &types[it->second];
+
+		return nullptr;
+	}
+
+	//Finds an object named "name" of the type specified by "typenum".
+	//This could use a hash table, but this probably should be fine. 
+	def_object* find_object_of_type(std::string& name, int typenum)
+	{
+		//Check core defs first
+		for (def_object& obj : defs)
+		{
+			if (!obj.get_name().compare(name) && obj.get_type_num() == typenum)
+				return &obj;
+		}
+
+		//Check addon defs second
+		for (def_object& obj : addon_defs)
+		{
+			if (!obj.get_name().compare(name) && obj.get_type_num() == typenum)
+				return &obj;
+		}
+
+		return nullptr;
+	}
 
 public:
 	//Constructor for the definition list.
@@ -157,4 +244,12 @@ public:
 	definition_list(bool must_register_types);
 
 	void register_type(std::string_view name, int id);
+
+	//Reads defs from the lump filename in the archive specified by archivehandle.
+	//If you don't care where they come from, an archivehandle of 0 can be specified.
+	void read_defs_from_lump(const char* filename, uint32_t archivehandle = 0);
+
+	//Adds additional defs from another lump. You probably don't want to specify a handle of 0.
+	//These additional defs can then be cleared when changing missions.
+	void add_defs_from_lump(const char* filename, uint32_t archivehandle = 0);
 };

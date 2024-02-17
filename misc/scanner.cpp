@@ -23,6 +23,7 @@ punctuation_entry const punctuation_strings[] =
 	{ punctuation_type::semicolon, ";" },
 	{ punctuation_type::square_left, "[" },
 	{ punctuation_type::square_right, "]" },
+	{ punctuation_type::colon, ":" },
 };
 
 //Determine if this character is a part of punctuation
@@ -84,6 +85,7 @@ scanner::scanner(std::string_view buf) : buf(buf)
 {
 	cursor = 0;
 	line_num = 1;
+	column = 1;
 	last_token_type = token_type::none;
 	unread = false;
 }
@@ -92,6 +94,7 @@ scanner::scanner(std::string_view document_name, std::string_view buf) : name(do
 {
 	cursor = 0;
 	line_num = 1;
+	column = 1;
 	last_token_type = token_type::none;
 	unread = false;
 }
@@ -104,12 +107,67 @@ void scanner::raise_error(const char* msg)
 	Error(error.c_str());
 }
 
-void scanner::raise_error(std::string& msg)
+void scanner::raise_error(const std::string& msg)
 {
 	error = std::format("Script error in {} at line {}: {}", name, line_num, msg);
 
 	//TODO: Maybe allow caller to disable fatal errors?
 	Error(error.c_str());
+}
+
+void scanner::must_get_string(sc_token& token)
+{
+	if (!read_string(token))
+		raise_error("Unexpected end of file.");
+}
+
+void scanner::must_get_identifier(sc_token& token)
+{
+	must_get_string(token);
+	if (token.get_token_type() != token_type::string)
+		raise_error("Expected an identifier.");
+}
+
+void scanner::must_get_number(sc_token& token)
+{
+	must_get_string(token);
+	if (token.get_token_type() != token_type::number)
+		raise_error(std::format("Expected a number, got {}.", token.get_chars()));
+}
+
+void scanner::must_get_any_punctuation(sc_token& token, std::initializer_list<const char*> strings)
+{
+	//wait couldn't this accept punctuation type enums instead?
+	must_get_string(token);
+	if (token.get_token_type() == token_type::punctuation)
+	{
+		for (const char* str : strings)
+		{
+			if (!token.get_chars().compare(str))
+			{
+				return; //found a match
+			}
+		}
+	}
+
+	bool append_or = false; 
+	std::string msg = "Expected ";
+	for (const char* str : strings)
+	{
+		if (append_or)
+			msg.append(" or ");
+		msg.append(str);
+		append_or = true;
+	}
+	msg.append(std::format(", got {}", token.get_chars()));
+	raise_error(msg);
+}
+
+void scanner::must_get_quoted_string(sc_token& token)
+{
+	must_get_string(token);
+	if (token.get_token_type() != token_type::quoted_string)
+		raise_error(std::format("Expected a string, got {}.", token.get_chars()));
 }
 
 bool scanner::advance(int amount)
@@ -121,8 +179,12 @@ bool scanner::advance(int amount)
 	for (int i = 0; i < amount; i++)
 	{
 		if (buf[cursor] == '\n')
+		{
 			line_num++;
+			column = 1;
+		}
 		cursor++;
+		column++;
 		if (cursor == buf.size())
 			return true;
 	}
@@ -223,12 +285,13 @@ bool scanner::clear_to_next_line()
 
 void scanner::include_document(std::string_view document_name, std::string_view document_buf)
 {
-	document_stack.emplace(name, buf, cursor, line_num);
+	document_stack.emplace(name, buf, cursor, line_num, column);
 
 	name = document_name;
 	buf = document_buf;
 	cursor = 0;
 	line_num = 1;
+	column = 1;
 }
 
 void scanner::read_quoted_string()
@@ -239,6 +302,8 @@ void scanner::read_quoted_string()
 	size_t len = 0;
 
 	std::string new_token;
+	int startline = line_num;
+	int startcol = column;
 
 	while (!found_end)
 	{
@@ -279,12 +344,14 @@ void scanner::read_quoted_string()
 	}
 
 	advance(); //Clear the last quotation mark. 
-	last_token = sc_token(new_token, token_type::quoted_string);
+	last_token = sc_token(startline, startcol, new_token, token_type::quoted_string);
 }
 
 void scanner::read_unquoted_string()
 {
 	std::string new_token;
+	int startline = line_num;
+	int startcol = column;
 
 	while (true)
 	{
@@ -299,13 +366,15 @@ void scanner::read_unquoted_string()
 			break; //hit EOF but it's fine, the last token in a script can be a unquoted string
 	}
 
-	last_token = sc_token(new_token, token_type::string);
+	last_token = sc_token(startline, startcol, new_token, token_type::string);
 }
 
 void scanner::read_number()
 {
 	bool found_dot = false;
 	std::string new_token;
+	int startline = line_num;
+	int startcol = column;
 
 	while (true)
 	{
@@ -335,7 +404,7 @@ void scanner::read_number()
 			break; //hit EOF but it's fine, the last token in a script can be a number
 	}
 
-	last_token = sc_token(new_token, token_type::number);
+	last_token = sc_token(startline, startcol, new_token, token_type::number);
 }
 
 void scanner::read_punct()
@@ -347,7 +416,7 @@ void scanner::read_punct()
 	{
 		if (punct_view.starts_with(entry.str))
 		{
-			last_token = sc_token(std::string(entry.str), entry.type);
+			last_token = sc_token(line_num, column, std::string(entry.str), entry.type);
 			advance(entry.str.size());
 			return;
 		}
@@ -441,12 +510,13 @@ void scanner::unread_token()
 	unread = true;
 }
 
-scanner_stack::scanner_stack(std::string& doc_name, std::string& doc_buf, size_t doc_cursor, int doc_line_num)
+scanner_stack::scanner_stack(std::string& doc_name, std::string& doc_buf, size_t doc_cursor, int doc_line_num, int doc_column)
 {
 	name = std::move(doc_name);
 	buf = std::move(doc_buf);
 	cursor = doc_cursor;
 	line_num = doc_line_num;
+	column = doc_column;
 }
 
 scanner_stack::scanner_stack(const scanner_stack& other)
@@ -455,6 +525,7 @@ scanner_stack::scanner_stack(const scanner_stack& other)
 	buf = other.buf;
 	cursor = other.cursor;
 	line_num = other.line_num;
+	column = other.column;
 }
 
 scanner_stack::scanner_stack(scanner_stack&& other) noexcept
@@ -463,4 +534,5 @@ scanner_stack::scanner_stack(scanner_stack&& other) noexcept
 	buf = std::move(other.buf);
 	cursor = other.cursor;
 	line_num = other.line_num;
+	column = other.column;
 }

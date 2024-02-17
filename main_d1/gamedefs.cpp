@@ -22,4 +22,5 @@ void gamedefs_init()
 	gamedefs_list.register_type("playerweapon", SCHEMA_PLAYERWEAPON);
 	gamedefs_list.register_type("model", SCHEMA_MODEL);
 	//gamedefs_list.register_type("physics", SHCMEA_PHYSICS); //Will I actually use? TBD
+	gamedefs_list.read_defs_from_lump("constest.txt");
 }

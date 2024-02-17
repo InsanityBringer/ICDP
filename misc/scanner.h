@@ -10,6 +10,7 @@ as described in copying.txt.
 #include <string_view>
 #include <string>
 #include <stack>
+#include <span>
 
 enum class punctuation_type
 {
@@ -22,6 +23,7 @@ enum class punctuation_type
 	semicolon,
 	square_right,
 	square_left,
+	colon,
 };
 
 struct punctuation_entry
@@ -52,6 +54,7 @@ enum class token_type
 //A token read from a scanner
 class sc_token
 {
+	int linenum, colnum;
 	token_format format;
 	token_type type;
 	punctuation_type punctuation; //For punctuation, type of the punctuation encountered. 
@@ -69,10 +72,11 @@ public:
 		type = token_type::none;
 		dval = ival = 0;
 		punctuation = punctuation_type::none;
+		linenum = colnum = 0;
 	}
 
 	//Constructs an initialized token with the string chars.
-	sc_token(std::string chars, token_type type) : chars(chars), type(type)
+	sc_token(int line, int col, std::string chars, token_type type) : linenum(line), colnum(col), chars(chars), type(type)
 	{
 		if (type == token_type::number)
 		{
@@ -98,7 +102,7 @@ public:
 	}
 
 	//Constructs an initialized punctuation token
-	sc_token(std::string chars, punctuation_type punctuation) : chars(chars), punctuation(punctuation)
+	sc_token(int line, int col, std::string chars, punctuation_type punctuation) : linenum(line), colnum(col), chars(chars), punctuation(punctuation)
 	{
 		format = token_format::empty;
 		type = token_type::punctuation;
@@ -134,6 +138,16 @@ public:
 	{
 		return punctuation;
 	}
+
+	int compare(const char* str)
+	{
+		return chars.compare(str);
+	}
+
+	int compare(std::string& str)
+	{
+		return chars.compare(str);
+	}
 };
 
 //Entry of a document that needs to be processed after finishing the current document. 
@@ -143,11 +157,12 @@ struct scanner_stack
 	std::string buf;		//Contents of the documents. 
 	size_t		cursor;		//Position in the buffer that this document will resume at. 
 	int			line_num;	//Line number that this document will resume at. 
+	int			column;
 
 	//Creates a new scanner stack entry. 
 	//WARNING: This moves the passed strings, so they are invalid after creation!
 	//Thus, this should only ever be called from scanner::include_document. 
-	scanner_stack(std::string& doc_name, std::string& doc_buf, size_t doc_cursor, int doc_line_num);
+	scanner_stack(std::string& doc_name, std::string& doc_buf, size_t doc_cursor, int doc_line_num, int doc_column);
 	scanner_stack(const scanner_stack& other);
 	scanner_stack(scanner_stack&& other) noexcept;
 };
@@ -157,6 +172,7 @@ struct scanner_stack
 class scanner
 {
 	int			line_num;
+	int			column;
 	size_t		cursor;
 	std::string name;				//Name of the document, for diagonstics. 
 	std::string buf;
@@ -220,5 +236,16 @@ public:
 	}
 
 	void raise_error(const char* msg);
-	void raise_error(std::string& msg);
+	void raise_error(const std::string& msg);
+
+	//Gets the next string, errors if no more tokens available.
+	void must_get_string(sc_token& token); 
+	//Gets the next string, errors if it is not a unquoted string
+	void must_get_identifier(sc_token& token);
+	//Gets the next string, errors if it is not a number. The number can be either integer or floating point. 
+	void must_get_number(sc_token& token);
+	//Gets the next string, errors if it is not the specified punctuation
+	void must_get_any_punctuation(sc_token& token, std::initializer_list<const char*> strings);
+	//Gets the next string, errors if it is not a quoted string
+	void must_get_quoted_string(sc_token& token);
 };

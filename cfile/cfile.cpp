@@ -279,6 +279,9 @@ CFILE* cfopen_from(uint32_t handle, const char* filename)
 		filename++;
 	}*/
 
+	if (handle == 0)
+		return cfopen(filename, "rb");
+
 	return cfile_find_libfile(filename, handle);
 }
 
