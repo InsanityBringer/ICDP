@@ -305,6 +305,10 @@ def_object::def_object()
 	parent = nullptr;
 }
 
+def_object::def_object(std::string& name, int type, def_object* parent) : name(name), parent(parent), type(type)
+{
+}
+
 static def_field_type get_type(sc_token& token)
 {
 	if (!token.compare("int"))
@@ -339,6 +343,7 @@ void definition_list::parse_document(scanner& sc, bool add_to_extra)
 		//If it's not any of the above, then it's gotta be a object. 
 		else
 		{
+			sc.unread_token(); //The object parser will reread the token. 
 			maybe_parse_object(sc, token);
 		}
 	}
@@ -410,6 +415,7 @@ void definition_list::maybe_parse_object(scanner& sc, sc_token& token)
 {
 	std::string type;
 	definition_type* typeinfo;
+	int typenum = -1;
 
 	//Only read types when the system is using types. 
 	if (need_types)
@@ -423,11 +429,14 @@ void definition_list::maybe_parse_object(scanner& sc, sc_token& token)
 			sc.raise_error(std::format("Unknown type {}", type));
 			return; //I suspect this should use exceptions to bring control back to the menus when loading addons. 
 		}
+
+		typenum = typeinfo->id;
 	}
 
 	//Read name
 	sc.must_get_identifier(token);
 	std::string name = token.get_chars();
+	def_object* parent_obj = nullptr;
 
 	//If types are not used, the scanner has read the initial {, and can start parsing the object.
 	if (!need_types)
@@ -443,11 +452,45 @@ void definition_list::maybe_parse_object(scanner& sc, sc_token& token)
 		{
 			sc.must_get_identifier(token);
 			std::string parent_name = token.get_chars();
-			def_object* parent_obj = find_object_of_type(parent_name, typeinfo->id);
+			parent_obj = find_object_of_type(parent_name, typeinfo->id);
 			if (!parent_obj)
 				sc.raise_error(std::format("Cannot find parent {} {}", typeinfo->name, parent_name));
+
+			sc.must_get_any_punctuation(token, { "{" }); //Read the start of the object.
+		}
+
+		//If this is not the default object, explicitly set the parent to the default object for this type.
+		if (name.compare("_default"))
+		{
+			if (typeinfo->defaults.get_name().size() == 0) //Check that the parent object was defined at some point
+				sc.raise_error(std::format("Tried to define {} {}, but a _default wasn't defined!", type, name));
+
+			//_default is defined, so check if it needs to be set as the parent.
+			if (!parent_obj)
+				parent_obj = &typeinfo->defaults;
+		}
+		else
+		{
+			if (parent_obj)
+				sc.raise_error("A _default entry cannot have a parent!");
+			else if (typeinfo->defaults.get_name().size() != 0) //Already a default in place?
+				sc.raise_error(std::format("Attempted to redefine _default for type {}!", type));
 		}
 	}
+
+	//Shove an object into the list and start operating on it.
+	//If this is the default object, this will be a reference to the defaults rather than a type in list. 
+	def_object& newobj = create_new_object(name, typenum, parent_obj);
+	parse_object_body(sc, token, newobj);
+}
+
+void definition_list::parse_object_body(scanner& sc, sc_token& token, def_object& obj)
+{
+	//temp
+	do
+	{
+		sc.must_get_string(token);
+	} while (token.compare("}"));
 }
 
 definition_list::definition_list(bool must_register_types)

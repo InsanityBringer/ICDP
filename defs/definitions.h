@@ -13,6 +13,7 @@ as described in copying.txt.
 #include <variant>
 #include <unordered_map>
 #include "misc/scanner.h"
+#include "misc/error.h"
 
 //Properties are defined by entities read from a definition file. This is used to validate that the data is in a correct format.
 enum class def_field_type
@@ -70,11 +71,12 @@ class def_object
 	int							type; //Number of the registered type, identifying this object.
 	std::vector<def_key>		keys; //Keys for this object, hopefully validated against the schema.
 	std::vector<def_property>	properties;
-	def_object*					parent; //Parent definiton, may be null. 
+	def_object*					parent; //Parent definiton, will be null for untyped objects or base types. 
 	//Depending on the performance, keys should probably have an associated hash set of indicies with it. 
 
 public:
 	def_object();
+	def_object(std::string& name, int type, def_object* parent);
 	//Checks the property, throwing a relevant error if it is not found or in the wrong format. 
 	//Will chain to parent entity if exists.
 	void check_property(def_key& key);
@@ -181,6 +183,7 @@ class definition_list
 	void parse_constant(scanner& sc, sc_token& token);
 	void parse_include(scanner& sc, sc_token& token);
 	void maybe_parse_object(scanner& sc, sc_token& token);
+	void parse_object_body(scanner& sc, sc_token& token, def_object& obj);
 
 	//Finds a constant, returns nullptr on error. 
 	def_const* find_constant(std::string& constname)
@@ -216,6 +219,19 @@ class definition_list
 		return nullptr;
 	}
 
+	//Finds a type definition by the ID provided.
+	//This wasn't thought out very well..
+	definition_type* find_type_by_id(int id)
+	{
+		for (int i = 0; i < types.size(); i++)
+		{
+			if (types[i].id == id)
+				return &types[i];
+		}
+
+		return nullptr;
+	}
+
 	//Finds an object named "name" of the type specified by "typenum".
 	//This could use a hash table, but this probably should be fine. 
 	def_object* find_object_of_type(std::string& name, int typenum)
@@ -237,6 +253,32 @@ class definition_list
 		return nullptr;
 	}
 
+	//Emplaces an object at the end of the current list. 
+	//Returns a reference to the object.
+	def_object& create_new_object(std::string& name, int typenum, def_object* parent)
+	{
+		if (need_types && !name.compare("_default"))
+		{
+			definition_type* typeinfo = find_type_by_id(typenum);
+			if (!typeinfo)
+				Error("definition_list::create_new_object: Attempted to create default for unknown type ID.");
+
+			typeinfo->defaults = def_object(name, typenum, parent);
+			return typeinfo->defaults;
+		}
+
+		if (is_parsing_extras)
+		{
+			addon_defs.emplace_back(name, typenum, parent);
+			return addon_defs.back();
+		}
+		else
+		{
+			defs.emplace_back(name, typenum, parent);
+			return defs.back();
+		}
+	}
+
 public:
 	//Constructor for the definition list.
 	//Set must_register_type to true if types and properties are to be used. 
@@ -252,4 +294,11 @@ public:
 	//Adds additional defs from another lump. You probably don't want to specify a handle of 0.
 	//These additional defs can then be cleared when changing missions.
 	void add_defs_from_lump(const char* filename, uint32_t archivehandle = 0);
+
+	//Frees all addon data to free memory and ready for future addons.
+	//Addon constants should already be purged after processing each document.
+	void purge_addons()
+	{
+		addon_defs.clear();
+	}
 };
