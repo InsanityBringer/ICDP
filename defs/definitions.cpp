@@ -486,11 +486,12 @@ void definition_list::maybe_parse_object(scanner& sc, sc_token& token)
 
 void definition_list::parse_object_body(scanner& sc, sc_token& token, def_object& obj)
 {
-	//temp
-	do
+	for (;;)
 	{
 		sc.must_get_string(token);
-	} while (token.compare("}"));
+		if (!token.compare("}")) //end of body?
+			break;
+	}
 }
 
 definition_list::definition_list(bool must_register_types)

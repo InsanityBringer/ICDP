@@ -311,7 +311,7 @@ int kconfig_is_axes_used(int axis)
 	return 0;
 }
 
-void kconfig_sub(kc_item* items, int nitems, const char* title)
+static void kconfig_sub(kc_item* items, int nitems, const char* title)
 {
 	grs_canvas* save_canvas;
 	grs_font* save_font;
@@ -1068,7 +1068,7 @@ void kc_change_invert(kc_item* item)
 
 #include "screens.h"
 
-void kconfig_reset_joystick_bindings(kc_joyinfo& info)
+static void kconfig_reset_joystick_bindings(kc_joyinfo& info)
 {
 	for (int i = 0; i < NUM_OTHER_CONTROLS; i++)
 	{
@@ -1233,7 +1233,7 @@ void kconfig_flush_inputs()
 
 //Joysticks are more complicated since there can be many joysticks attached,
 //and inputs can be axises or hats
-bool kc_check_joystick_event(plat_event& ev, CtrlType& control)
+static bool kc_check_joystick_event(plat_event& ev, CtrlType& control)
 {
 	if (Kconfig_use_joystick)
 	{
@@ -1277,7 +1277,7 @@ bool kc_check_joystick_event(plat_event& ev, CtrlType& control)
 	return false;
 }
 
-bool kc_check_keyboard_event(plat_event& ev, CtrlType& control)
+static bool kc_check_keyboard_event(plat_event& ev, CtrlType& control)
 {
 	for (int i = 0; i < KC_NUM_CONTROLS; i++)
 	{
@@ -1292,7 +1292,7 @@ bool kc_check_keyboard_event(plat_event& ev, CtrlType& control)
 	return false;
 }
 
-bool kc_check_mouse_event(plat_event& ev, CtrlType& control)
+static bool kc_check_mouse_event(plat_event& ev, CtrlType& control)
 {
 	if (Kconfig_use_mouse)
 	{
@@ -1308,11 +1308,6 @@ bool kc_check_mouse_event(plat_event& ev, CtrlType& control)
 	}
 
 	return false;
-}
-
-
-void kconfig_process_events()
-{
 }
 
 void control_read_event(plat_event& ev)
@@ -1361,7 +1356,7 @@ void control_read_event(plat_event& ev)
 }
 
 //Reads the axis for control controlnum, with the specified deadzone, and adjusting for sensitivity. 
-fix check_axis(kc_joyinfo& info, std::vector<int>& axises, AxisType controlnum, int deadzone, bool apply_sensitivity)
+static fix check_axis(kc_joyinfo& info, std::vector<int>& axises, AxisType controlnum, int deadzone, bool apply_sensitivity)
 {
 	int axis_num = info.axises[(int)controlnum].axis;
 	if (axis_num < 0) return 0;
@@ -1389,7 +1384,7 @@ fix check_axis(kc_joyinfo& info, std::vector<int>& axises, AxisType controlnum, 
 	return scaled_value;
 }
 
-void controls_read_joystick(kc_joyinfo& info, control_info& controls, bool slide_on, bool bank_on)
+static void controls_read_joystick(kc_joyinfo& info, control_info& controls, bool slide_on, bool bank_on)
 {
 	std::span<JoystickButton> buttons;
 	std::vector<int> axises;
@@ -1431,7 +1426,7 @@ void controls_read_joystick(kc_joyinfo& info, control_info& controls, bool slide
 	}
 }
 
-fix check_mouse_axis(fix axises[], AxisType controlnum, bool apply_sensitivity)
+static fix check_mouse_axis(fix axises[], AxisType controlnum, bool apply_sensitivity)
 {
 	int axis_num = current_mouse_axises[(int)controlnum].axis;
 	if (axis_num < 0) return 0;
@@ -1449,7 +1444,7 @@ fix check_mouse_axis(fix axises[], AxisType controlnum, bool apply_sensitivity)
 	return scaled_value;
 }
 
-void controls_read_mouse(control_info& controls, bool slide_on, bool bank_on)
+static void controls_read_mouse(control_info& controls, bool slide_on, bool bank_on)
 {
 	int dx, dy;
 	fix mouse_axis[2];
@@ -1494,7 +1489,7 @@ void controls_read_mouse(control_info& controls, bool slide_on, bool bank_on)
 
 //Reads a ramped binary input for the control specified in control.
 //The result equals speed_factor * time_held_down / divisor if the control is currently engaged.
-constexpr fix scaled_reading(CtrlType control, int speed_factor, fix ctime, int divisor = 1)
+static constexpr fix scaled_reading(CtrlType control, int speed_factor, fix ctime, int divisor = 1)
 {
 	if (control >= CtrlType::NumCtrls || control < CtrlType::PitchForward)
 		return 0;
@@ -1886,7 +1881,7 @@ void kconfig_init_defaults()
 }
 
 //Code for serializing the kconfig state to NBT tags
-CompoundTag* kc_create_compound_for_binding(kc_button_binding& binding)
+static CompoundTag* kc_create_compound_for_binding(kc_button_binding& binding)
 {
 	CompoundTag* newtag = new CompoundTag();
 
@@ -1898,7 +1893,7 @@ CompoundTag* kc_create_compound_for_binding(kc_button_binding& binding)
 	return newtag;
 }
 
-void kc_binding_from_compound(kc_button_binding& binding, CompoundTag& tag)
+static void kc_binding_from_compound(kc_button_binding& binding, CompoundTag& tag)
 {
 	Tag* bindtag_p = tag.find_tag("Button1");
 	if (bindtag_p)
@@ -1914,7 +1909,7 @@ void kc_binding_from_compound(kc_button_binding& binding, CompoundTag& tag)
 		binding.type2 = nbt_get_integral(bindtag_p, binding.type2);
 }
 
-CompoundTag* kc_create_compound_for_axis(kc_axis_binding& binding)
+static CompoundTag* kc_create_compound_for_axis(kc_axis_binding& binding)
 {
 	CompoundTag* newtag = new CompoundTag();
 
@@ -1924,13 +1919,13 @@ CompoundTag* kc_create_compound_for_axis(kc_axis_binding& binding)
 	return newtag;
 }
 
-void kc_axis_from_compound(kc_axis_binding& binding, CompoundTag& tag)
+static void kc_axis_from_compound(kc_axis_binding& binding, CompoundTag& tag)
 {
 	binding.axis = nbt_get_integral(tag.find_tag("Axis"), binding.axis);
 	binding.invert = nbt_get_integral(tag.find_tag("Invert"), binding.invert);
 }
 
-CompoundTag* kc_create_compound_for_joystick(kc_joyinfo& joyinfo)
+static CompoundTag* kc_create_compound_for_joystick(kc_joyinfo& joyinfo)
 {
 	CompoundTag* newtag = new CompoundTag();
 
@@ -1953,7 +1948,7 @@ CompoundTag* kc_create_compound_for_joystick(kc_joyinfo& joyinfo)
 	return newtag;
 }
 
-void kc_joystick_from_compound(CompoundTag& tag)
+static void kc_joystick_from_compound(CompoundTag& tag)
 {
 	Tag* tag_p = tag.find_tag("GUID");
 	if (!tag_p || tag_p->GetType() != NBTTag::ByteArray)

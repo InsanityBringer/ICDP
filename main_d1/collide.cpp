@@ -120,13 +120,12 @@ int apply_damage_to_clutter(object* clutter, fix damage)
 //given the specified force, apply damage from that force to an object
 void apply_force_damage(object* obj, fix force, object* other_obj)
 {
-	int	result;
-	fix damage;
+	bool result;
 
 	if (obj->flags & (OF_EXPLODING | OF_SHOULD_BE_DEAD))
 		return;		//already exploding or dead
 
-	damage = fixdiv(force, obj->mtype.phys_info.mass) / 8;
+	fix damage = fixdiv(force, obj->mtype.phys_info.mass) / 8;
 
 	//mprintf((0,"obj %d, damage=%x\n",obj-Objects,damage));
 
@@ -178,7 +177,7 @@ void apply_force_damage(object* obj, fix force, object* other_obj)
 }
 
 //	-----------------------------------------------------------------------------
-void bump_this_object(object* objp, object* other_objp, vms_vector* force, int damage_flag)
+void bump_this_object(object* objp, object* other_objp, vms_vector* force, bool damage_flag)
 {
 	fix force_mag;
 
@@ -215,7 +214,7 @@ void bump_this_object(object* objp, object* other_objp, vms_vector* force, int d
 //deal with two objects bumping into each other.  Apply force from collision
 //to each robot.  The flags tells whether the objects should take damage from
 //the collision.
-void bump_two_objects(object* obj0, object* obj1, int damage_flag)
+void bump_two_objects(object* obj0, object* obj1, bool damage_flag)
 {
 	vms_vector force;
 	object* t = NULL;
@@ -641,7 +640,7 @@ void collide_robot_and_robot(object* robot1, object* robot2, vms_vector* collisi
 	//		robot2-Objects, f2i(robot2->pos.x), f2i(robot2->pos.y), f2i(robot2->pos.z),
 	//		f2i(collision_point->x), f2i(collision_point->y), f2i(collision_point->z)));
 
-	bump_two_objects(robot1, robot2, 1);
+	bump_two_objects(robot1, robot2, true);
 	return;
 }
 
@@ -680,7 +679,7 @@ void collide_robot_and_player(object* robot, object* player, vms_vector* collisi
 #endif
 
 	digi_link_sound_to_pos(SOUND_ROBOT_HIT_PLAYER, player->segnum, 0, collision_point, 0, F1_0);
-	bump_two_objects(robot, player, 1);
+	bump_two_objects(robot, player, true);
 	return;
 }
 
@@ -771,7 +770,7 @@ void collide_player_and_controlcen(object* controlcen, object* player, vms_vecto
 	}
 
 	digi_link_sound_to_pos(SOUND_ROBOT_HIT_PLAYER, player->segnum, 0, collision_point, 0, F1_0);
-	bump_two_objects(controlcen, player, 1);
+	bump_two_objects(controlcen, player, true);
 
 	return;
 }
@@ -854,11 +853,11 @@ void collide_weapon_and_clutter(object* weapon, object* clutter, vms_vector* col
 
 //	------------------------------------------------------------------------------------------------------
 //	Return 1 if robot died, else return 0
-int apply_damage_to_robot(object* robot, fix damage, int killer_objnum)
+bool apply_damage_to_robot(object* robot, fix damage, int killer_objnum)
 {
-	if (robot->flags & OF_EXPLODING) return 0;
+	if (robot->flags & OF_EXPLODING) return false;
 
-	if (robot->shields < 0) return 0;	//robot already dead...
+	if (robot->shields < 0) return false;	//robot already dead...
 
 //	if (robot->control_type == CT_REMOTE)
 //		return 0; // Can't damange a robot controlled by another player
@@ -876,10 +875,10 @@ int apply_damage_to_robot(object* robot, fix damage, int killer_objnum)
 			if (multi_explode_robot_sub(robot - Objects, killer_objnum))
 			{
 				multi_send_robot_explode(robot - Objects, killer_objnum);
-				return 1;
+				return true;
 			}
 			else
-				return 0;
+				return false;
 		}
 #endif
 #endif
@@ -893,10 +892,10 @@ int apply_damage_to_robot(object* robot, fix damage, int killer_objnum)
 		}
 		else
 			explode_object(robot, STANDARD_EXPL_DELAY);
-		return 1;
+		return true;
 	}
 	else
-		return 0;
+		return false;
 }
 
 //	------------------------------------------------------------------------------------------------------
@@ -966,7 +965,7 @@ void collide_robot_and_weapon(object* robot, object* weapon, vms_vector* collisi
 			damage = fixmul(damage, weapon->ctype.laser_info.multiplier);
 
 			if (!apply_damage_to_robot(robot, damage, weapon->ctype.laser_info.parent_num))
-				bump_two_objects(robot, weapon, 0);		//only bump if not dead. no damage from bump
+				bump_two_objects(robot, weapon, false);		//only bump if not dead. no damage from bump
 			else if (weapon->ctype.laser_info.parent_signature == ConsoleObject->signature)
 				add_points_to_score(Robot_info[robot->id].score_value);
 		}
@@ -1054,7 +1053,7 @@ void collide_hostage_and_player(object* hostage, object* player, vms_vector* col
 void collide_player_and_player(object* player1, object* player2, vms_vector* collision_point) 
 {
 	digi_link_sound_to_pos(SOUND_ROBOT_HIT_PLAYER, player1->segnum, 0, collision_point, 0, F1_0);
-	bump_two_objects(player1, player2, 1);
+	bump_two_objects(player1, player2, true);
 	return;
 }
 
@@ -1264,7 +1263,7 @@ void collide_player_and_weapon(object* player, object* weapon, vms_vector* colli
 
 	maybe_kill_weapon(weapon, player);
 
-	bump_two_objects(player, weapon, 0);	//no damage from bump
+	bump_two_objects(player, weapon, false);	//no damage from bump
 
 	if (!Weapon_info[weapon->id].damage_radius)
 	{
@@ -1289,7 +1288,7 @@ void collide_player_and_nasty_robot(object* player, object* robot, vms_vector* c
 
 	object_create_explosion(player->segnum, collision_point, i2f(10) / 2, VCLIP_PLAYER_HIT);
 
-	bump_two_objects(player, robot, 0);	//no damage from bump
+	bump_two_objects(player, robot, false);	//no damage from bump
 
 	apply_damage_to_player(player, robot, F1_0 * (Difficulty_level + 1));
 
@@ -1412,13 +1411,13 @@ void collide_player_and_powerup(object* player, object* powerup, vms_vector* col
 void collide_player_and_clutter(object* player, object* clutter, vms_vector* collision_point) 
 {
 	digi_link_sound_to_pos(SOUND_ROBOT_HIT_PLAYER, player->segnum, 0, collision_point, 0, F1_0);
-	bump_two_objects(clutter, player, 1);
+	bump_two_objects(clutter, player, true);
 	return;
 }
 
 //	See if weapon1 creates a badass explosion.  If so, create the explosion
 //	Return true if weapon does proximity (as opposed to only contact) damage when it explodes.
-int maybe_detonate_weapon(object* weapon1, object* weapon2, vms_vector* collision_point)
+bool maybe_detonate_weapon(object* weapon1, object* weapon2, vms_vector* collision_point)
 {
 	if (Weapon_info[weapon1->id].damage_radius)
 	{
@@ -1431,15 +1430,15 @@ int maybe_detonate_weapon(object* weapon1, object* weapon2, vms_vector* collisio
 				explode_badass_weapon(weapon1);
 				digi_link_sound_to_pos(Weapon_info[weapon1->id].robot_hit_sound, weapon1->segnum, 0, collision_point, 0, F1_0);
 			}
-			return 1;
+			return true;
 		}
 		else {
 			weapon1->lifeleft = std::min(dist / 64, (fix)F1_0);
-			return 1;
+			return true;
 		}
 	}
 	else
-		return 0;
+		return false;
 }
 
 void collide_weapon_and_weapon(object* weapon1, object* weapon2, vms_vector* collision_point)

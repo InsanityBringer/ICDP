@@ -23,7 +23,7 @@ void collide_object_with_wall(object* A, fix hitspeed, short hitseg, short hitwa
 extern void apply_damage_to_player(object* player, object* killer, fix damage);
 
 //	Returns 1 if robot died, else 0.
-extern int apply_damage_to_robot(object* robot, fix damage, int killer_objnum);
+extern bool apply_damage_to_robot(object* robot, fix damage, int killer_objnum);
 
 extern int Immaterial;
 
@@ -32,7 +32,7 @@ extern void collide_player_and_materialization_center(object* objp);
 extern void collide_robot_and_materialization_center(object* objp);
 
 extern void scrape_object_on_wall(object* obj, short hitseg, short hitwall, vms_vector* hitpt);
-extern int maybe_detonate_weapon(object* obj0p, object* obj, vms_vector* pos);
+extern bool maybe_detonate_weapon(object* obj0p, object* obj, vms_vector* pos);
 
 extern void collide_player_and_nasty_robot(object* player, object* robot, vms_vector* collision_point);
 
