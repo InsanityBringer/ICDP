@@ -671,8 +671,6 @@ static void do_new_game_menu()
 	}
 }
 
-extern void GameLoop(int, int);
-
 void sound_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 {
 	nitems = nitems;

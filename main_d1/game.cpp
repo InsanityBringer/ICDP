@@ -1962,6 +1962,10 @@ void game_frame()
 				{
 					if (Game_paused)
 					{
+						//hmm? silly code duplication here.
+						//automap_frame runs first to drain the event queue. 
+						if (automap_active())
+							automap_frame();
 						game_paused_frame();
 					}
 
@@ -1972,6 +1976,12 @@ void game_frame()
 						Automap_flag = 0;
 						Config_menu_flag = 0;
 
+						//If active, the automap runs first, to ensure the game viewport is updated if you leave it. 
+						if (automap_active())
+							automap_frame();
+
+						bool is_automap_active = automap_active();
+
 						//Process resolution change request now. Can't be done immediately, since that's when the rendering occurs. 
 						if (cfg_render_width != VR_render_width || cfg_render_height != VR_render_height || cfg_aspect_ratio != Game_aspect_mode)
 						{
@@ -1981,18 +1991,18 @@ void game_frame()
 
 						Assert(ConsoleObject == &Objects[Players[Player_num].objnum]);
 
-						bool doInput = newmenu_empty();
-						GameLoop(1, doInput);		// Do game loop with rendering and reading controls.
+						bool doInput = newmenu_empty() && !is_automap_active;
+						GameLoop(!is_automap_active, doInput);		// Do game loop with rendering and reading controls.
 
 						if (Config_menu_flag)
 						{
-							//if (!(Game_mode & GM_MULTI)) palette_save();
 							do_options_menu();
-							//if (!(Game_mode & GM_MULTI)) palette_restore();
 						}
-
+						//it wouldn't be a good thing if both the automap and a menu were spawned at the same time, need a solution. 
 						if (Automap_flag)
 						{
+							do_automap();
+							
 							/*int save_w = Game_window_w, save_h = Game_window_h;
 							do_automap(0);
 							Screen_mode = -1; set_screen_mode(SCREEN_GAME);
@@ -2065,13 +2075,21 @@ void game_present()
 {
 	if (Game_sub_mode == SUB_GAME)
 	{
-		plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
-		grs_canvas* cockpit_canvas = get_cockpit_canvas();
-		if (cockpit_canvas)
-			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
-		cockpit_canvas = get_hud_canvas();
-		if (cockpit_canvas)
-			plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+		if (automap_active())
+		{
+			//It might be safe to present the automap on top of the game view, but I can't guarantee that it will share the same palette.
+			automap_present();
+		}
+		else
+		{
+			plat_present_canvas_no_flip(VR_render_buffer, Game_aspect);
+			grs_canvas* cockpit_canvas = get_cockpit_canvas();
+			if (cockpit_canvas)
+				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+			cockpit_canvas = get_hud_canvas();
+			if (cockpit_canvas)
+				plat_present_canvas_masked_on(*cockpit_canvas, *VR_screen_buffer, Game_aspect);
+		}
 	}
 	else if (Game_sub_mode == SUB_BRIEFING)
 		briefing_present();
@@ -2751,7 +2769,7 @@ extern void check_create_player_path(void);
 
 extern	int	Do_appearance_effect;
 
-void GameLoop(int RenderFlag, int ReadControlsFlag)
+void GameLoop(bool RenderFlag, bool ReadControlsFlag)
 {
 	//[ISB] Put the game in relative mouse mode, except if ReadControls isn't set
 	//as this prevents releasing mouse capture in the menus in multiplayer.

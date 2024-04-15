@@ -226,7 +226,7 @@ void game_init_render_buffers(int screen_mode, int render_max_w, int render_max_
 
 void fill_background(int x, int y, int w, int h, int dx, int dy);
 void game_init_render_sub_buffers(int x, int y, int w, int h);
-void GameLoop(int RenderFlag, int ReadControlsFlag);
+void GameLoop(bool RenderFlag, bool ReadControlsFlag);
 void powerup_grab_cheat_all(void);
 
 //New cheat input stuff

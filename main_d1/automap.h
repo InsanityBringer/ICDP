@@ -16,10 +16,14 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "misc/types.h"
 #include "segment.h"
 
-extern void do_automap(int key_code);
-extern void automap_clear_visited();
+void do_automap();
+void automap_frame();
+void automap_present();
+void automap_close(); //Extern to make it possible to close the automap from other sources, like being damaged. 
+bool automap_active();
+void automap_clear_visited();
 extern uint8_t Automap_visited[MAX_SEGMENTS];
-extern void modex_print_message(int x, int y, char* str);
+void modex_print_message(int x, int y, char* str);
 
 void adjust_segment_limit(int SegmentLimit); 
 void draw_all_edges();

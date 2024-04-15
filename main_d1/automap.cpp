@@ -55,6 +55,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "gauges.h"
 #include "powerup.h"
 #include "network.h" 
+#include "platform/event.h"
 
 #define EF_USED			1		// This edge is used
 #define EF_DEFINING		2		// A structure defining edge that should always draw.
@@ -129,6 +130,18 @@ static vms_vector view_target;
 static fix Automap_farthest_dist = (F1_0 * 20 * 50);		// 50 segments away
 static vms_matrix	ViewMatrix;
 static fix ViewDist = 0;
+static grs_canvas* automap_canvas;
+
+// State that needs to persist across automap frames. 
+static fix Automap_entry_time;
+static int Automap_Max_segments_away;
+static int Automap_SegmentLimit;
+static vms_angvec Automap_tangles;
+static bool Automap_pause_game;
+static bool Automap_old_wiggle;
+
+//True when the automap is being displayed. 
+bool Automap_active; 
 
 void automap_clear_visited()
 {
@@ -322,7 +335,6 @@ void create_name_canv()
 
 	gr_set_fontcolor(BM_XRGB(0, 31, 0), -1);
 	name_canv = print_to_canvas(name_level, Gamefonts[GFONT_SMALL], BM_XRGB(0, 31, 0), -1);
-
 }
 
 void modex_print_message(int x, int y, char* str)
@@ -335,49 +347,27 @@ void modex_print_message(int x, int y, char* str)
 	gr_set_current_canvas(&DrawingPages);
 }
 
-extern void GameLoop(int, int);
 extern int set_segment_depths(int start_seg, uint8_t* segbuf);
 
-void do_automap(int key_code) 
+bool automap_active()
 {
-	int done = 0;
-	vms_matrix	tempm;
-	vms_angvec	tangles;
-	int leave_mode = 0;
-	int first_time = 1;
-	int pcx_error;
-	int i;
-	int c;
+	return Automap_active;
+}
+
+void do_automap() 
+{
 	char filename[] = "MAP.PCX";
-	fix entry_time;
-	int pause_game = 1;		// Set to 1 if everything is paused during automap...No pause during net.
-	fix t1, t2;
-	control_info saved_control_info;
-	grs_bitmap Automap_background;
-	int Max_segments_away = 0;
-	int SegmentLimit = 1;
 
-	key_code = key_code;	// disable warning...
-
+	Automap_pause_game = true; // Set to 1 if everything is paused during automap...No pause during net.
 	if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
-		pause_game = 0;
+		Automap_pause_game = false;
 
-	if (pause_game)
-		stop_time();
+	if (Automap_pause_game)
+		game_pause(true);
 
 	create_name_canv();
 
 	Max_edges = std::min(MAX_EDGES_FROM_VERTS(Num_vertices), MAX_EDGES);			//make maybe smaller than max
-	//Edges	= malloc( sizeof(Edge_info)*Max_edges);
-	//if ( Edges == NULL )	{
-	//	mprintf((0, "Couldn't get %dK for automap!", sizeof(Edge_info)*Max_edges/1024));
-	//	return;
-	//}
-	//DrawingListBright = malloc( sizeof(short)*Max_edges);
-	//if ( DrawingListBright == NULL )	{
-	//	mprintf((0, "Couldn't get %dK for automap!", sizeof(short)*Max_edges/1024));
-	//	return;
-	//}
 
 	mprintf((0, "Num_vertices=%d, Max_edges=%d, (MAX:%d)\n", Num_vertices, Max_edges, MAX_EDGES));
 	mprintf((0, "Allocated %d K for automap edge list\n", (sizeof(Edge_info) + sizeof(short)) * Max_edges / 1024));
@@ -385,13 +375,14 @@ void do_automap(int key_code)
 	//gr_set_mode(SM_320x400U);
 	gr_palette_clear();
 
-	grs_canvas* automap_canvas = gr_create_canvas(320, 400);
+	automap_canvas = gr_create_canvas(320, 400);
 
 	gr_init_sub_canvas(&Pages, automap_canvas, 0, 0, 320, 400);
 	gr_init_sub_canvas(&DrawingPages, &Pages, 16, 69, 288, 272);
 
+	grs_bitmap Automap_background;
 	Automap_background.bm_data = NULL;
-	pcx_error = pcx_read_bitmap(filename, &Automap_background, BM_LINEAR, NULL);
+	int pcx_error = pcx_read_bitmap(filename, &Automap_background, BM_LINEAR, NULL);
 	if (pcx_error != PCX_ERROR_NONE) 
 	{
 		printf("File %s - PCX error: %s", filename, pcx_errormsg(pcx_error));
@@ -418,61 +409,52 @@ void do_automap(int key_code)
 		ViewDist = ZOOM_DEFAULT;
 	ViewMatrix = Objects[Players[Player_num].objnum].orient;
 
-	tangles.p = PITCH_DEFAULT;
-	tangles.h = 0;
-	tangles.b = 0;
-
-	done = 0;
+	Automap_tangles.p = PITCH_DEFAULT;
+	Automap_tangles.h = 0;
+	Automap_tangles.b = 0;
 
 	view_target = Objects[Players[Player_num].objnum].pos;
-
-	t1 = entry_time = timer_get_fixed_seconds();
-	t2 = t1;
+	Automap_entry_time = timer_get_fixed_seconds();
 
 	//Fill in Automap_visited from Objects[Players[Player_num].objnum].segnum
-	Max_segments_away = set_segment_depths(Objects[Players[Player_num].objnum].segnum, Automap_visited);
-	SegmentLimit = Max_segments_away;
+	Automap_Max_segments_away = set_segment_depths(Objects[Players[Player_num].objnum].segnum, Automap_visited);
+	Automap_SegmentLimit = Automap_Max_segments_away;
 
-	adjust_segment_limit(SegmentLimit);
+	adjust_segment_limit(Automap_SegmentLimit);
+	gr_palette_load(gr_palette);
 
-	uint64_t startTime;
+	Automap_old_wiggle = (ConsoleObject->mtype.phys_info.flags & PF_WIGGLE) != 0;	// Save old wiggle
+	ConsoleObject->mtype.phys_info.flags &= ~PF_WIGGLE;		// Turn off wiggle
 
-	while (!done) 
+	Automap_active = true;
+	game_flush_inputs();
+
+	vms_matrix tempm;
+	vm_angles_2_matrix(&tempm, &Automap_tangles);
+	vm_matrix_x_matrix(&ViewMatrix, &Objects[Players[Player_num].objnum].orient, &tempm);
+	draw_automap(); //Ensure the initial frame is drawn. 
+}
+
+void automap_frame()
+{
+	bool leave_mode = false;
+	bool done = false;
+	if (Controls.automap_state && (timer_get_fixed_seconds() - Automap_entry_time) > LEAVE_TIME)
+		leave_mode = true;
+
+	if (!Controls.automap_state && leave_mode)
+		done = true;
+
+	kconfig_clear_down_counts();
+
+	plat_event ev;
+	while (event_available())
 	{
-		startTime = timer_get_us();
-		if (leave_mode == 0 && Controls.automap_state && (timer_get_fixed_seconds() - entry_time) > LEAVE_TIME)
-			leave_mode = 1;
+		pop_event(ev);
 
-		if (!Controls.automap_state && (leave_mode == 1))
-			done = 1;
-
-		if (!pause_game) 
+		if (ev.source == EventSource::Keyboard && ev.down)
 		{
-			uint16_t old_wiggle;
-			saved_control_info = Controls;				// Save controls so we can zero them
-			memset(&Controls, 0, sizeof(control_info));	// Clear everything...
-			old_wiggle = ConsoleObject->mtype.phys_info.flags & PF_WIGGLE;	// Save old wiggle
-			ConsoleObject->mtype.phys_info.flags &= ~PF_WIGGLE;		// Turn off wiggle
-#ifdef NETWORK
-			if (multi_menu_poll())
-				done = 1;
-#endif
-			//			GameLoop( 0, 0 );		// Do game loop with no rendering and no reading controls.
-			ConsoleObject->mtype.phys_info.flags |= old_wiggle;	// Restore wiggle
-			Controls = saved_control_info;
-		}
-
-		controls_read_all();
-		if (Controls.automap_down_count) 
-		{
-			if (leave_mode == 0)
-				done = 1;
-			c = 0;
-		}
-
-		while ((c = key_inkey())) 
-		{
-			switch (c) 
+			switch (event_to_keycode(ev))
 			{
 #ifndef NDEBUG
 			case KEY_BACKSP: Int3(); break;
@@ -496,109 +478,107 @@ void do_automap(int key_code)
 				break;
 
 #ifndef NDEBUG
-			case KEY_DEBUGGED + KEY_F: 
+			case KEY_DEBUGGED + KEY_F:
 			{
-				for (i = 0; i <= Highest_segment_index; i++)
+				for (int i = 0; i <= Highest_segment_index; i++)
 					Automap_visited[i] = 1;
 				automap_build_edge_list();
-				Max_segments_away = set_segment_depths(Objects[Players[Player_num].objnum].segnum, Automap_visited);
-				SegmentLimit = Max_segments_away;
-				adjust_segment_limit(SegmentLimit);
+				Automap_Max_segments_away = set_segment_depths(Objects[Players[Player_num].objnum].segnum, Automap_visited);
+				Automap_SegmentLimit = Automap_Max_segments_away;
+				adjust_segment_limit(Automap_SegmentLimit);
 			}
-									   break;
+			break;
 #endif
 			case KEY_MINUS:
-				if (SegmentLimit > 1)
+				if (Automap_SegmentLimit > 1)
 				{
-					SegmentLimit--;
-					adjust_segment_limit(SegmentLimit);
+					Automap_SegmentLimit--;
+					adjust_segment_limit(Automap_SegmentLimit);
 				}
 				break;
 			case KEY_EQUAL:
-				if (SegmentLimit < Max_segments_away) 
+				if (Automap_SegmentLimit < Automap_Max_segments_away)
 				{
-					SegmentLimit++;
-					adjust_segment_limit(SegmentLimit);
+					Automap_SegmentLimit++;
+					adjust_segment_limit(Automap_SegmentLimit);
 				}
 				break;
 			}
 		}
 
-		if (Controls.fire_primary_down_count)
-		{
-			// Reset orientation
-			ViewDist = ZOOM_DEFAULT;
-			tangles.p = PITCH_DEFAULT;
-			tangles.h = 0;
-			tangles.b = 0;
-			view_target = Objects[Players[Player_num].objnum].pos;
-		}
-
-		ViewDist -= Controls.forward_thrust_time * ZOOM_SPEED_FACTOR;
-
-		tangles.p += (fixang)fixdiv(Controls.pitch_time, ROT_SPEED_DIVISOR);
-		tangles.h += (fixang)fixdiv(Controls.heading_time, ROT_SPEED_DIVISOR);
-		tangles.b += (fixang)fixdiv(Controls.bank_time, ROT_SPEED_DIVISOR * 2);
-
-		if (Controls.vertical_thrust_time || Controls.sideways_thrust_time) 
-		{
-			vms_angvec	tangles1;
-			vms_vector	old_vt;
-			old_vt = view_target;
-			tangles1 = tangles;
-			vm_angles_2_matrix(&tempm, &tangles1);
-			vm_matrix_x_matrix(&ViewMatrix, &Objects[Players[Player_num].objnum].orient, &tempm);
-			vm_vec_scale_add2(&view_target, &ViewMatrix.uvec, Controls.vertical_thrust_time * SLIDE_SPEED);
-			vm_vec_scale_add2(&view_target, &ViewMatrix.rvec, Controls.sideways_thrust_time * SLIDE_SPEED);
-			if (vm_vec_dist_quick(&view_target, &Objects[Players[Player_num].objnum].pos) > i2f(1000)) 
-			{
-				view_target = old_vt;
-			}
-		}
-
-		vm_angles_2_matrix(&tempm, &tangles);
-		vm_matrix_x_matrix(&ViewMatrix, &Objects[Players[Player_num].objnum].orient, &tempm);
-
-		if (ViewDist < ZOOM_MIN_VALUE) ViewDist = ZOOM_MIN_VALUE;
-		if (ViewDist > ZOOM_MAX_VALUE) ViewDist = ZOOM_MAX_VALUE;
-
-		draw_automap();
-
-		if (first_time) 
-		{
-			first_time = 0;
-			gr_palette_load(gr_palette);
-		}
-
-		plat_present_canvas(*automap_canvas, ASPECT_4_3);
-		plat_do_events();
-		//[ISB] framerate limiter 
-		//waiting loop for polled fps mode
-		//With suggestions from dpjudas.
-		uint64_t numUS = 1000000 / FPSLimit;
-		//[ISB] Combine a sleep with the polling loop to try to spare CPU cycles
-		uint64_t diff = (startTime + numUS) - timer_get_us();
-		if (diff > 2000) //[ISB] Sleep only if there's sufficient time to do so, since the scheduler isn't precise enough
-			timer_delay_us(diff - 2000);
-		while (timer_get_us() < startTime + numUS);
-
-		t2 = timer_get_fixed_seconds();
-		if (pause_game)
-			FrameTime = t2 - t1;
-		t1 = t2;
+		control_read_event(ev);
 	}
 
-	//free(Edges);
-	//free(DrawingListBright);
-	gr_free_canvas(name_canv);  name_canv = nullptr;
-	gr_free_canvas(automap_canvas); automap_canvas = nullptr;
+	controls_read_all();
+	if (Controls.automap_down_count)
+	{
+		if (!leave_mode)
+			done = true;
+	}
 
-	mprintf((0, "Automap memory freed\n"));
+	if (Controls.fire_primary_down_count)
+	{
+		// Reset orientation
+		ViewDist = ZOOM_DEFAULT;
+		Automap_tangles.p = PITCH_DEFAULT;
+		Automap_tangles.h = 0;
+		Automap_tangles.b = 0;
+		view_target = Objects[Players[Player_num].objnum].pos;
+	}
 
-	game_flush_inputs();
+	ViewDist -= Controls.forward_thrust_time * ZOOM_SPEED_FACTOR;
 
-	if (pause_game)
-		start_time();
+	Automap_tangles.p += (fixang)fixdiv(Controls.pitch_time, ROT_SPEED_DIVISOR);
+	Automap_tangles.h += (fixang)fixdiv(Controls.heading_time, ROT_SPEED_DIVISOR);
+	Automap_tangles.b += (fixang)fixdiv(Controls.bank_time, ROT_SPEED_DIVISOR * 2);
+
+	vms_matrix tempm;
+	if (Controls.vertical_thrust_time || Controls.sideways_thrust_time)
+	{
+		vms_vector old_vt = view_target;
+		vms_angvec tangles1 = Automap_tangles;
+		vm_angles_2_matrix(&tempm, &tangles1);
+		vm_matrix_x_matrix(&ViewMatrix, &Objects[Players[Player_num].objnum].orient, &tempm);
+		vm_vec_scale_add2(&view_target, &ViewMatrix.uvec, Controls.vertical_thrust_time * SLIDE_SPEED);
+		vm_vec_scale_add2(&view_target, &ViewMatrix.rvec, Controls.sideways_thrust_time * SLIDE_SPEED);
+		if (vm_vec_dist_quick(&view_target, &Objects[Players[Player_num].objnum].pos) > i2f(1000))
+		{
+			view_target = old_vt;
+		}
+	}
+
+	vm_angles_2_matrix(&tempm, &Automap_tangles);
+	vm_matrix_x_matrix(&ViewMatrix, &Objects[Players[Player_num].objnum].orient, &tempm);
+
+	if (ViewDist < ZOOM_MIN_VALUE) ViewDist = ZOOM_MIN_VALUE;
+	if (ViewDist > ZOOM_MAX_VALUE) ViewDist = ZOOM_MAX_VALUE;
+
+	if (done)
+	{
+		automap_close();
+	}
+	else
+	{
+		draw_automap();
+	}
+}
+
+void automap_present()
+{
+	plat_present_canvas_no_flip(*automap_canvas, ASPECT_4_3);
+}
+
+void automap_close()
+{
+	if (Automap_active)
+	{
+		if (Automap_old_wiggle)
+			ConsoleObject->mtype.phys_info.flags |= PF_WIGGLE;
+
+		Automap_active = false;
+		if (Automap_pause_game)
+			game_pause(false);
+	}
 }
 
 void adjust_segment_limit(int SegmentLimit)
