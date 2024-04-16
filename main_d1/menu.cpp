@@ -547,8 +547,6 @@ bool difficulty_callback(int choice, int nitems, newmenu_item* items)
 		Difficulty_level = choice;
 		mprintf((0, "%s %s %i\n", TXT_DIFFICULTY_LEVEL, TXT_SET_TO, Difficulty_level));
 
-		//gr_palette_fade_out(gr_palette, 32, 0);
-
 		inferno_request_fade_out();
 		StartNewGame(new_level_num);
 	}
@@ -696,66 +694,17 @@ void sound_menuset(int nitems, newmenu_item* items, int* last_key, int citem)
 #include "platform/s_midi.h"
 
 char default_str[] = "Default MIDI device";
+//I really need to make newmenu items own their strings.
+static std::vector<std::string> mme_device_names;
+static std::vector<char*> mme_device_names_hack;
 
-void do_chocolate_midi_menu()
+void mme_device_callback(int choice)
 {
-	newmenu_item m[13];
-	int i = 0, j;
-	std::vector<std::string> names;
-	GenDevices new_preferred_device;
-
-	names = music_get_MME_devices();
-
-	do
+	if (choice != -1)
 	{
-		m[0].type = NM_TYPE_TEXT; m[0].text = (char*)"Preferred general MIDI device";
-		m[1].type = NM_TYPE_RADIO; m[1].text = (char*)"None"; m[1].group = 0; m[1].value = PreferredGenDevice == GenDevices::NullDevice;
-		m[2].type = NM_TYPE_RADIO; m[2].text = (char*)"FluidSynth (if available)"; m[2].group = 0; m[2].value = PreferredGenDevice == GenDevices::FluidSynthDevice;
-		m[3].type = NM_TYPE_TEXT; m[3].text = (char*)"Soundfont path";
-		m[4].type = NM_TYPE_INPUT; m[4].text = SoundFontFilename; m[4].text_len = _MAX_PATH - 1;
-		m[5].type = NM_TYPE_RADIO; m[5].text = (char*)"MS/Native MIDI (if available)"; m[5].group = 0; m[5].value = PreferredGenDevice == GenDevices::MMEDevice;
-		m[6].type = NM_TYPE_MENU; m[6].text = (char*)"Select MME device";
-
-		i = newmenu_do1(NULL, "MIDI Options", 7, m, nullptr, i);
-
-		if (i == 6)
-		{
-			char** strings = new char* [names.size() + 1];
-			strings[0] = default_str;
-			for (j = 0; j < names.size(); j++)
-				strings[j + 1] = (char*)names[j].c_str();
-
-			j = newmenu_listbox1("Available MME devices", names.size() + 1, strings, 1, PreferredMMEDevice + 1, nullptr);
-
-			if (j != -1)
-			{
-				j--;
-				if (j != PreferredMMEDevice)
-				{
-					PreferredMMEDevice = j;
-					//restart the sound system
-					digi_reset();
-					digi_reset();
-
-					songs_play_song(SONG_TITLE, 1);
-				}
-			}
-
-			delete[] strings;
-		}
-	} while (i != -1);
-
-	if (m[2].value)
-		new_preferred_device = GenDevices::FluidSynthDevice;
-	else if (m[5].value)
-		new_preferred_device = GenDevices::MMEDevice;
-	else
-		new_preferred_device = GenDevices::NullDevice;
-
-	if (new_preferred_device != PreferredGenDevice)
-	{
-		PreferredGenDevice = new_preferred_device;
+		PreferredMMEDevice = choice;
 		//restart the sound system
+		digi_reset();
 		digi_reset();
 
 		if (Function_mode == FMODE_MENU)
@@ -763,6 +712,60 @@ void do_chocolate_midi_menu()
 		else
 			songs_play_level_song(Current_level_num);
 	}
+}
+
+bool midi_menu_callback(int choice, int nitems, newmenu_item* items)
+{
+	GenDevices new_preferred_device;
+	if (items[2].value)
+		new_preferred_device = GenDevices::FluidSynthDevice;
+	else if (items[5].value)
+		new_preferred_device = GenDevices::MMEDevice;
+	else
+		new_preferred_device = GenDevices::NullDevice;
+
+	if (choice == -1)
+	{
+		if (new_preferred_device != PreferredGenDevice)
+		{
+			PreferredGenDevice = new_preferred_device;
+			//restart the sound system
+			digi_reset();
+			digi_reset();
+
+			if (Function_mode == FMODE_MENU)
+				songs_play_song(SONG_TITLE, 1);
+			else
+				songs_play_level_song(Current_level_num);
+		}
+		return false;
+	}
+	else if (choice == 6)
+	{
+		mme_device_names = music_get_MME_devices();
+		mme_device_names_hack.clear();
+		for (std::string& name : mme_device_names)
+		{
+			mme_device_names_hack.push_back((char*)name.c_str()); //Does listbox really need non-const strings?
+		}
+		newmenu_open_listbox("Available MME devices", mme_device_names_hack, true, mme_device_callback, PreferredMMEDevice);
+	}
+	return true;
+}
+
+void do_chocolate_midi_menu()
+{
+	newmenu_item m[13];
+
+	m[0].type = NM_TYPE_TEXT; m[0].text = (char*)"Preferred general MIDI device";
+	m[1].type = NM_TYPE_RADIO; m[1].text = (char*)"None"; m[1].group = 0; m[1].value = PreferredGenDevice == GenDevices::NullDevice;
+	m[2].type = NM_TYPE_RADIO; m[2].text = (char*)"FluidSynth (if available)"; m[2].group = 0; m[2].value = PreferredGenDevice == GenDevices::FluidSynthDevice;
+	m[3].type = NM_TYPE_TEXT; m[3].text = (char*)"Soundfont path";
+	m[4].type = NM_TYPE_INPUT; m[4].text = SoundFontFilename; m[4].text_len = _MAX_PATH - 1;
+	m[5].type = NM_TYPE_RADIO; m[5].text = (char*)"MS/Native MIDI (if available)"; m[5].group = 0; m[5].value = PreferredGenDevice == GenDevices::MMEDevice;
+	m[6].type = NM_TYPE_MENU; m[6].text = (char*)"Select MME device";
+
+	newmenu_open(NULL, "MIDI Options", 7, m, nullptr, midi_menu_callback);
 }
 
 bool sound_menu_callback(int choice, int nitems, newmenu_item* item)
@@ -1065,12 +1068,16 @@ std::vector<const char*> resolution_menu_strings =
 };
 
 //TODO: I'm going to need to change up how menus are generated to avoid these globals
-static char* vid_res_buffer;
+static newmenu_item* vid_res_buffer;
 
 bool video_resolution_callback(int choice, int nitems, newmenu_item* items)
 {
-	if (choice >= 0)
-		sprintf(vid_res_buffer, 0, resolution_menu_strings[choice]);
+	if (choice >= 0 && choice < resolution_menu_strings.size())
+	{
+		strncpy(vid_res_buffer->text, resolution_menu_strings[choice], 63);
+		vid_res_buffer->text[63] = '\0';
+		vid_res_buffer->redraw = true;
+	}
 
 	return false;
 }
@@ -1193,13 +1200,13 @@ bool video_callback(int choice, int nitems, newmenu_item* item)
 	}
 	if (choice == 0)
 	{
+		vid_res_buffer = &item[1];
 		get_video_resolution(item[1].text);
-		item[1].redraw = true;
 	}
 	else if (choice == 5)
 	{
+		vid_res_buffer = &item[6];
 		get_video_resolution(item[6].text);
-		item[6].redraw = true;
 	}
 
 	else if (choice == 3)

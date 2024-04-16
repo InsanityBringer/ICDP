@@ -12,16 +12,11 @@ as described in copying.txt.
 #include "platform/mono.h"
 
 //DEFINITIONS
-
-//List of all objects found when calling defs_parse_base_file.
-//This list is initialized once when a Neptune engine game starts, and represents the base game data before any mods are loaded.
-std::vector<def_object> base_objects;
-
 //Just sort of shoving the keys down here.. should move them out this file. 
 
 void def_key::delete_data()
 {
-	if (array_count <= 1) //not an array?
+	if (!is_array) //not an array?
 	{
 		if (type == def_field_type::STRING)
 		{
@@ -38,22 +33,22 @@ void def_key::delete_data()
 	{
 		if (type == def_field_type::INTEGER)
 		{
-			int* arr = (int*)data;
+			std::vector<int>* arr = (std::vector<int>*)data;
 			delete[] arr;
 		}
 		else if (type == def_field_type::FLOATING)
 		{
-			double* arr = (double*)data;
+			std::vector<double>* arr = (std::vector<double>*)data;
 			delete[] arr;
 		}
 		else if (type == def_field_type::STRING)
 		{
-			std::string* str = (std::string*)data;
+			std::vector<std::string>* str = (std::vector<std::string>*)data;
 			delete[] str;
 		}
 		else if (type == def_field_type::OBJECT)
 		{
-			def_object* obj = (def_object*)data;
+			std::vector<def_object>* obj = (std::vector<def_object>*)data;
 			delete[] obj;
 		}
 	}
@@ -61,81 +56,9 @@ void def_key::delete_data()
 	data = nullptr;
 }
 
-def_key::def_key(std::string& name, const int value) : name(name), type(def_field_type::INTEGER)
+void def_key::copy_dataptr(const def_key& other)
 {
-	ivalue = value;
-	fvalue = value;
-	array_count = 0;
-	data = nullptr;
-}
-
-def_key::def_key(std::string& name, const double value) : name(name), type(def_field_type::FLOATING)
-{
-	fvalue = value;
-	ivalue = value;
-	array_count = 0;
-	data = nullptr;
-}
-
-def_key::def_key(std::string& name, const std::string_view value) : name(name), type(def_field_type::STRING)
-{
-	fvalue = ivalue = 0;
-	std::string* str = new std::string(value);
-	array_count = 0;
-	//This is playing with fire a little, having non-trivial types in a void* pointer. 
-	//The destructor will have to cast to the right type before calling delete. 
-	data = str; 
-}
-
-def_key::def_key(std::string& name, const def_object& value) : name(name), type(def_field_type::OBJECT)
-{
-	fvalue = ivalue = 0;
-	def_object* obj = new def_object(value);
-	array_count = 0;
-	data = obj;
-}
-
-def_key::def_key(std::string& name, const std::vector<int>& values) : name(name), type(def_field_type::INTEGER)
-{
-	fvalue = ivalue = 0;
-	array_count = values.size();
-	int* arr = new int[array_count];
-	memcpy(arr, values.data(), values.size() * sizeof(int));
-	data = arr;
-}
-
-def_key::def_key(std::string& name, const std::vector<double>& values) : name(name), type(def_field_type::FLOATING)
-{
-	fvalue = ivalue = 0;
-	array_count = values.size();
-	double* arr = new double[array_count];
-	memcpy(arr, values.data(), values.size() * sizeof(double));
-	data = arr;
-}
-
-//String arrays suck a lot. Use sparingly. 
-def_key::def_key(std::string& name, const std::vector<std::string>& values) : name(name), type(def_field_type::STRING)
-{
-	fvalue = ivalue = 0;
-	array_count = values.size();
-	std::string* arr = new std::string[array_count];
-	for (size_t i = 0; i < array_count; i++)
-	{
-		arr[i] = std::string(values[i]);
-	}
-	data = arr;
-}
-
-def_key::def_key(const def_key& other)
-{
-	name = other.name;
-	type = other.type;
-	ivalue = other.ivalue;
-	fvalue = other.fvalue;
-	array_count = other.array_count;
-	data = nullptr;
-
-	if (array_count <= 1) //not an array?
+	if (!is_array) //not an array?
 	{
 		if (type == def_field_type::STRING)
 		{
@@ -154,42 +77,69 @@ def_key::def_key(const def_key& other)
 	{
 		if (type == def_field_type::INTEGER)
 		{
-			int* src = (int*)other.data;
-			int* dest = new int[array_count];
-			for (int i = 0; i < array_count; i++)
-				dest[i] = src[i];
+			std::vector<int>* src = (std::vector<int>*)other.data;
+			std::vector<int>* dest = new std::vector<int>();
+			dest->assign(src->begin(), src->end());
 
 			data = dest;
 		}
 		else if (type == def_field_type::FLOATING)
 		{
-			double* src = (double*)other.data;
-			double* dest = new double[array_count];
-			for (int i = 0; i < array_count; i++)
-				dest[i] = src[i];
+			std::vector<double>* src = (std::vector<double>*)other.data;
+			std::vector<double>* dest = new std::vector<double>();
+			dest->assign(src->begin(), src->end());
 
 			data = dest;
 		}
 		else if (type == def_field_type::STRING)
 		{
-			std::string* src = (std::string*)other.data;
-			std::string* dest = new std::string[array_count];
+			std::vector<std::string>* src = (std::vector<std::string>*)other.data;
+			std::vector<std::string>* dest = new std::vector<std::string>();
+			dest->assign(src->begin(), src->end());
 
-			for (int i = 0; i < array_count; i++)
-				dest[i] = std::string(src[i]);
 			data = dest;
 		}
 		else if (type == def_field_type::OBJECT)
 		{
-			def_object* src = (def_object*)other.data;
-			def_object* dest = new def_object[array_count];
-
-			for (int i = 0; i < array_count; i++)
-				dest[i] = src[i];
+			std::vector<def_object>* src = (std::vector<def_object>*)other.data;
+			std::vector<def_object>* dest = new std::vector<def_object>();
+			dest->assign(src->begin(), src->end());
 
 			data = dest;
 		}
 	}
+}
+
+def_key::def_key(std::string& name, def_field_type type) : name(name), type(type)
+{
+	ivalue = fvalue = 0;
+	array_count = 0;
+	is_array = false;
+	data = nullptr;
+	//Check default values
+	if (type == def_field_type::STRING)
+	{
+		std::string* str = new std::string();
+		data = str;
+	}
+	else if (type == def_field_type::OBJECT)
+	{
+		def_object* obj = new def_object();
+		data = obj;
+	}
+}
+
+def_key::def_key(const def_key& other)
+{
+	name = other.name;
+	type = other.type;
+	ivalue = other.ivalue;
+	fvalue = other.fvalue;
+	array_count = other.array_count;
+	data = nullptr;
+	is_array = other.is_array;
+
+	copy_dataptr(other);
 }
 
 def_key::def_key(def_key&& other) noexcept
@@ -200,23 +150,7 @@ def_key::def_key(def_key&& other) noexcept
 	fvalue = other.fvalue;
 	array_count = other.array_count;
 	data = nullptr;
-
-	if (array_count <= 1) //not an array?
-	{
-		if (type == def_field_type::STRING)
-		{
-			//TODO: Can this be moved?
-			std::string* orig = (std::string*)other.data;
-			std::string* str = new std::string(*orig);
-			data = str;
-		}
-		else if (type == def_field_type::OBJECT)
-		{
-			def_object* orig = (def_object*)other.data;
-			def_object* obj = new def_object(*orig);
-			data = obj;
-		}
-	}
+	is_array = other.is_array;
 
 	other.data = nullptr;
 	other.type = def_field_type::NULLFIELD;
@@ -234,62 +168,9 @@ def_key& def_key::operator=(const def_key& other)
 	fvalue = other.fvalue;
 	array_count = other.array_count;
 	data = nullptr;
+	is_array = other.is_array;
 
-	if (array_count <= 1) //not an array?
-	{
-		if (type == def_field_type::STRING)
-		{
-			std::string* orig = (std::string*)other.data;
-			std::string* str = new std::string(*orig);
-			data = str;
-		}
-		else if (type == def_field_type::OBJECT)
-		{
-			def_object* orig = (def_object*)other.data;
-			def_object* obj = new def_object(*orig);
-			data = obj;
-		}
-	}
-	else
-	{
-		if (type == def_field_type::INTEGER)
-		{
-			int* src = (int*)other.data;
-			int* dest = new int[array_count];
-			for (int i = 0; i < array_count; i++)
-				dest[i] = src[i];
-
-			data = dest;
-		}
-		else if (type == def_field_type::FLOATING)
-		{
-			double* src = (double*)other.data;
-			double* dest = new double[array_count];
-			for (int i = 0; i < array_count; i++)
-				dest[i] = src[i];
-
-			data = dest;
-		}
-		else if (type == def_field_type::STRING)
-		{
-			std::string* src = (std::string*)other.data;
-			std::string* dest = new std::string[array_count];
-
-			for (int i = 0; i < array_count; i++)
-				dest[i] = std::string(src[i]);
-			data = dest;
-		}
-		else if (type == def_field_type::OBJECT)
-		{
-			def_object* src = (def_object*)other.data;
-			def_object* dest = new def_object[array_count];
-
-			for (int i = 0; i < array_count; i++)
-				dest[i] = src[i];
-
-			data = dest;
-		}
-	}
+	copy_dataptr(other);
 
 	return *this;
 }
@@ -321,6 +202,132 @@ static def_field_type get_type(sc_token& token)
 		return def_field_type::STRING;
 
 	return def_field_type::NULLFIELD;
+}
+
+static const std::string typenames[] =
+{
+	"int",
+	"float",
+	"string",
+	"object",
+	"undefined"
+};
+
+static const std::string& get_name_for_type(def_field_type type)
+{
+	return typenames[(int)type];
+}
+
+void def_object::check_property(scanner& sc, def_key& key)
+{
+	//TODO: Hashtable lookup?
+	for (def_property& property : properties)
+	{
+		//Check if the field is named correctly..
+		if (!key.get_name().compare(property.fieldname))
+		{
+			//Check if it's the right type..
+			if (key.get_type() == property.fieldtype)
+			{
+				//Check if it's the right array count...
+				if (key.get_is_array() == property.is_array)
+				{
+					//Successfully validated
+					return;
+				}
+				else
+				{
+					if (property.is_array)
+						sc.raise_error(std::format("Property {} is an array, but the key is not.", property.fieldname));
+					else
+						sc.raise_error(std::format("Property {} is not an array, but the key is an array.", property.fieldname));
+				}
+			}
+			else
+			{
+				sc.raise_error(std::format("Key {} is the wrong type. Expected {}, got {}.", property.fieldname, get_name_for_type(property.fieldtype), get_name_for_type(key.get_type())));
+			}
+		}
+	}
+
+	if (parent)
+		parent->check_property(sc, key);
+	else
+		sc.raise_error(std::format("Unknown property {}", key.get_name()));
+}
+
+def_property* def_object::find_property(std::string& name)
+{
+	for (def_property& property : properties)
+	{
+		if (!name.compare(property.fieldname))
+		{
+			return &property;
+		}
+	}
+	if (parent)
+		return parent->find_property(name);
+	else
+		return nullptr;
+}
+
+def_property* def_object::add_property(std::string& name)
+{
+	def_property property = { name };
+	properties.push_back(property);
+	return &properties.back();
+}
+
+void def_object::create_default_key(def_property& property)
+{
+	if (property.is_array)
+	{
+		switch (property.fieldtype)
+		{
+		case def_field_type::INTEGER:
+		{
+			std::vector<int> hack; hack.resize(property.array_count);
+			keys.emplace_back(property.fieldname, hack);
+			break;
+		}
+		case def_field_type::FLOATING:
+		{
+			std::vector<double> hack; hack.resize(property.array_count);
+			keys.emplace_back(property.fieldname, hack);
+			break;
+		}
+		case def_field_type::STRING:
+		{
+			std::vector<std::string> hack; hack.resize(property.array_count);
+			keys.emplace_back(property.fieldname, hack);
+			break;
+		}
+		case def_field_type::OBJECT:
+			Int3();
+			break;
+		}
+	}
+	else
+	{
+		switch (property.fieldtype)
+		{
+		case def_field_type::INTEGER:
+			keys.emplace_back(property.fieldname, 0);
+			break;
+		case def_field_type::FLOATING:
+			keys.emplace_back(property.fieldname, 0.0);
+			break;
+		case def_field_type::STRING:
+			keys.emplace_back(property.fieldname, "");
+			break;
+		case def_field_type::OBJECT:
+		{
+			def_object temp = def_object();
+			keys.emplace_back(property.fieldname, temp);
+			break;
+		}
+		}
+	}
 }
 
 void definition_list::parse_document(scanner& sc, bool add_to_extra)
@@ -484,13 +491,183 @@ void definition_list::maybe_parse_object(scanner& sc, sc_token& token)
 	parse_object_body(sc, token, newobj);
 }
 
+//Gets a potential type from the token. 
+def_field_type definition_list::type_from_token(sc_token& token)
+{
+	if (token.get_token_type() == token_type::number)
+	{
+		if (token.get_format() == token_format::floating)
+			return def_field_type::FLOATING;
+		return def_field_type::INTEGER;
+	}
+	else if (token.get_token_type() == token_type::string)
+	{
+		//Potentially a constant, check the constant list
+		def_const* constval = find_constant(token.get_chars());
+		if (constval)
+		{
+			if (constval->index() == 1)
+				return def_field_type::FLOATING;
+			else
+				return def_field_type::INTEGER;
+		}
+	}
+	else if (token.get_token_type() == token_type::quoted_string)
+		return def_field_type::STRING;
+	return def_field_type::NULLFIELD;
+}
+
+static bool types_are_compatible(def_field_type left, def_field_type right)
+{
+	if (left == def_field_type::FLOATING && right == def_field_type::INTEGER)
+	{
+		//It's acceptable to assign a integer to a floating point key
+		return true;
+	}
+
+	return left == right;
+}
+
+void definition_list::parse_key_value(scanner& sc, sc_token& token, def_object& obj, def_property* property, std::string& name)
+{
+	sc.must_get_string(token);
+	def_field_type type = def_field_type::NULLFIELD;
+	bool is_array = false;
+	if (token.get_token_type() == token_type::punctuation && token.get_punctuation_type() == punctuation_type::curly_left)
+	{
+		//I just can't this format was an awful idea. 
+		//Imagine an array like {1, 2, 3, 4.5}, the key
+		if (!property) 
+		{
+			sc.raise_error("Array not supported when properties aren't used!");
+			return;
+		}
+		//an array. Determine what type it is
+		//sc.must_get_string(token);
+		//type = type_from_token(token);
+		type = property->fieldtype;
+		//Let the value be reread in the loop
+		sc.unread_token();
+	}
+	else
+	{
+		type = type_from_token(token);
+	}
+
+	if (type == def_field_type::NULLFIELD)
+		sc.raise_error("Can't identify type of value");
+
+	//Do some validation of the type if a property is provided
+	if (property)
+	{
+		//It is valid to assign an integer to a floating point type
+		if (property->fieldtype == def_field_type::FLOATING)
+		{
+			if (!types_are_compatible(property->fieldtype, type))
+				sc.raise_error("Value is of the wrong type!");
+		}
+	}
+
+	sc.must_get_any_punctuation(token, { ";" });
+}
+
+void definition_list::parse_array_value(scanner& sc, sc_token& token, def_object& obj, def_property* property, std::string& name, def_field_type type)
+{
+}
+
+void definition_list::parse_property(scanner& sc, sc_token& token, def_object& obj)
+{
+	if (!need_types)
+	{
+		sc.raise_error("Document is not using property definitions");
+		return;
+	}
+
+	//will have already parsed the "property", so parse type
+	sc.must_get_identifier(token);
+	def_field_type type = get_type(token);
+	if (type == def_field_type::NULLFIELD)
+	{
+		sc.raise_error(std::format("Unknown type {}!", token.get_chars()));
+		return;
+	}
+	else if (type == def_field_type::OBJECT)
+	{
+		sc.raise_error(std::format("Subobjects are not supported yet.", token.get_chars()));
+		return;
+	}
+
+	//Parse name
+	sc.must_get_identifier(token);
+	def_property* property = obj.find_property(token.get_chars());
+	if (property)
+	{
+		sc.raise_error(std::format("Property {} is already defined!", token.get_chars()));
+		return;
+	}
+
+	//Add the property to the object
+	property = obj.add_property(token.get_chars());
+	property->fieldtype = type;
+
+	//Check for default value, array, or an initializer
+	sc.must_get_any_punctuation(token, { "=", ";", "[" });
+	switch (token.get_punctuation_type())
+	{
+	case punctuation_type::semicolon:
+		obj.create_default_key(*property);
+		return;
+	case punctuation_type::equals:
+		parse_key_value(sc, token, obj, property, property->fieldname);
+		return;
+	case punctuation_type::square_left:
+		sc.must_get_integer(token);
+		property->array_count = token.get_integer();
+		if (property->array_count <= 0)
+			sc.raise_error("Invalid array count");
+		sc.must_get_any_punctuation(token, { "]" });
+		property->is_array = true;
+		//TODO: Should be able to initialize array types
+		sc.must_get_any_punctuation(token, { ";" });
+		obj.create_default_key(*property);
+		return;
+	}
+}
+
 void definition_list::parse_object_body(scanner& sc, sc_token& token, def_object& obj)
 {
 	for (;;)
 	{
+		//Read a statement
 		sc.must_get_string(token);
-		if (!token.compare("}")) //end of body?
+		//Check for end of body
+		if (!token.compare("}"))
 			break;
+		//Check for property declaration
+		else if (!token.compare("property"))
+		{
+			parse_property(sc, token, obj);
+		}
+		//Check if it's an identifier. 
+		else if (token.get_token_type() == token_type::string)
+		{
+			std::string name = token.get_chars();
+			def_property* property = nullptr;
+			if (need_types)
+			{
+				property = obj.find_property(name);
+				if (!property)
+				{
+					sc.raise_error(std::format("Unknown property {}!", name));
+				}
+			}
+			sc.must_get_any_punctuation(token, { "=" });
+			parse_key_value(sc, token, obj, property, name);
+		}
+		else
+		{
+			sc.raise_error(std::format("Unexpected {}. Expected \"property\", identifier, or \"}\"", token.get_chars()));
+		}
 	}
 }
 

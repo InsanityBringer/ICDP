@@ -244,6 +244,8 @@ public:
 	void must_get_identifier(sc_token& token);
 	//Gets the next string, errors if it is not a number. The number can be either integer or floating point. 
 	void must_get_number(sc_token& token);
+	//Gets the next string, errors if it is not an integer.
+	void must_get_integer(sc_token& token);
 	//Gets the next string, errors if it is not the specified punctuation
 	void must_get_any_punctuation(sc_token& token, std::initializer_list<const char*> strings);
 	//Gets the next string, errors if it is not a quoted string

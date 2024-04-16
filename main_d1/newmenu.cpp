@@ -406,12 +406,12 @@ void newmenu_open_window(std::unique_ptr<nm_window>&& window)
 	nm_queued_windows.push(std::move(window));
 }
 
-void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
+void newmenu_open(const char* title, const char* subtitle, std::vector<newmenu_item>& items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* items), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
 	newmenu_open_window(std::make_unique<nm_menu>(items, title, subtitle, subfunction, choicefunc, citem, filename, width, height, tiny_mode));
 }
 
-void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_item* items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item), int citem, const char* filename, int width, int height, bool tiny_mode)
+void newmenu_open(const char* title, const char* subtitle, int nitems, newmenu_item* items, void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* items), int citem, const char* filename, int width, int height, bool tiny_mode)
 {
 	std::vector<newmenu_item> itemclone;
 	for (int i = 0; i < nitems; i++)
@@ -640,7 +640,7 @@ void newmenu_open_listbox(const char* title, int nitems, char* items[], bool all
 	newmenu_open_window(std::make_unique<nm_list>(title, itemsclone, allow_abort_flag, default_item, callback));
 }
 
-void newmenu_open_listbox(const char* title, std::vector<char*> items, bool allow_abort_flag, void (*callback)(int choice), int default_item)
+void newmenu_open_listbox(const char* title, std::vector<char*>& items, bool allow_abort_flag, void (*callback)(int choice), int default_item)
 {
 	newmenu_open_window(std::make_unique<nm_list>(title, items, allow_abort_flag, default_item, callback));
 }

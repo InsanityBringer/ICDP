@@ -135,6 +135,13 @@ void scanner::must_get_number(sc_token& token)
 		raise_error(std::format("Expected a number, got {}.", token.get_chars()));
 }
 
+void scanner::must_get_integer(sc_token& token)
+{
+	must_get_string(token);
+	if (token.get_token_type() != token_type::number && token.get_format() != token_format::integer)
+		raise_error(std::format("Expected an integer, got {}.", token.get_chars()));
+}
+
 void scanner::must_get_any_punctuation(sc_token& token, std::initializer_list<const char*> strings)
 {
 	//wait couldn't this accept punctuation type enums instead?

@@ -12,6 +12,7 @@ as described in copying.txt.
 #include <span>
 #include <variant>
 #include <unordered_map>
+#include <utility>
 #include "misc/scanner.h"
 #include "misc/error.h"
 
@@ -36,11 +37,11 @@ struct def_property
 	std::string			fieldname; //Name of the field. Probably case sensitive.
 	def_field_type		fieldtype; //Type of the field.
 	bool				is_array;
+	int					array_count;
 };
 
 //Definition files.
 //Definition files are key/value files that are used by the engine to provide data for various information.
-//The defintion files are flexible and schemas are registered by the game code to describe which definitions are possible.
 /*
 The basic form of a defintion file is as follows:
 
@@ -48,6 +49,7 @@ typename object_name
 {
 	key_1 = 13;
 	key_2 = "quoted string";
+	property int key_3 = 14;
 	array_key = [1, 2, 3, 4, 5];
 	subobject = 
 	{
@@ -57,8 +59,9 @@ typename object_name
 
 typename is the name of a type that is registered. Not all definition lists may need registration. 
 object_name is the name of this object. These are namespaced per object type.
-key_1 is a schema-registered key of type INTEGER.
+key_1 is a property-registered key of type INTEGER.
 key_2 is a key of type STRING
+key_3 is a new property of type int, with a default value of 14
 array_key is a key of type INTEGER, in an array of size 5. 
 subobject is a key of type OBJECT. 
 */
@@ -79,7 +82,21 @@ public:
 	def_object(std::string& name, int type, def_object* parent);
 	//Checks the property, throwing a relevant error if it is not found or in the wrong format. 
 	//Will chain to parent entity if exists.
-	void check_property(def_key& key);
+	void check_property(scanner& sc, def_key& key);
+	//Finds a property, and returns a pointer if it exists. Will check all parent entities
+	//Returns nullptr on failure. 
+	def_property* find_property(std::string& name);
+	//Adds a new property of a given name, and returns a pointer to it. 
+	def_property* add_property(std::string& name);
+	//Creates a default value for a given property
+	void create_default_key(def_property& property);
+
+	//Emplaces a key at the end of the array
+	template<class... Args>
+	void emplace_key(Args&&... args)
+	{
+		keys.emplace_back(std::forward(args));
+	}
 
 	std::string& get_name()
 	{
@@ -110,21 +127,17 @@ class def_key
 	//The following is used for both arrays of any key type and storing single STRINGs and OBJECTs directly.
 	size_t			array_count;	//Number of elements
 	void*			data;			//Flexible data type.
+	bool			is_array;
 
 private:
 	void delete_data();
+	void copy_dataptr(const def_key& other);
 
 public:
-	def_key(std::string& name, const int value); //Creates a new INTEGER key.
-	def_key(std::string& name, const double value); //Creates a new FLOATING key.
-	def_key(std::string& name, const std::string_view value); //Creates a new STRING key.
-	def_key(std::string& name, const def_object& value); //Creates a new OBJECT key.
-	
-	def_key(std::string& name, const std::vector<int>& values); //Creates a new INTEGER array key.
-	def_key(std::string& name, const std::vector<double>& values); //Creates a new FLOATING array key.
-	def_key(std::string& name, const std::vector<std::string>& values); //Creates a new STRING array key.
-	//def_key(std::string& name, const std::vector<def_object>& values); //Creates a new OBJECT array key.
-	//arrays of subobjects aren't supported. Should they be?
+	//Create a non-array key
+	def_key(std::string& name, def_field_type type);
+	//Create an array key initialized to array_count elements.
+	def_key(std::string& name, def_field_type type, int array_count);
 
 	//These are needed due to the special handling of the data field. 
 	def_key(const def_key& other); //copy constructor. 
@@ -134,14 +147,24 @@ public:
 
 	~def_key(); //Destructor for freeing data if used.
 
-	def_field_type get_type()
+	def_field_type get_type() const
 	{
 		return type;
 	}
 
-	std::string& get_name()
+	std::string& get_name() //todo should be const std::string&
 	{
 		return name;
+	}
+
+	int get_array_count() const
+	{
+		return array_count;
+	}
+
+	bool get_is_array() const
+	{
+		return is_array;
 	}
 };
 
@@ -183,7 +206,14 @@ class definition_list
 	void parse_constant(scanner& sc, sc_token& token);
 	void parse_include(scanner& sc, sc_token& token);
 	void maybe_parse_object(scanner& sc, sc_token& token);
+	//Parses a key value, and assigns it to obj. property may be nullptr, but if not, it will check the type of property. 
+	void parse_key_value(scanner& sc, sc_token& token, def_object& obj, def_property* property, std::string& name);
+	void parse_array_value(scanner& sc, sc_token& token, def_object& obj, def_property* property, std::string& name, def_field_type type);
+	void parse_property(scanner& sc, sc_token& token, def_object& obj);
+	void parse_assignment(scanner& sc, sc_token& token);
 	void parse_object_body(scanner& sc, sc_token& token, def_object& obj);
+
+	def_field_type type_from_token(sc_token& token);
 
 	//Finds a constant, returns nullptr on error. 
 	def_const* find_constant(std::string& constname)

@@ -59,6 +59,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "multibot.h"
 #include "main_shared/piggy.h"
 #include "stringtable.h"
+#include "automap.h"
 
 #ifdef EDITOR
 #include "editor\editor.h"
@@ -1221,6 +1222,7 @@ void apply_damage_to_player(object* player, object* killer, fix damage)
 			player->flags |= OF_SHOULD_BE_DEAD;
 		}
 		player->shields = Players[Player_num].shields;		//mirror
+		automap_close(); //drop the automap if up so the player can defend
 	}
 }
 
