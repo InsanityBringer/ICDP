@@ -129,6 +129,10 @@ def_key::def_key(std::string& name, def_field_type type) : name(name), type(type
 	}
 }
 
+def_key::def_key(std::string& name, def_field_type type, int array_count)
+{
+}
+
 def_key::def_key(const def_key& other)
 {
 	name = other.name;
@@ -149,12 +153,11 @@ def_key::def_key(def_key&& other) noexcept
 	ivalue = other.ivalue;
 	fvalue = other.fvalue;
 	array_count = other.array_count;
-	data = nullptr;
+	data = other.data;
 	is_array = other.is_array;
 
 	other.data = nullptr;
 	other.type = def_field_type::NULLFIELD;
-	other.delete_data();
 }
 
 def_key& def_key::operator=(const def_key& other)
@@ -171,6 +174,40 @@ def_key& def_key::operator=(const def_key& other)
 	is_array = other.is_array;
 
 	copy_dataptr(other);
+
+	return *this;
+}
+
+def_key& def_key::operator=(const int& other)
+{
+	if (type != def_field_type::INTEGER && type != def_field_type::FLOATING)
+		Error("def_ley::operator=: Assigned int to non-int or non-float key!");
+
+	if (type == def_field_type::FLOATING)
+		fvalue = other;
+	else
+		ivalue = other;
+
+	return *this;
+}
+
+def_key& def_key::operator=(const double& other)
+{
+	if (type != def_field_type::INTEGER && type != def_field_type::FLOATING)
+		Error("def_ley::operator=: Assigned float to non-float key!");
+
+	fvalue = other;
+
+	return *this;
+}
+
+def_key& def_key::operator=(const std::string& other)
+{
+	if (type != def_field_type::STRING)
+		Error("def_ley::operator=: Assigned string to non-string key!");
+
+	std::string* str = (std::string*)data;
+	*str = other;
 
 	return *this;
 }
@@ -256,7 +293,7 @@ void def_object::check_property(scanner& sc, def_key& key)
 		sc.raise_error(std::format("Unknown property {}", key.get_name()));
 }
 
-def_property* def_object::find_property(std::string& name)
+def_property* def_object::find_property(const std::string& name)
 {
 	for (def_property& property : properties)
 	{
@@ -271,7 +308,7 @@ def_property* def_object::find_property(std::string& name)
 		return nullptr;
 }
 
-def_property* def_object::add_property(std::string& name)
+def_property* def_object::add_property(const std::string& name)
 {
 	def_property property = { name };
 	properties.push_back(property);
@@ -285,21 +322,10 @@ void def_object::create_default_key(def_property& property)
 		switch (property.fieldtype)
 		{
 		case def_field_type::INTEGER:
-		{
-			std::vector<int> hack; hack.resize(property.array_count);
-			keys.emplace_back(property.fieldname, hack);
-			break;
-		}
 		case def_field_type::FLOATING:
-		{
-			std::vector<double> hack; hack.resize(property.array_count);
-			keys.emplace_back(property.fieldname, hack);
-			break;
-		}
 		case def_field_type::STRING:
 		{
-			std::vector<std::string> hack; hack.resize(property.array_count);
-			keys.emplace_back(property.fieldname, hack);
+			keys.emplace_back(property.fieldname, property.fieldtype, property.array_count);
 			break;
 		}
 		case def_field_type::OBJECT:
@@ -312,20 +338,13 @@ void def_object::create_default_key(def_property& property)
 		switch (property.fieldtype)
 		{
 		case def_field_type::INTEGER:
-			keys.emplace_back(property.fieldname, 0);
-			break;
 		case def_field_type::FLOATING:
-			keys.emplace_back(property.fieldname, 0.0);
-			break;
 		case def_field_type::STRING:
-			keys.emplace_back(property.fieldname, "");
+			keys.emplace_back(property.fieldname, property.fieldtype);
 			break;
 		case def_field_type::OBJECT:
-		{
-			def_object temp = def_object();
-			keys.emplace_back(property.fieldname, temp);
+			Int3();
 			break;
-		}
 		}
 	}
 }
@@ -533,13 +552,13 @@ void definition_list::parse_key_value(scanner& sc, sc_token& token, def_object& 
 	sc.must_get_string(token);
 	def_field_type type = def_field_type::NULLFIELD;
 	bool is_array = false;
-	if (token.get_token_type() == token_type::punctuation && token.get_punctuation_type() == punctuation_type::curly_left)
+	if (token.get_token_type() == token_type::punctuation && token.get_punctuation_type() == punctuation_type::square_left)
 	{
-		//I just can't this format was an awful idea. 
-		//Imagine an array like {1, 2, 3, 4.5}, the key
-		if (!property) 
+		sc.raise_error("Arrays: TODO");
+		//To resolve this issue, I need to either make arrays support multiple types or have a type specified before arrays
+		/*if (!property) 
 		{
-			sc.raise_error("Array not supported when properties aren't used!");
+			sc.raise_error("Arrays are not supported yet when properties aren't used.");
 			return;
 		}
 		//an array. Determine what type it is
@@ -547,7 +566,7 @@ void definition_list::parse_key_value(scanner& sc, sc_token& token, def_object& 
 		//type = type_from_token(token);
 		type = property->fieldtype;
 		//Let the value be reread in the loop
-		sc.unread_token();
+		sc.unread_token();*/
 	}
 	else
 	{
@@ -557,18 +576,32 @@ void definition_list::parse_key_value(scanner& sc, sc_token& token, def_object& 
 	if (type == def_field_type::NULLFIELD)
 		sc.raise_error("Can't identify type of value");
 
-	//Do some validation of the type if a property is provided
-	if (property)
+	if (!is_array)
 	{
-		//It is valid to assign an integer to a floating point type
-		if (property->fieldtype == def_field_type::FLOATING)
+		//Do some validation of the type if a property is provided
+		if (property)
 		{
 			if (!types_are_compatible(property->fieldtype, type))
 				sc.raise_error("Value is of the wrong type!");
 		}
-	}
 
-	sc.must_get_any_punctuation(token, { ";" });
+		//Add a new property
+		def_key& newkey = obj.emplace_key(name, type);
+		switch (type)
+		{
+		case def_field_type::INTEGER:
+			newkey = token.get_integer();
+			break;
+		case def_field_type::FLOATING:
+			newkey = token.get_double();
+			break;
+		case def_field_type::STRING:
+			newkey = token.get_chars();
+			break;
+		}
+
+		sc.must_get_any_punctuation(token, { ";" });
+	}
 }
 
 void definition_list::parse_array_value(scanner& sc, sc_token& token, def_object& obj, def_property* property, std::string& name, def_field_type type)
@@ -666,7 +699,9 @@ void definition_list::parse_object_body(scanner& sc, sc_token& token, def_object
 		}
 		else
 		{
-			sc.raise_error(std::format("Unexpected {}. Expected \"property\", identifier, or \"}\"", token.get_chars()));
+
+			std::string str = std::format("Unexpected {}. Expected \"property\", identifier, or \"}}\"", token.get_chars());
+			sc.raise_error(str);
 		}
 	}
 }

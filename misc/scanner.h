@@ -119,7 +119,7 @@ public:
 		return dval;
 	}
 
-	std::string& get_chars()
+	const std::string& get_chars() const
 	{
 		return chars;
 	}

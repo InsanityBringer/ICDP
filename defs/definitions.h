@@ -85,17 +85,18 @@ public:
 	void check_property(scanner& sc, def_key& key);
 	//Finds a property, and returns a pointer if it exists. Will check all parent entities
 	//Returns nullptr on failure. 
-	def_property* find_property(std::string& name);
+	def_property* find_property(const std::string& name);
 	//Adds a new property of a given name, and returns a pointer to it. 
-	def_property* add_property(std::string& name);
+	def_property* add_property(const std::string& name);
 	//Creates a default value for a given property
 	void create_default_key(def_property& property);
 
 	//Emplaces a key at the end of the array
 	template<class... Args>
-	void emplace_key(Args&&... args)
+	def_key& emplace_key(Args&&... args)
 	{
-		keys.emplace_back(std::forward(args));
+		keys.emplace_back(args...);
+		return keys.back();
 	}
 
 	std::string& get_name()
@@ -144,6 +145,9 @@ public:
 	def_key(def_key&& other) noexcept; //move constructor.
 
 	def_key& operator=(const def_key& other);
+	def_key& operator=(const int& other);
+	def_key& operator=(const double& other);
+	def_key& operator=(const std::string& other);
 
 	~def_key(); //Destructor for freeing data if used.
 
@@ -216,7 +220,7 @@ class definition_list
 	def_field_type type_from_token(sc_token& token);
 
 	//Finds a constant, returns nullptr on error. 
-	def_const* find_constant(std::string& constname)
+	def_const* find_constant(const std::string& constname)
 	{
 		//Check core constants
 		auto it = constants.find(constname);
