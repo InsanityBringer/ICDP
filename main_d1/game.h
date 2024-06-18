@@ -198,6 +198,9 @@ void clear_boxed_message();
 //turns off rear view & rear view cockpit
 void reset_rear_view(void);
 
+//Returns true if the mouse should be captured while fmode is FMODE_GAME, false if not.
+bool game_should_capture_mouse(void);
+
 #define VR_NONE			0	//viewing the game screen
 #define VR_AREA_DET		1	//viewing with the stereo area determined method
 #define VR_INTERLACED	2	//viewing with the stereo interlaced method

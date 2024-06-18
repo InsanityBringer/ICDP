@@ -757,8 +757,6 @@ int set_screen_mode(int sm)
 
 		break;
 	case SCREEN_GAME:
-		plat_set_mouse_relative_mode(1);
-
 		if (max_window_h == 0) 
 		{
 			max_window_h = VR_render_height - GameBitmaps[cockpit_bitmap[CM_STATUS_BAR].index].bm_h;
@@ -1845,6 +1843,14 @@ void reset_rear_view(void)
 		select_cockpit(old_cockpit_mode);
 }
 
+bool game_should_capture_mouse(void)
+{
+	if (Game_sub_mode != SUB_GAME || Game_paused)
+		return false;
+
+	return true;
+}
+
 int Automap_flag;
 int Config_menu_flag;
 
@@ -2771,10 +2777,6 @@ extern	int	Do_appearance_effect;
 
 void GameLoop(bool RenderFlag, bool ReadControlsFlag)
 {
-	//[ISB] Put the game in relative mouse mode, except if ReadControls isn't set
-	//as this prevents releasing mouse capture in the menus in multiplayer.
-	plat_set_mouse_relative_mode(ReadControlsFlag);
-
 #ifndef RELEASE
 	if (FindArg("-invulnerability"))
 		Players[Player_num].flags |= PLAYER_FLAGS_INVULNERABLE;

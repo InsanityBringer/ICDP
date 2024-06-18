@@ -211,6 +211,17 @@ void inferno_fade_frame()
 	}
 }
 
+bool inferno_should_capture_mouse()
+{
+	if (!newmenu_empty())
+		return false; //Never capture when windows are open. This logic may need tweaking.
+
+	if (Function_mode != FMODE_GAME)
+		return false; //Only capture in game mode. I don't think there should be any need to capture outside of it.
+
+	return game_should_capture_mouse(); //Ask the game code if it needs to capture. 
+}
+
 #include "misc/scanner.h"
 
 //[ISB] Okay, the trouble is that SDL redefines main. I don't want to include SDL here. Solution is to rip off doom
@@ -486,9 +497,18 @@ int D_DescentMain(int argc, const char** argv)
 
 	set_events_enabled(true);
 
+	bool mouse_capture_state = false;
 	while (Function_mode != FMODE_EXIT)
 	{
 		timer_mark_start();
+
+		bool new_mouse_capture_state = inferno_should_capture_mouse();
+		if (new_mouse_capture_state != mouse_capture_state)
+		{
+			plat_set_mouse_relative_mode(new_mouse_capture_state);
+			mouse_capture_state = new_mouse_capture_state;
+		}
+
 		plat_clear_screen();
 		plat_do_events();
 
