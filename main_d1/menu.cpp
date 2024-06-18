@@ -872,15 +872,15 @@ bool gameplay_options_callback(int choice, int nitems, newmenu_item* item)
 		return false;
 	case 1:
 		Primary_autoselect_mode = (Primary_autoselect_mode + 1) % AS_NUM_MODES;
-		item[choice].text = (char*)Autoselect_mode_names[Primary_autoselect_mode]; item[choice].redraw = true;
+		item[choice + 1].text = (char*)Autoselect_mode_names[Primary_autoselect_mode]; item[choice + 1].redraw = true;
 		break;
 	case 3:
 		Secondary_autoselect_mode = (Secondary_autoselect_mode + 1) % AS_NUM_MODES;
-		item[choice].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode]; item[choice].redraw = true;
+		item[choice + 1].text = (char*)Autoselect_mode_names[Secondary_autoselect_mode]; item[choice + 1].redraw = true;
 		break;
 	case 5:
 		Player_message_level = (Player_message_level + 1) % MSG_NUM_MODES;
-		item[choice].text = (char*)Message_level_names[Player_message_level]; item[choice].redraw = true;
+		item[choice + 1].text = (char*)Message_level_names[Player_message_level]; item[choice + 1].redraw = true;
 		break;
 	}
 
