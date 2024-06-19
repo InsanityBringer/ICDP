@@ -226,7 +226,7 @@ int read_player_file()
 	Assert(Player_num >= 0 && Player_num < MAX_PLAYERS);
 
 	//sprintf(filename, "%8s.plr", Players[Player_num].callsign);
-	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
+	snprintf(filename, FILENAME_MAX + 1, "%s.nplt", Players[Player_num].callsign);
 	get_full_file_path(filename_full_path, filename, CHOCOLATE_PILOT_DIR);
 	FILE* file = fopen(filename_full_path, "rb");
 	//snprintf(filename, CHOCOLATE_MAX_FILE_PATH_SIZE, "%s.nplt", Players[Player_num].callsign);
@@ -377,9 +377,9 @@ int write_player_file()
 	int errno_ret = WriteConfigFile();
 
 	char filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	char filename[_MAX_PATH];
+	char filename[CHOCOLATE_MAX_FILE_PATH_SIZE];
 
-	snprintf(filename, FILENAME_LEN, "%s.nplt", Players[Player_num].callsign);
+	snprintf(filename, FILENAME_LEN + 1, "%s.nplt", Players[Player_num].callsign);
 	get_full_file_path(filename_full_path, filename, CHOCOLATE_PILOT_DIR);
 	FILE* file = fopen(filename_full_path, "wb");
 	//sprintf(filename, "%s.nplt", Players[Player_num].callsign);
