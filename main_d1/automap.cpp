@@ -358,7 +358,7 @@ void do_automap()
 {
 	char filename[] = "MAP.PCX";
 
-	Automap_pause_game = false; // Set to 1 if everything is paused during automap...No pause during net.
+	Automap_pause_game = true; // Set to 1 if everything is paused during automap...No pause during net.
 	if ((Game_mode & GM_MULTI) && (Function_mode == FMODE_GAME) && (!Endlevel_sequence))
 		Automap_pause_game = false;
 

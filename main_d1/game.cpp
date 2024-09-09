@@ -1845,7 +1845,7 @@ void reset_rear_view(void)
 
 bool game_should_capture_mouse(void)
 {
-	if (Game_sub_mode != SUB_GAME || Game_paused)
+	if (Game_sub_mode != SUB_GAME || (Game_paused && !automap_active()))
 		return false;
 
 	return true;
@@ -2008,13 +2008,6 @@ void game_frame()
 						if (Automap_flag)
 						{
 							do_automap();
-							
-							/*int save_w = Game_window_w, save_h = Game_window_h;
-							do_automap(0);
-							Screen_mode = -1; set_screen_mode(SCREEN_GAME);
-							Game_window_w = save_w; Game_window_h = save_h;
-							init_cockpit();
-							last_drawn_cockpit = -1;*/
 						}
 					}
 				}
