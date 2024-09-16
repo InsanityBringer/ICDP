@@ -1109,7 +1109,7 @@ void kconfig(KConfigMode control_mode, const char* title)
 
 		if (!joyinfo)
 		{
-			nm_messagebox(TXT_ERROR, 1, TXT_OK, "Unable to find selected joystick.\nIt may have been disconnected");
+			nm_open_messagebox(TXT_ERROR, nullptr, 1, TXT_OK, "Unable to find selected joystick.\nIt may have been disconnected");
 			return;
 		}
 

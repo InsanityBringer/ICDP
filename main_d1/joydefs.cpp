@@ -59,6 +59,20 @@ void joydef_menuset_1(int nitems, newmenu_item* items, int* last_key, int citem)
 
 }
 
+void joydefs_select_stick_callback(int choice)
+{
+	if (choice != -1)
+	{
+		std::vector<joy_info> attached_joysticks;
+		joy_get_attached_joysticks(attached_joysticks);
+
+		//TODO: kconfig is still using a separate loop.
+		//should be integrated with the menuing system. 
+		Kconfig_joy_binding_handle = attached_joysticks[choice].handle;
+		kconfig(KConfigMode::Joystick, (const char*)attached_joysticks[choice].name.c_str());
+	}
+}
+
 bool joydefs_callback(int choice, int nitems, newmenu_item* items)
 {
 	if (choice == -1)
@@ -80,7 +94,7 @@ bool joydefs_callback(int choice, int nitems, newmenu_item* items)
 		break;
 	case 5:
 	{
-		std::vector<joy_info> attached_joysticks;
+		static std::vector<joy_info> attached_joysticks; //TODO: Menus need to own strings
 		joy_get_attached_joysticks(attached_joysticks);
 
 		if (attached_joysticks.size() == 0)
@@ -89,21 +103,11 @@ bool joydefs_callback(int choice, int nitems, newmenu_item* items)
 		}
 		else
 		{
-			char** nameptrs = new char* [attached_joysticks.size()];
-
+			std::vector<char*> nameptrs;
 			for (int i = 0; i < attached_joysticks.size(); i++)
-				nameptrs[i] = (char*)attached_joysticks[i].name.c_str();
+				nameptrs.push_back((char*)attached_joysticks[i].name.c_str());
 
-			int sticknum = newmenu_listbox("Select a joystick to bind", attached_joysticks.size(),
-				nameptrs, true, nullptr);
-
-			if (sticknum != -1)
-			{
-				Kconfig_joy_binding_handle = attached_joysticks[sticknum].handle;
-				kconfig(KConfigMode::Joystick, (const char*)nameptrs[sticknum]);
-			}
-
-			delete[] nameptrs;
+			newmenu_open_listbox("Select a joystick to bind", nameptrs, true, joydefs_select_stick_callback);
 		}
 	}
 	}
