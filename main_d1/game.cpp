@@ -2106,7 +2106,7 @@ void game_end()
 #endif
 
 	if (Newdemo_state == ND_STATE_PLAYBACK)
-		newdemo_stop_playback();
+		newdemo_stop_playback(true);
 
 	clear_warn_func(game_show_warning);     //don't use this func anymore
 

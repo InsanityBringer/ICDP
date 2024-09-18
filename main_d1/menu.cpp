@@ -230,6 +230,26 @@ int DoMenu()
 extern void show_order_form(void);	// John didn't want this in inferno.h so I just externed it.
 void do_ip_address_menu();
 
+static void select_demo(std::string& str, int num)
+{
+	newdemo_start_playback(str.c_str());
+}
+
+static bool do_load_level(int choice, int nitems, newmenu_item* items)
+{
+	if (choice != -1)
+	{
+		int new_level_num = atoi(items[0].text);
+
+		if (new_level_num != 0 && new_level_num >= Last_secret_level && new_level_num <= Last_level)
+		{
+			inferno_request_fade_out();
+			StartNewGame(new_level_num);
+		}
+	}
+	return false;
+}
+
 //returns flag, true means quit menu
 void do_option(int select)
 {
@@ -246,10 +266,11 @@ void do_option(int select)
 		char localized_demo_query[CHOCOLATE_MAX_FILE_PATH_SIZE];
 		//get_platform_localized_query_string(localized_demo_query, CHOCOLATE_DEMOS_DIR, "*.dem");
 		get_game_full_file_path(localized_demo_query, "*.dem", CHOCOLATE_DEMOS_DIR);
-		if (newmenu_get_filename(TXT_SELECT_DEMO, localized_demo_query, demo_file, 1))
+		newmenu_open_filepicker(TXT_SELECT_DEMO, localized_demo_query, true, &select_demo);
+		/*if (newmenu_get_filename(TXT_SELECT_DEMO, localized_demo_query, demo_file, 1))
 		{
 			newdemo_start_playback(demo_file);
-		}
+		}*/
 	}
 	break;
 	case MENU_LOAD_GAME:
@@ -306,20 +327,13 @@ void do_option(int select)
 	case MENU_LOAD_LEVEL: 
 	{
 		newmenu_item m;
-		char text[11] = ""; //[ISB] null terminators are your friend
-		int new_level_num;
+		static char text[11] = ""; //TODO: newmenu string ownership
+		memset(text, 0, sizeof(text));
 
 		m.type = NM_TYPE_INPUT; m.text_len = 10; m.text = text;
 
-		newmenu_do(NULL, "Enter level to load", 1, &m, NULL);
-
-		new_level_num = atoi(m.text);
-
-		if (new_level_num != 0 && new_level_num >= Last_secret_level && new_level_num <= Last_level) 
-		{
-			gr_palette_fade_out(gr_palette, 32, 0);
-			StartNewGame(new_level_num);
-		}
+		//newmenu_do(NULL, "Enter level to load", 1, &m, NULL);
+		newmenu_open(nullptr, "Enter level to load", 1, &m, nullptr, &do_load_level);
 
 		break;
 	}

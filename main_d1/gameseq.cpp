@@ -120,8 +120,8 @@ extern int Last_level_path_created;
 
 void HUD_clear_messages(); // From hud.c
 
-int Game_sub_mode;
-int Pending_sub_mode;
+int Game_sub_mode = SUB_INDETERMINATE;
+int Pending_sub_mode = SUB_INDETERMINATE;
 
 //Level the game wants to load when briefings or intermissions are done. 
 int Pending_level; 

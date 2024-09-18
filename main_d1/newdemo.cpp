@@ -3182,6 +3182,7 @@ void newdemo_start_playback(const char* filename)
 	}
 
 	Game_mode = GM_NORMAL;
+	Pending_sub_mode = SUB_GAME;
 	Newdemo_state = ND_STATE_PLAYBACK;
 	Newdemo_vcr_state = ND_STATE_PLAYBACK;
 	Newdemo_old_cockpit = Cockpit_mode;
@@ -3196,7 +3197,7 @@ void newdemo_start_playback(const char* filename)
 	newdemo_playback_one_frame();		// get all of the objects to renderb game
 }
 
-void newdemo_stop_playback()
+void newdemo_stop_playback(bool external)
 {
 	fclose(infile);
 	Newdemo_state = ND_STATE_NORMAL;
@@ -3207,7 +3208,9 @@ void newdemo_stop_playback()
 	Cockpit_mode = Newdemo_old_cockpit;
 	Game_mode = GM_GAME_OVER;
 	Function_mode = FMODE_MENU;
-	longjmp(LeaveGame, 0);			// Exit game loop
+
+	if (!external) //[ISB] Called outside the game loop? (from game_end mostly)
+		longjmp(LeaveGame, 0);			// Exit game loop
 }
 
 

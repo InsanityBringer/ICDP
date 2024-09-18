@@ -97,7 +97,7 @@ extern void newdemo_goto_beginning();
 
 // Interactive functions to control playback/record;
 extern void newdemo_start_playback(const char* filename);
-extern void newdemo_stop_playback();
+extern void newdemo_stop_playback(bool external = false);
 extern void newdemo_start_recording();
 extern void newdemo_stop_recording();
 
