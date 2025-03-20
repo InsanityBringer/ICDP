@@ -312,9 +312,23 @@ constexpr void c_tmap_scanline_plt_loop(uint8_t*& dest, uint8_t* pixptr, float& 
 	u += du; v += dv; l += dl; \
 }*/
 
+//This LCG isn't ideal, but atm I want this to always be inlined if at all possible. 
+//It also needs to be thread local, for the multithreaded renderer
+thread_local int g_light_rand_seed = 1;
+#define C_TMAP_RND						(g_light_rand_seed = g_light_rand_seed * 1103515245 + 12345, (g_light_rand_seed >> 16) & 0xFF)
+
+#if 1
 #define C_TMAP_SCANLINE_PLN_LOOP        *dest = gr_fade_table[((int)l & 0xff00) + (uint32_t)pixptr[(((int)InlineFloor(vt) & 63) * 64) + ((int)InlineFloor(ut) & 63)]]; \
 										dest++; \
 										ut += ui; vt += vi; l += dldx;
+#else
+#define C_TMAP_SCANLINE_PLN_LOOP        samplel = (int)l;\
+										if ((samplel & 0xFF) >= C_TMAP_RND && (samplel & 0xFF00) < ((NUM_LIGHTING_LEVELS - 1) << 8))\
+											samplel += 256;\
+										*dest = gr_fade_table[(samplel & 0xff00) + (uint32_t)pixptr[(((int)InlineFloor(vt) & 63) * 64) + ((int)InlineFloor(ut) & 63)]]; \
+										dest++; \
+										ut += ui; vt += vi; l += dldx;
+#endif
 
 #define C_TMAP_SCANLINE_PLT_LOOP 		c = pixptr[(((int)InlineFloor(vt) & 63) << 6) + ((int)InlineFloor(ut) & 63)]; \
 										if (c != 255) \
@@ -340,6 +354,7 @@ void Texmap::DrawScanlinePerspectivePer16()
 	float dzdx = fx_dz_dx;
 
 	float l = fx_l * 256;
+	int samplel;
 	float dldx = fx_dl_dx * 256;
 	dest = write_buffer + y_pointers[fx_y] + fx_xleft;
 	if (dldx < 0)
