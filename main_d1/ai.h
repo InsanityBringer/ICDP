@@ -13,6 +13,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
+#include <string>
 #include "object.h"
 #include "fix/fix.h"
 #include "vecmat/vecmat.h"
@@ -98,3 +99,7 @@ extern bool ai_noawareness;
 extern void do_lunacy_on();
 extern void do_lunacy_off();
 extern bool Lunacy;
+
+void ai_get_debug_str(object* objp, std::string& str);
+
+void ai_obj_add_3d_vis(object* objp);

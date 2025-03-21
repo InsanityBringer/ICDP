@@ -44,6 +44,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "newmenu.h"
 #include "mem/mem.h"
 #include "main_shared/piggy.h"
+#include "gamefont.h"
 
 #define	INITIAL_LOCAL_LIGHT	(F1_0/4)		// local light value in segment of occurence (of light emission)
 
@@ -1239,7 +1240,33 @@ void render_frame(fix eye_offset)
 	if (Use_player_head_angles)
 		draw_3d_reticle(eye_offset);
 
+	//Add 3d debug overlays
+	if (Debug_objnum >= 0 && Debug_objnum <= Highest_object_index)
+	{
+		object* obj = &Objects[Debug_objnum];
+		obj_add_3d_vis(obj);
+	}
+
 	g3_end_frame();
+
+	//Add 2d debug overlays
+	if (Debug_objnum >= 0 && Debug_objnum <= Highest_object_index)
+	{
+		//Can only do this after g3_end_frame due to trheading
+		gr_set_fontcolor(gr_find_closest_color(0, 63, 0), -1);
+		gr_set_curfont(Gamefonts[GFONT_SMALL]);
+		std::string str;
+		object* obj = &Objects[Debug_objnum];
+		g3s_point pt = {};
+		g3_rotate_point(&pt, &obj->pos);
+		g3_project_point(&pt);
+		if (pt.p3_codes == 0)
+		{
+			str.clear();
+			obj_get_debug_str(obj, str);
+			gr_string(pt.p3_sx >> 16, pt.p3_sy >> 16, str.c_str());
+		}
+	}
 
 	FrameCount++;		//we have rendered a frame
 }

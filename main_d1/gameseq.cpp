@@ -1170,6 +1170,8 @@ void StartNewLevelSub(int level_num, int page_in_textures)
 		newdemo_record_start_frame(FrameCount, FrameTime);
 	}
 
+	Debug_objnum = -1;
+
 	if (Game_mode & GM_MULTI)
 		Function_mode = FMODE_MENU; // Cheap fix to prevent problems with errror dialogs in loadlevel.
 

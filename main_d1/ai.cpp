@@ -14,6 +14,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
+#include <string>
+#include <format>
 #include "inferno.h"
 #include "game.h"
 #include "platform/mono.h"
@@ -3632,3 +3634,53 @@ int ai_restore_state(FILE* fp)
 // -- 	mprintf((0, "[pl: %i cur: st: %i]\n", ConsoleObject->segnum, objp->segnum, aip->hide_segment));
 
 // -- }
+
+const char* submode_text[] =
+{
+	"unknown",
+	"GOHIDE",
+	"HIDING"
+};
+
+void ai_get_debug_str(object* objp, std::string& str)
+{
+	int objnum = objp - Objects;
+	ai_local& local = Ai_local_info[objnum];
+	std::string ai_info = std::format("Behavior: {}\nMode: {}\nSubmode: {}\nCur state: {}\nGoal state: {}\nPrev vis: {}\nHide seg: {}\nGoal seg: {}\nAwareness: {}",
+		behavior_text[objp->ctype.ai_info.behavior - MIN_BEHAVIOR],
+		mode_text[local.mode],
+		submode_text[objp->ctype.ai_info.SUBMODE + 1],
+		state_text[objp->ctype.ai_info.CURRENT_STATE],
+		state_text[objp->ctype.ai_info.GOAL_STATE],
+		local.previous_visibility,
+		objp->ctype.ai_info.hide_segment,
+		local.goal_segment,
+		local.player_awareness_type);
+
+	str += ai_info;
+}
+
+#include "3d/3d.h"
+
+void ai_obj_add_3d_vis(object* objp)
+{
+	int objnum = objp - Objects;
+	ai_local& local = Ai_local_info[objnum];
+
+	gr_setcolor(0x40); //white
+
+	//if (local.mode == AIM_FOLLOW_PATH || local.mode == AIM_FOLLOW_PATH_2)
+	{
+		if (objp->ctype.ai_info.hide_index != -1)
+		{
+			g3s_point p1 = {}, p2 = {};
+			for (int i = objp->ctype.ai_info.hide_index; i < objp->ctype.ai_info.hide_index + objp->ctype.ai_info.path_length - 1; i++)
+			{
+				int c1 = g3_rotate_point(&p1, &Point_segs[i].point);
+				int c2 = g3_rotate_point(&p2, &Point_segs[i + 1].point);
+
+				g3_draw_line(&p1, &p2);
+			}
+		}
+	}
+}

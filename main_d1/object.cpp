@@ -12,6 +12,8 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 */
 
 #include <string.h>
+#include <string>
+#include <format>
 #include <stdio.h>
 #include <algorithm>
 #include "misc/rand.h"
@@ -97,6 +99,8 @@ int print_object_info = 0;
 //	List of objects rendered last frame in order.  Created at render time, used by homing missiles in laser.c
 short Ordered_rendered_object_list[MAX_RENDERED_OBJECTS];
 int	Num_rendered_objects = 0;
+
+int Debug_objnum = -1;
 
 #ifndef NDEBUG
 char	Object_type_names[MAX_OBJECT_TYPES][9] = 
@@ -2114,4 +2118,30 @@ void write_obj_instance(object* obj, FILE* f)
 	}
 	//fseek(f, bytesLeft, SEEK_CUR);
 	fwrite(&hack[0], 1, bytesLeft, f);
+}
+
+void obj_get_debug_str(object* objp, std::string& str)
+{
+	int objnum = objp - Objects;
+	std::string objstring = std::format("Object #{}\nIn segment #{}\n", objnum, objp->segnum);
+	str += objstring;
+
+	switch (objp->control_type)
+	{
+	case CT_AI:
+	case CT_MORPH:
+		ai_get_debug_str(objp, str);
+		break;
+	}
+}
+
+void obj_add_3d_vis(object* objp)
+{
+	switch (objp->control_type)
+	{
+	case CT_AI:
+	case CT_MORPH:
+		ai_obj_add_3d_vis(objp);
+		break;
+	}
 }

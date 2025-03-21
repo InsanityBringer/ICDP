@@ -13,6 +13,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #pragma once
 
+#include <string>
 #include "misc/types.h"
 #include "vecmat/vecmat.h"
 #include "segment.h"
@@ -268,6 +269,9 @@ extern int Player_exploded;
 extern int Death_sequence_aborted;
 extern int Player_fired_laser_this_frame;
 
+//Object currently showing visualizations
+extern int Debug_objnum;
+
 /*
  *		FUNCTIONS
  */
@@ -402,3 +406,9 @@ void object_update_cloak_pulse();
 //Reads an object from disk. This code is my absolute nightmare. Thanks, unions.
 void read_obj_instance(object* obj, FILE* f);
 void write_obj_instance(object* obj, FILE* f);
+
+//Creates a string including information about this object
+void obj_get_debug_str(object* objp, std::string& str);
+
+//Adds 3D visualizations to the scene
+void obj_add_3d_vis(object* objp);

@@ -2680,9 +2680,12 @@ void ReadControls()
 				Lighting_on = 0;
 			g3_global_inst.set_lighting_mode(Lighting_on);
 		}
+		break;
 		case KEY_DEBUGGED + KEY_SHIFTED + KEY_L:
-			Beam_brightness = 0x38000 - Beam_brightness; break;
-		case KEY_PAD5: slew_stop(); break;
+			Beam_brightness = 0x38000 - Beam_brightness; 
+			break;
+		case KEY_PAD5: slew_stop(); 
+			break;
 
 		case KEY_DEBUGGED + KEY_F11: play_test_sound(); break;
 		case KEY_DEBUGGED + KEY_SHIFTED + KEY_F11: advance_sound(); play_test_sound(); break;
@@ -2751,6 +2754,37 @@ void ReadControls()
 			ai_notarget = !ai_notarget;
 			break;
 
+		case KEY_DEBUGGED + KEY_D:
+		{
+			fvi_query query = {};
+			vms_vector facing = ConsoleObject->orient.fvec;
+			vms_vector target = {};
+			vm_vec_scale_add(&target, &ConsoleObject->pos, &facing, f1_0 * 100);
+			query.p0 = &ConsoleObject->pos;
+			query.startseg = ConsoleObject->segnum;
+			query.p1 = &target;
+			query.flags = FQ_CHECK_OBJS;
+			query.thisobjnum = ConsoleObject - Objects;
+
+			fvi_info info;
+			int fate = find_vector_intersection(&query, &info);
+			if (fate == HIT_OBJECT)
+			{
+				mprintf((0, "Setting object %d to debug object\n", info.hit_object));
+				if (Debug_objnum == info.hit_object)
+					Debug_objnum = -1;
+				else
+					Debug_objnum = info.hit_object;
+			}
+			else
+				Debug_objnum = -1;
+		}
+		break;
+
+		case KEY_DEBUGGED + KEY_V:
+			Overall_agitation = 100;
+			break;
+
 #endif		//#ifndef RELEASE
 
 		default:        break;
@@ -2791,6 +2825,13 @@ void GameLoop(bool RenderFlag, bool ReadControlsFlag)
 	if (Game_mode & GM_MULTI)
 		multi_do_frame();
 #endif
+
+	//Garden debug object
+	if (Debug_objnum >= 0 && Debug_objnum <= Highest_object_index)
+	{
+		if (Objects[Debug_objnum].flags & OF_SHOULD_BE_DEAD)
+			Debug_objnum = -1;
+	}
 
 	if (RenderFlag)
 	{

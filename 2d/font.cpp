@@ -436,7 +436,7 @@ int gr_string(int x, int y, const char* s)
 	if (clipped & 2) 
 	{
 		// Completely clipped...
-		mprintf((1, "Text '%s' at (%d,%d) is off screen!\n", s, x, y));
+		//mprintf((1, "Text '%s' at (%d,%d) is off screen!\n", s, x, y));
 		return 0;
 	}
 
