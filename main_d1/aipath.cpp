@@ -510,6 +510,8 @@ void create_path_to_player(object* objp, int max_length, int safety_flag)
 		aip->PATH_DIR = 1;		//	Initialize to moving forward.
 		aip->SUBMODE = AISM_GOHIDE;		//	This forces immediate movement.
 		ailp->mode = AIM_FOLLOW_PATH;
+		if (Debug_objnum == (objp - Objects))
+			mprintf((0, "create_path_to_player: mode to AIM_FOLLOW_PATH, because I made a path to player\n"));
 		ailp->player_awareness_type = 0;		//	If robot too aware of player, will set mode to chase
 		// mprintf((0, "Created %i segment path to player.\n", aip->path_length));
 	}
@@ -562,6 +564,8 @@ void create_path_to_station(object* objp, int max_length)
 		aip->PATH_DIR = 1;		//	Initialize to moving forward.
 		// aip->SUBMODE = AISM_GOHIDE;		//	This forces immediate movement.
 		ailp->mode = AIM_FOLLOW_PATH;
+		if (Debug_objnum == (objp - Objects))
+			mprintf((0, "create_path_to_station: mode to AIM_FOLLOW_PATH, because I made a path to station\n"));
 		ailp->player_awareness_type = 0;
 	}
 
@@ -606,6 +610,8 @@ void create_n_segment_path(object* objp, int path_length, int avoid_seg)
 	aip->PATH_DIR = 1;		//	Initialize to moving forward.
 	aip->SUBMODE = -1;		//	Don't know what this means.
 	ailp->mode = AIM_FOLLOW_PATH;
+	if (Debug_objnum == (objp - Objects))
+		mprintf((0, "create_n_segment_path: mode to AIM_FOLLOW_PATH, because I made a %d segment path\n", path_length));
 
 	maybe_ai_path_garbage_collect();
 
@@ -727,6 +733,8 @@ void ai_follow_path(object* objp, int player_visibility)
 	if ((aip->hide_index == -1) || (aip->path_length == 0))
 		if (ailp->mode == AIM_RUN_FROM_OBJECT) {
 			create_n_segment_path(objp, 5, -1);
+			if (Debug_objnum == (objp - Objects))
+				mprintf((0, "ai_follow_path: mode to AIM_RUN_FROM_OBJECT, because create_n_segment_path changed it.\n"));
 			ailp->mode = AIM_RUN_FROM_OBJECT;
 		}
 		else
@@ -745,9 +753,13 @@ void ai_follow_path(object* objp, int player_visibility)
 			else
 				create_n_segment_path(objp, AVOID_SEG_LENGTH, ConsoleObject->segnum);
 			ailp->mode = AIM_RUN_FROM_OBJECT;	//	It gets bashed in create_n_segment_path
+			if (Debug_objnum == (objp - Objects))
+				mprintf((0, "ai_follow_path: mode to AIM_RUN_FROM_OBJECT, because create_n_segment_path changed it.\n"));
 		}
 		else {
 			ailp->mode = AIM_STILL;
+			if (Debug_objnum == (objp - Objects))
+				mprintf((0, "ai_follow_path: mode to AIM_STILL, because my path is too short.\n"));
 		}
 		return;
 	}
@@ -823,6 +835,8 @@ void ai_follow_path(object* objp, int player_visibility)
 					else
 						create_n_segment_path(objp, AVOID_SEG_LENGTH, -1);
 					ailp->mode = AIM_RUN_FROM_OBJECT;	//	It gets bashed in create_n_segment_path
+					if (Debug_objnum == (objp - Objects))
+						mprintf((0, "ai_follow_path: mode to AIM_RUN_FROM_OBJECT, because create_n_segment_path changed it.\n"));
 					break;
 				}
 			if (player_visibility) {
@@ -838,6 +852,8 @@ void ai_follow_path(object* objp, int player_visibility)
 		if (ailp->mode == AIM_RUN_FROM_OBJECT) {
 			create_n_segment_path(objp, AVOID_SEG_LENGTH, ConsoleObject->segnum);
 			ailp->mode = AIM_RUN_FROM_OBJECT;	//	It gets bashed in create_n_segment_path
+			if (Debug_objnum == (objp - Objects))
+				mprintf((0, "ai_follow_path: mode to AIM_RUN_FROM_OBJECT, because create_n_segment_path changed it.\n"));
 		}
 		else
 			aip->cur_path_index = aip->path_length - 1;
@@ -860,8 +876,11 @@ void ai_follow_path(object* objp, int player_visibility)
 
 			//mprintf((0, "Object %i reached end of the line!\n", objp-Objects));
 			//	If mode = hiding, then stay here until get bonked or hit by player.
-			if (ailp->mode == AIM_HIDE) {
+			if (ailp->mode == AIM_HIDE) 
+			{
 				ailp->mode = AIM_STILL;
+				if (Debug_objnum == (objp - Objects))
+					mprintf((0, "ai_follow_path: mode to AIM_STILL, because I'm trying to hide and I'm in hiding spot.\n"));
 				return;		// Stay here until bonked or hit by player.
 			}
 			else if (aip->behavior == AIB_STATION) {
@@ -879,6 +898,8 @@ void ai_follow_path(object* objp, int player_visibility)
 			else if (ailp->mode == AIM_RUN_FROM_OBJECT) {
 				create_n_segment_path(objp, AVOID_SEG_LENGTH, ConsoleObject->segnum);
 				ailp->mode = AIM_RUN_FROM_OBJECT;	//	It gets bashed in create_n_segment_path
+				if (Debug_objnum == (objp - Objects))
+					mprintf((0, "ai_follow_path: mode to AIM_RUN_FROM_OBJECT, because create_n_segment_path changed it.\n"));
 			}
 			else {
 				//	Reached end of the line.  First see if opposite end point is reachable, and if so, go there.

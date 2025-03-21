@@ -1434,6 +1434,8 @@ void do_ai_robot_hit(object* objp, int type)
 				break;
 			case AIM_STILL:
 				Ai_local_info[objp - Objects].mode = AIM_CHASE_OBJECT;
+				if (Debug_objnum == (objp - Objects))
+					mprintf((0, "do_ai_robot_hit: mode to AIM_CHASE_OBJECT\n"));
 				break;
 			}
 	}
@@ -2639,7 +2641,11 @@ void do_ai_frame(object* obj)
 	if ((ailp->player_awareness_type == PA_WEAPON_ROBOT_COLLISION) || (ailp->player_awareness_type >= PA_PLAYER_COLLISION)) 
 	{
 		if ((aip->behavior != AIB_STILL) && (aip->behavior != AIB_FOLLOW_PATH) && (aip->behavior != AIB_RUN_FROM) && (obj->id != ROBOT_BRAIN))
+		{
 			ailp->mode = AIM_CHASE_OBJECT;
+			if (Debug_objnum == (obj - Objects))
+				mprintf((0, "do_ai_frame: mode to AIM_CHASE_OBJECT because I was bumped\n"));
+		}
 	}
 
 	//	- -  - -  - -  - -  - -  - -  - -  - -  - -  - -  - -  - -  - -  - -  - -  - -  - -
@@ -2763,6 +2769,8 @@ void do_ai_frame(object* obj)
 			if (r != -1) 
 			{
 				ailp->mode = AIM_OPEN_DOOR;
+				if (Debug_objnum == (obj - Objects))
+					mprintf((0, "do_ai_robot_hit: mode to AIM_OPEN_DOOR, Brain opening door\n"));
 				aip->GOALSIDE = r;
 			}
 			else if (ailp->mode != AIM_FOLLOW_PATH) 
@@ -2987,11 +2995,17 @@ void do_ai_frame(object* obj)
 		if ((player_visibility == 2) && (aip->behavior != AIB_FOLLOW_PATH) && (aip->behavior != AIB_RUN_FROM) && (obj->id != ROBOT_BRAIN)) 
 		{
 			if (robptr->attack_type == 0)
+			{
 				ailp->mode = AIM_CHASE_OBJECT;
+				if (Debug_objnum == (obj - Objects))
+					mprintf((0, "do_ai_frame: mode to AIM_CHASE_OBJECT, because I can see the player, have guns, and they're close\n"));
+			}
 		}
-		else if ((player_visibility == 0) && (aip->behavior == AIB_NORMAL) && (ailp->mode == AIM_FOLLOW_PATH) && (aip->behavior != AIB_RUN_FROM)) 
+		else if ((player_visibility == 0) && (aip->behavior == AIB_NORMAL) && (ailp->mode == AIM_FOLLOW_PATH) && (aip->behavior != AIB_RUN_FROM) && Overall_agitation < 70) 
 		{
 			ailp->mode = AIM_STILL;
+			if (Debug_objnum == (obj - Objects))
+				mprintf((0, "do_ai_frame: mode to AIM_STILL, because I can't see the player\n"));
 			aip->hide_index = -1;
 			aip->path_length = 0;
 		}
