@@ -3697,4 +3697,12 @@ void ai_obj_add_3d_vis(object* objp)
 			}
 		}
 	}
+
+	if (Players[Player_num].flags & PLAYER_FLAGS_CLOAKED)
+	{
+		gr_setcolor(0xC0); //Red
+		g3s_point pt = {};
+		g3_rotate_point(&pt, &Ai_cloak_info[objnum % 8].last_position);
+		g3_draw_sphere(&pt, F1_0);
+	}
 }

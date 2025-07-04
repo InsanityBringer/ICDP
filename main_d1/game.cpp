@@ -2634,7 +2634,7 @@ void ReadControls()
 					multi_send_cloak();
 #endif
 				ai_do_cloak_stuff();
-				Players[Player_num].cloak_time = GameTime;
+				Players[Player_num].cloak_time = GameTime + i2f(1000);
 				mprintf((0, "You are cloaked!\n"));
 			}
 			else
