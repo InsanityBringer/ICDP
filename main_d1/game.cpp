@@ -1771,7 +1771,9 @@ void show_help()
 	m[8].type = NM_TYPE_TEXT; m[8].text = TXT_HELP_6TO10;
 	m[9].type = NM_TYPE_TEXT; m[9].text = (char*)"";
 	m[10].type = NM_TYPE_TEXT; m[10].text = TXT_HELP_TO_VIEW;
-	newmenu_do(NULL, TXT_KEYS, 11, m, NULL);
+	//newmenu_do(NULL, TXT_KEYS, 11, m, NULL);
+
+	newmenu_open(nullptr, TXT_KEYS, 11, m, nullptr, nullptr);
 }
 
 //deal with rear view - switch it on, or off, or whatever

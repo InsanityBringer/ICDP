@@ -130,6 +130,11 @@ void draw_item(bkg* b, newmenu_item* item, int is_current, bool tiny)
 
 }
 
+static bool nm_null_choicefunc(int choice, int nitems, newmenu_item* item)
+{
+	return false; //never remain open. 
+}
+
 nm_menu::nm_menu(std::vector<newmenu_item>& source_items, const char* new_title, const char* new_subtitle,
 	void (*subfunction)(int nitems, newmenu_item* items, int* last_key, int citem), bool (*choicefunc)(int choice, int nitems, newmenu_item* item),
 	int citem, const char* filename, int width, int height, bool tiny_mode)
@@ -142,7 +147,8 @@ nm_menu::nm_menu(std::vector<newmenu_item>& source_items, const char* new_title,
 
 	choice = old_choice = 0;
 
-	Assert(choicefunc != nullptr);
+	if (choicefunc == nullptr)
+		choicefunc = nm_null_choicefunc;
 
 	bg = {};
 	all_text = false;
