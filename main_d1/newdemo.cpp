@@ -2909,21 +2909,77 @@ void newdemo_start_recording()
 	newdemo_record_start_demo();
 }
 
+static char demo_temp_filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE],
+demo_filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
+static char filename_buf[FILENAME_LEN];
+static char fullname_buf[CHOCOLATE_MAX_FILE_PATH_SIZE];
+
+bool newdemo_stop_recording_choice(int choice, int nitems, newmenu_item* item)
+{
+	static uint8_t tmpcnt = 0;
+
+	if (choice == -2) // got bumped out from network menu
+	{
+		char save_file[15];
+
+		if (filename_buf[0] != '\0')
+		{
+			strcpy(save_file, filename_buf);
+			strcat(save_file, ".dem");
+		}
+		else
+			sprintf(save_file, "tmp%d.dem", tmpcnt++);
+		get_game_full_file_path(demo_filename_full_path, save_file, CHOCOLATE_DEMOS_DIR);
+		remove(demo_filename_full_path);
+		rename(demo_temp_filename_full_path, demo_filename_full_path);
+
+		//remove(save_file);
+		//rename(DEMO_FILENAME, save_file);
+		Newmenu_allowed_chars = NULL;
+		return false;
+	}
+	if (choice == -1) // pressed ESC
+	{
+		remove(demo_temp_filename_full_path);
+		//remove(DEMO_FILENAME);		// might as well remove the file
+		Newmenu_allowed_chars = NULL;
+		return false;							// return without doing anything
+	}
+
+	if (filename_buf[0] == 0)	//null string
+		return true; //try again
+
+	//check to make sure name is ok
+	for (char* s = filename_buf; *s; s++)
+		if (!isalnum(*s) && *s != '_')
+		{
+			nm_messagebox1(NULL, NULL, 1, TXT_CONTINUE, TXT_DEMO_USE_LETTERS);
+			return true; //try again
+		}
+
+	char fullname[15];
+	strcpy(fullname, item[0].text);
+	strcat(fullname, ".dem");
+
+	get_game_full_file_path(demo_filename_full_path, fullname, CHOCOLATE_DEMOS_DIR);
+	remove(demo_filename_full_path);
+	rename(demo_temp_filename_full_path, demo_filename_full_path);
+
+	Newmenu_allowed_chars = NULL;
+	return false; 
+}
+
 char demoname_allowed_chars[] = "azAZ09__--";
 void newdemo_stop_recording()
 {
 	newmenu_item m[6];
 	int l, exit;
-	static char filename[9] = "", * s;
-	static uint8_t tmpcnt = 0;
+	static char filename[9] = "";
 	uint8_t cloaked = 0;
-	char fullname[15];
 #ifndef SHAREWARE
 	unsigned short byte_count = 0;
 #endif
 
-	char demo_temp_filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE],
-	     demo_filename_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	get_temp_file_full_path(demo_temp_filename_full_path, DEMO_FILENAME);
 
 	nd_write_byte(ND_EVENT_EOF);
@@ -3023,75 +3079,12 @@ void newdemo_stop_recording()
 		filename[8] = '\0';
 	}
 
-try_again:
-	;
+	strcpy(filename_buf, filename);
 
 	Newmenu_allowed_chars = demoname_allowed_chars;
-	if (!Newdemo_no_space) 
-	{
-		m[0].type = NM_TYPE_INPUT; m[0].text_len = 8; m[0].text = filename;
-		exit = newmenu_do(NULL, TXT_SAVE_DEMO_AS, 1, &(m[0]), NULL);
-	}
-	else if (Newdemo_no_space == 1) 
-	{
-		m[0].type = NM_TYPE_TEXT; m[0].text = TXT_DEMO_SAVE_BAD;
-		m[1].type = NM_TYPE_INPUT; m[1].text_len = 8; m[1].text = filename;
-		exit = newmenu_do(NULL, NULL, 2, m, NULL);
-	}
-	else if (Newdemo_no_space == 2) 
-	{
-		m[0].type = NM_TYPE_TEXT; m[0].text = TXT_DEMO_SAVE_NOSPACE;
-		m[1].type = NM_TYPE_INPUT; m[1].text_len = 8; m[1].text = filename;
-		exit = newmenu_do(NULL, NULL, 2, m, NULL);
-	}
-	Newmenu_allowed_chars = NULL;
+	m[0].type = NM_TYPE_INPUT; m[0].text_len = 8; m[0].text = filename_buf;
+	newmenu_open(nullptr, TXT_SAVE_DEMO_AS, 1, &(m[0]), nullptr, newdemo_stop_recording_choice);
 
-	if (exit == -2) // got bumped out from network menu
-	{
-		char save_file[15];
-
-		if (filename[0] != '\0') 
-		{
-			strcpy(save_file, filename);
-			strcat(save_file, ".dem");
-		}
-		else
-			sprintf(save_file, "tmp%d.dem", tmpcnt++);
-		get_game_full_file_path(demo_filename_full_path, save_file, CHOCOLATE_DEMOS_DIR);
-		remove(demo_filename_full_path);
-		rename(demo_temp_filename_full_path, demo_filename_full_path);
-
-		//remove(save_file);
-		//rename(DEMO_FILENAME, save_file);
-		return;
-	}
-	if (exit == -1) // pressed ESC
-	{	
-		remove(demo_temp_filename_full_path);
-		//remove(DEMO_FILENAME);		// might as well remove the file
-		return;							// return without doing anything
-	}
-
-	if (filename[0] == 0)	//null string
-		goto try_again;
-
-	//check to make sure name is ok
-	for (s = filename; *s; s++)
-		if (!isalnum(*s) && *s != '_') 
-		{
-			nm_messagebox1(NULL, NULL, 1, TXT_CONTINUE, TXT_DEMO_USE_LETTERS);
-			goto try_again;
-		}
-
-	if (Newdemo_no_space)
-		strcpy(fullname, m[1].text);
-	else
-		strcpy(fullname, m[0].text);
-	strcat(fullname, ".dem");
-
-	get_game_full_file_path(demo_filename_full_path, fullname, CHOCOLATE_DEMOS_DIR);
-	remove(demo_filename_full_path);
-	rename(demo_temp_filename_full_path, demo_filename_full_path);
 	//remove(fullname);
 	//rename(DEMO_FILENAME, fullname);
 }
