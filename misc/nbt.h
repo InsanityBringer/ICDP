@@ -32,6 +32,7 @@ struct Tag
 
 	Tag() {}
 	Tag(std::string_view name) : name(name) {}
+	virtual ~Tag() {}
 
 	virtual NBTTag GetType() const = 0;
 	virtual void read_data(FILE* fp) = 0;

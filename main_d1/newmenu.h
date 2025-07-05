@@ -17,6 +17,7 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "2d/gr.h"
 #include <vector>
 #include <string>
+#include <memory>
 
 struct bkg
 {
@@ -61,6 +62,10 @@ class nm_window
 	bool drawn = false;
 	bool closing = false;
 public:
+	virtual ~nm_window()
+	{
+	}
+
 	//Closes the window, and cleans it up from the newmenu canvas. 
 	void close()
 	{
@@ -146,6 +151,9 @@ bool newmenu_messagebox_informative_callback(int choice, int nitems, newmenu_ite
 
 //Opens a messagebox
 void nm_open_messagebox(const char* title, bool (*callback)(int choice, int nitems, newmenu_item* item), int nchoices, ...);
+
+//Opens an arbitary window
+void newmenu_open_window(std::unique_ptr<nm_window>&& window);
 
 // Sample Code:
 /*

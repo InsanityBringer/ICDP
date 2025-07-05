@@ -361,8 +361,6 @@ void init_cockpit()
 	if (Screen_mode == SCREEN_EDITOR)
 		Cockpit_mode = CM_FULL_SCREEN;
 
-	gr_set_curfont(GAME_FONT);
-
 	switch (Cockpit_mode) 
 	{
 	case CM_FULL_COCKPIT:

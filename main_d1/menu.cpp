@@ -283,7 +283,6 @@ void do_option(int select)
 		break;
 #endif
 	case MENU_VIEW_SCORES:
-		gr_palette_fade_out(gr_palette, 32, 0);
 		scores_view(-1);
 		break;
 #ifdef SHAREWARE

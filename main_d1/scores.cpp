@@ -34,12 +34,12 @@ COPYRIGHT 1993-1998 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "menu.h"
 #include "player.h"
 #include "screens.h"
-#include "gamefont.h"
 #include "platform/mouse.h"
 #include "platform/joy.h"
 #include "platform/timer.h"
 #include "stringtable.h"
 #include "scores.h"
+#include "platform/event.h"
 
 #define VERSION_NUMBER 		1
 #define SCORES_FILENAME 	"descent.hi"
@@ -378,8 +378,156 @@ void scores_draw_item(int  i, stats_info* stats)
 	scores_rprintf(311 - 42 + XX, y + YY, "%d:%02d:%02d", h, m, s);
 }
 
+bool reset_scores_callback(int choice, int nitems, newmenu_item* item)
+{
+	if (choice == 1)
+	{
+		remove(get_scores_filename());
+		scores_read();
+	}
+
+	return false;
+}
+
+class nm_scorewindow : public nm_window
+{
+	int citem;
+	int looper;
+	bool background_drawn;
+	grs_bitmap* saved;
+public:
+	nm_scorewindow(int highlight)
+	{
+		citem = highlight;
+		looper = 0;
+		background_drawn = false;
+		saved = nullptr;
+
+		scores_read();
+	}
+
+	void draw() override
+	{
+		const int8_t fades[64] = { 1,1,1,2,2,3,4,4,5,6,8,9,10,12,13,15,16,17,19,20,22,23,24,26,27,28,28,29,30,30,31,31,31,31,31,30,30,29,28,28,27,26,24,23,22,20,19,17,16,15,13,12,10,9,8,6,5,4,4,3,2,2,1,1 };
+
+		nm_window::draw();
+
+		if (!background_drawn)
+		{
+			gr_set_current_canvas(nm_canvas);
+			saved = gr_create_bitmap(grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
+			gr_bm_bitblt(nm_canvas->cv_bitmap.bm_w, nm_canvas->cv_bitmap.bm_h, 0, 0, 0, 0, &(grd_curcanv->cv_bitmap), saved);
+			background_drawn = true;
+		}
+
+		nm_draw_background(0, 0, grd_curcanv->cv_bitmap.bm_w, grd_curcanv->cv_bitmap.bm_h);
+
+		grd_curcanv->cv_font = Gamefonts[GFONT_MEDIUM_3];
+
+		gr_string(0x8000, 15, TXT_HIGH_SCORES);
+
+		grd_curcanv->cv_font = Gamefonts[GFONT_SMALL];
+
+		gr_set_fontcolor(BM_XRGB(31, 26, 5), -1);
+		gr_string(31 + 33 + XX, 46 + 7 + YY, TXT_NAME);
+		gr_string(82 + 33 + XX, 46 + 7 + YY, TXT_SCORE);
+		gr_string(127 + 33 + XX, 46 + 7 + YY, TXT_SKILL);
+		gr_string(170 + 33 + XX, 46 + 7 + YY, TXT_LEVELS);
+		//	gr_string( 202, 46, "Kills" );
+		//	gr_string( 234, 46, "Rescues" );
+		gr_string(288 - 42 + XX, 46 + 7 + YY, TXT_TIME);
+
+		if (citem < 0)
+			gr_string(0x8000, 175, TXT_PRESS_CTRL_R);
+
+		gr_set_fontcolor(BM_XRGB(28, 28, 28), -1);
+
+		gr_printf(0x8000, 31, "%c%s%c  - %s", 34, Scores.cool_saying, 34, Scores.stats[0].name);
+
+		for (int i = 0; i < MAX_HIGH_SCORES; i++)
+		{
+			if (i == citem)
+			{
+				fix t1 = timer_get_fixed_seconds();
+				while (timer_get_fixed_seconds() < t1 + F1_0 / 128);
+
+				gr_set_fontcolor(gr_fade_table[fades[looper] * 256 + BM_XRGB(28, 28, 28)], -1);
+				if (++looper > 63) 
+					looper = 0;
+
+				if (citem == MAX_HIGH_SCORES)
+					scores_draw_item(MAX_HIGH_SCORES, &Last_game);
+				else
+					scores_draw_item(citem, &Scores.stats[citem]);
+			}
+			else
+			{
+				if (i == 0)
+				{
+					gr_set_fontcolor(BM_XRGB(28, 28, 28), -1);
+				}
+				else
+				{
+					gr_set_fontcolor(gr_fade_table[BM_XRGB(28, 28, 28) + ((28 - i * 2) * 256)], -1);
+				}
+				scores_draw_item(i, &Scores.stats[i]);
+			}
+		}
+	}
+
+	void frame() override
+	{
+		bool done = false;
+
+		while (event_available())
+		{
+			plat_event ev;
+			pop_event(ev);
+			if (ev.source == EventSource::Keyboard && ev.down)
+			{
+				int k = event_to_keycode(ev);
+
+				switch (k)
+				{
+				case KEY_CTRLED + KEY_R:
+					if (citem < 0)
+					{
+						// Reset scores...
+						nm_open_messagebox(NULL, reset_scores_callback, 2, TXT_NO, TXT_YES, TXT_RESET_HIGH_SCORES);
+					}
+					break;
+				case KEY_BACKSP:				Int3(); k = 0; break;
+				case KEY_PRINT_SCREEN:		save_screen_shot(0); k = 0; break;
+
+				case KEY_ENTER:
+				case KEY_SPACEBAR:
+				case KEY_ESC:
+					done = true;
+					break;
+				}
+			}
+		}
+
+		if (done)
+		{
+			close();
+		}
+	}
+
+	void cleanup() override
+	{
+		if (saved)
+		{
+			gr_bitmap(0, 0, saved);
+			gr_free_bitmap(saved);
+		}
+	}
+};
+
 void scores_view(int citem)
 {
+	newmenu_open_window(std::make_unique<nm_scorewindow>(citem));
+	/*
 	const int8_t fades[64] = { 1,1,1,2,2,3,4,4,5,6,8,9,10,12,13,15,16,17,19,20,22,23,24,26,27,28,28,29,30,30,31,31,31,31,31,30,30,29,28,28,27,26,24,23,22,20,19,17,16,15,13,12,10,9,8,6,5,4,4,3,2,2,1,1 };
 
 	grs_canvas* scores_canvas = gr_create_canvas(320, 200);
@@ -494,6 +642,6 @@ ReshowScores:
 
 	game_flush_inputs();
 
-	gr_free_canvas(scores_canvas);
+	gr_free_canvas(scores_canvas);*/
 }
 
