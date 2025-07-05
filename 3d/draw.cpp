@@ -69,7 +69,7 @@ bool G3Drawer::must_clip_flat_face(int nv, g3s_codes cc, int color)
 		{
 			g3s_point* p = bufptr[i];
 
-			if (!(p->p3_flags & PF_PROJECTED))
+			//if (!(p->p3_flags & PF_PROJECTED))
 				project_point(p);
 
 			if (p->p3_flags & PF_OVERFLOW)
@@ -113,7 +113,7 @@ bool G3Drawer::must_clip_tmap_face(int nv, g3s_codes cc, grs_bitmap* bm)
 		{
 			g3s_point* p = bufptr[i];
 
-			if (!(p->p3_flags & PF_PROJECTED))
+			//if (!(p->p3_flags & PF_PROJECTED))
 				project_point(p);
 
 			if (p->p3_flags & PF_OVERFLOW)
@@ -202,7 +202,7 @@ void G3Drawer::draw_poly(int nv, g3s_point** pointlist, int color)
 	{
 		g3s_point* p = bufptr[i];
 
-		if (!(p->p3_flags & PF_PROJECTED))
+		//if (!(p->p3_flags & PF_PROJECTED))
 			project_point(p);
 
 		if (p->p3_flags & PF_OVERFLOW)
@@ -258,7 +258,7 @@ void G3Drawer::draw_poly_direct(int nv, g3s_point* pointlist, int color)
 	{
 		g3s_point* p = bufptr[i];
 
-		if (!(p->p3_flags & PF_PROJECTED))
+		//if (!(p->p3_flags & PF_PROJECTED))
 			project_point(p);
 
 		if (p->p3_flags & PF_OVERFLOW)
@@ -317,7 +317,7 @@ void G3Drawer::draw_tmap(int nv, g3s_point** pointlist, g3s_uvl* uvl_list, grs_b
 	{
 		g3s_point* p = bufptr[i];
 
-		if (!(p->p3_flags & PF_PROJECTED))
+		//if (!(p->p3_flags & PF_PROJECTED))
 			project_point(p);
 
 		if (p->p3_flags & PF_OVERFLOW)
@@ -380,7 +380,7 @@ void G3Drawer::draw_tmap_direct(int nv, g3s_point* pointlist, g3s_uvl* uvl_list,
 	{
 		g3s_point* p = bufptr[i];
 
-		if (!(p->p3_flags & PF_PROJECTED))
+		//if (!(p->p3_flags & PF_PROJECTED))
 			project_point(p);
 
 		if (p->p3_flags & PF_OVERFLOW)

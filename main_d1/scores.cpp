@@ -262,9 +262,42 @@ void scores_fill_struct(stats_info* stats)
 
 //char * score_placement[10] = { TXT_1ST, TXT_2ND, TXT_3RD, TXT_4TH, TXT_5TH, TXT_6TH, TXT_7TH, TXT_8TH, TXT_9TH, TXT_10TH };
 
+static int add_position;
+bool add_first_place_callback(int choice, int nitems, newmenu_item* item)
+{
+	strncpy(Scores.cool_saying, item[1].text, COOL_MESSAGE_LEN);
+	if (strlen(Scores.cool_saying) < 1)
+		sprintf(Scores.cool_saying, "No Comment");
+
+	// move everyone down...
+	for (int i = MAX_HIGH_SCORES - 1; i > add_position; i--)
+	{
+		Scores.stats[i] = Scores.stats[i - 1];
+	}
+	scores_fill_struct(&Scores.stats[add_position]);
+	scores_write();
+
+	scores_view(add_position);
+	return false;
+}
+
+bool add_high_score_callback(int choice, int nitems, newmenu_item* item)
+{
+	// move everyone down...
+	for (int i = MAX_HIGH_SCORES - 1; i > add_position; i--)
+	{
+		Scores.stats[i] = Scores.stats[i - 1];
+	}
+	scores_fill_struct(&Scores.stats[add_position]);
+	scores_write();
+
+	scores_view(add_position);
+	return false;
+}
+
 void scores_maybe_add_player(int abort_flag)
 {
-	char text1[COOL_MESSAGE_LEN + 10];
+	static char text1[COOL_MESSAGE_LEN + 10];
 	newmenu_item m[10];
 
 	scores_read();
@@ -285,32 +318,21 @@ void scores_maybe_add_player(int abort_flag)
 			return;
 		scores_fill_struct(&Last_game);
 	}
-	else 
+	else
 	{
-		if (position == 0) 
+		add_position = position;
+		if (position == 0)
 		{
 			strcpy(text1, "");
 			m[0].type = NM_TYPE_TEXT; m[0].text = TXT_COOL_SAYING;
 			m[1].type = NM_TYPE_INPUT; m[1].text = text1; m[1].text_len = COOL_MESSAGE_LEN - 5;
-			newmenu_do(TXT_HIGH_SCORE, TXT_YOU_PLACED_1ST, 2, m, NULL);
-			strncpy(Scores.cool_saying, text1, COOL_MESSAGE_LEN);
-			if (strlen(Scores.cool_saying) < 1)
-				sprintf(Scores.cool_saying, "No Comment");
+			newmenu_open(TXT_HIGH_SCORE, TXT_YOU_PLACED_1ST, 2, m, nullptr, add_first_place_callback);
 		}
-		else 
+		else
 		{
-			nm_messagebox(TXT_HIGH_SCORE, 1, TXT_OK, "%s %s!", TXT_YOU_PLACED, *(&TXT_1ST + position));
+			nm_open_messagebox(TXT_HIGH_SCORE, add_high_score_callback, 1, TXT_OK, "%s %s!", TXT_YOU_PLACED, *(&TXT_1ST + position));
 		}
-
-		// move everyone down...
-		for (int i = MAX_HIGH_SCORES - 1; i > position; i--) 
-		{
-			Scores.stats[i] = Scores.stats[i - 1];
-		}
-		scores_fill_struct(&Scores.stats[position]);
-		scores_write();
 	}
-	scores_view(position);
 }
 
 #define TEXT_FONT  		(Gamefonts[GFONT_MEDIUM_3])
@@ -444,9 +466,10 @@ public:
 
 		gr_printf(0x8000, 31, "%c%s%c  - %s", 34, Scores.cool_saying, 34, Scores.stats[0].name);
 
-		for (int i = 0; i < MAX_HIGH_SCORES; i++)
+		int num_to_draw = citem == MAX_HIGH_SCORES ? MAX_HIGH_SCORES + 1 : MAX_HIGH_SCORES;
+		for (int i = 0; i < num_to_draw; i++)
 		{
-			if (i == citem)
+			if (i == citem || i == MAX_HIGH_SCORES) //Check MAX_HIGH_SCORES just in case
 			{
 				fix t1 = timer_get_fixed_seconds();
 				while (timer_get_fixed_seconds() < t1 + F1_0 / 128);
@@ -455,7 +478,7 @@ public:
 				if (++looper > 63) 
 					looper = 0;
 
-				if (citem == MAX_HIGH_SCORES)
+				if (i == MAX_HIGH_SCORES)
 					scores_draw_item(MAX_HIGH_SCORES, &Last_game);
 				else
 					scores_draw_item(citem, &Scores.stats[citem]);

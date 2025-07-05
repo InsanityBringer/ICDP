@@ -1666,6 +1666,7 @@ void game_pause(bool paused)
 
 			Game_paused = false;
 			grs_canvas* canv = get_hud_canvas();
+			gr_set_current_canvas(canv);
 			clear_boxed_message();
 		}
 	}
